@@ -9,3 +9,6 @@
 - [ ] Phase 7: release hardening, end-to-end verification and contributor documentation.
 
 Completion requires independently verified delivery of relevant real CVEs and restart recovery; no phase is complete merely because scaffolding exists.
+
+- [x] Prepare a bounded development runner and optional systemd timer; validate with a simulated CLI.
+- [ ] Verify a real agent run and set up a recurring schedule only once account usage and hosting are authorized and understood.

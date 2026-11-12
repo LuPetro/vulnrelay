@@ -78,7 +78,9 @@ def test_failed_page_rolls_back_records_and_checkpoint(engine):
         sync(engine, client=client, now=NOW, sleeper=lambda _: None)
     with engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM vulnerabilities")).scalar_one() == 0
-        assert connection.execute(text("SELECT COUNT(*) FROM source_state")).scalar_one() == 0
+        state = connection.execute(text("SELECT checkpoint, last_error FROM source_state WHERE source='nvd'")).one()
+        assert state.checkpoint is None
+        assert state.last_error == "NVD synchronization failed"
 
 
 def test_older_record_cannot_overwrite_newer(engine):

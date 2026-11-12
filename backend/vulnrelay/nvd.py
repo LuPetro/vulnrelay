@@ -8,6 +8,7 @@ from email.utils import parsedate_to_datetime
 import httpx
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 PAGE_SIZE = 2000
@@ -132,6 +133,16 @@ def sync(engine: Engine, *, api_key: str = "", days: int = 7,
                 ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
                 last_success_at=excluded.last_success_at, last_error=NULL'''),
                 {"checkpoint": _iso(end), "success": datetime.now(UTC)})
+    except (httpx.HTTPError, ValueError, TypeError, KeyError):
+        # Keep the previous successful cursor intact and avoid persisting upstream secrets.
+        try:
+            with engine.begin() as connection:
+                connection.execute(text("""INSERT INTO source_state (source, last_error)
+                    VALUES ('nvd', 'NVD synchronization failed')
+                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error"""))
+        except SQLAlchemyError:
+            pass  # A missing schema or unavailable database cannot record its own error.
+        raise
     finally:
         if owned_client:
             client.close()
