@@ -12,7 +12,7 @@ def test_health_and_wal(tmp_path, monkeypatch):
     monkeypatch.setenv("VULNRELAY_DATABASE_URL", f"sqlite:///{tmp_path / 'data.db'}")
     get_settings.cache_clear()
     try:
-        with TestClient(app) as client:
+        with TestClient(app, base_url="http://localhost") as client:
             response = client.get("/health")
             assert response.status_code == 200
             assert response.json() == {"status": "ok", "database": "reachable"}
@@ -31,7 +31,7 @@ def test_status_is_honest(tmp_path, monkeypatch):
     try:
         result = CliRunner().invoke(cli, ["status", "--json"])
         assert result.exit_code == 0
-        assert '"monitoring": "not implemented"' in result.stdout
+        assert '"last_cycle": null' in result.stdout
     finally:
         get_settings.cache_clear()
 

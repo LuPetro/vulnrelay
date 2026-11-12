@@ -1,39 +1,91 @@
 # VulnRelay
 
-Self-hosted vulnerability notification engine. **Early development:** this foundation does not yet ingest CVEs or send notifications.
+**Know what matters. Get notified.**
 
-## Development
+VulnRelay is an Apache-2.0, self-hosted vulnerability notification engine. Declare the products you run, connect Telegram, and choose rules based on CVSS, EPSS, known exploitation and asset context. The optional local React interface configures the engine; a separate worker keeps monitoring after you close the browser. No cloud account or AI is required.
 
-Requires Python 3.12+ with venv/pip. From the repository root:
+**Current status: alpha.** The core path is implemented and tested with mocked Telegram delivery: public intelligence → explicit asset matching → explainable rules → persistent delivery queue. A real Telegram end-to-end installation still needs operator credentials and validation. This is not yet a v1 or production release.
+
+## Start with Docker
+
+```sh
+cp .env.example .env
+# Put your Telegram bot token in .env, then:
+docker compose up --build -d
+```
+
+Open **http://localhost:8080**. Add an asset, add a Telegram connector with your chat ID, create a rule, and queue a test message. The monitoring worker synchronizes NVD/CISA, refreshes EPSS daily, evaluates rules, and sends queued messages. The database and schedules live in a persistent Docker volume. Restart both services after changing `.env` values. Ports bind to localhost; do not publish this alpha to the Internet.
+
+The first source synchronization can take several minutes, especially without an NVD API key. Sources fail independently. The UI shows saved source checkpoints, errors, delivery states and the last engine heartbeat. A saved checkpoint is not a real-time guarantee of source availability.
+
+## What works
+
+- NVD API 2.0 incremental ingestion, checkpoints, pagination, bounded retry/backoff, and original record preservation.
+- CISA KEV authoritative snapshots with validation, rollback on invalid catalogs and stale-catalog rejection.
+- Daily EPSS CSV enrichment of locally stored CVEs, plus individual FIRST API lookups.
+- Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
+- Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
+- Telegram destinations, compact/detailed plain-text messages, queued test notifications and delivery history.
+- Durable queue, expiring delivery claims, bounded retries, deduplication and re-notification on selected material changes.
+- Local configuration UI with dark/light themes, rule builder, rule tests and searchable CVE history.
+- Headless CLI, SQLite WAL, packaged database migrations, optional PostgreSQL plumbing, CI tests and Docker deployment.
+
+## Matching and metrics
+
+Product and keyword matches are **potential**. An installed version with unverified applicability is **unknown**. Only a literal vulnerable CPE with an explicit version in an unconstrained OR branch is eligible for **confirmed** matching. Version ranges, environmental AND constraints and keyword-only evidence never become confirmed claims. Generic version-range evaluation, package ecosystems, OSV and PURLs remain unfinished.
+
+CVSS is severity, EPSS is an exploitation probability estimate, and KEV records known exploitation. Missing metrics stay unknown, including under NOT. EPSS dates and KEV catalog dates are shown; stale values are not silently replaced with zero. The custom rule engine does not claim an officially validated risk score.
+
+A successful initial run evaluates the synchronized window, so it can notify about existing relevant records. Default NVD bootstrap covers the last seven modified days; the KEV catalog includes historical CVEs. Adjust bootstrap with `vulnrelay sync --days 30` before starting the native monitor. No full historical NVD backfill is implied.
+
+## Native Python installation
+
+Python 3.12+ with pip/venv is required:
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e 'backend[dev]'
-alembic -c backend/alembic.ini upgrade head
+cp .env.example .env
+vulnrelay init
 vulnrelay start
+# In a second terminal with the same environment:
+vulnrelay monitor
 ```
 
-Check `http://127.0.0.1:8080/health`, run `vulnrelay status --json`, `vulnrelay config validate`, and `pytest backend/tests`. Configure deployment with `VULNRELAY_` environment variables; `.env.example` documents defaults. Export them in a native shell: the application does not automatically read `.env`.
+The GUI is optional. Build it with Node 22+: `cd frontend && npm ci && npm run build`. The API serves `./frontend/dist` when present. During frontend development, `npm run dev` proxies `/api` to localhost:8080. Native commands read `.env` from the working directory; environment variables override it.
 
-With Docker Compose, run `docker compose up --build`; the database is stored in a named volume and the port is bound to localhost. The container listens on its internal network interface for port forwarding. Do not expose it remotely: authentication is not implemented.
+## CLI examples
 
-See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md) for scope and progress. Licensed under Apache-2.0.
+```sh
+vulnrelay doctor
+vulnrelay status --json
+vulnrelay sync --days 7
+vulnrelay sync-kev
+vulnrelay lookup-epss CVE-2021-44228
+vulnrelay cve CVE-2021-44228
+vulnrelay assets add examples/asset.json
+vulnrelay connectors add examples/telegram.json
+vulnrelay assets list
+vulnrelay connectors list
+# Insert the returned connector ID into your rule JSON:
+vulnrelay rules add your-rule.json
+vulnrelay rules test RULE_ID
+vulnrelay evaluate --enqueue
+vulnrelay connectors test CONNECTOR_ID
+vulnrelay deliver
+vulnrelay history
+vulnrelay monitor --once --no-sync
+```
 
-## Manual NVD synchronization
+See [Telegram setup](docs/telegram.md), [rules and assets](docs/configuration.md), [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md), [security](SECURITY.md), and [contributing](CONTRIBUTING.md). Local API documentation is at `/docs`; mutations require `X-VulnRelay-Request: 1` and the bearer token if configured.
 
-After applying migrations, run `vulnrelay sync --days 7` to import NVD records modified in the last seven days. Subsequent runs continue from the last successful checkpoint with a five-minute overlap; `--days` only affects the first run. Missed periods are caught up in windows of at most 119 days, one window per invocation. The import preserves each original NVD record, extracts the preferred NVD CVSS metric, and retains rejected records. A failed page rolls back the entire window and leaves its checkpoint unchanged. The sync command is manual: no automatic scheduler, matching, enrichment, or notifications exist yet. Do not run concurrent syncs against the same database.
+## Delivery guarantees and remaining work
 
-Set `VULNRELAY_NVD_API_KEY` as an environment variable to use an optional NVD API key. Without one, requests are paced more conservatively. This product uses the NVD API but is not endorsed or certified by the NVD. See the [NVD API documentation](https://nvd.nist.gov/developers/vulnerabilities).
+Delivery is **at least once**. A crash after Telegram accepted a message and before the database recorded success can cause a repeat; Telegram does not provide an idempotency key for `sendMessage`. Messages have six automatic attempts with backoff, one-second destination spacing, rate-limit cooldowns, expiring claims and visible terminal failures. An unchanged alert is not queued again for the same CVE, asset, rule and destination. KEV changes, CVSS/status changes, a new ten-percentage-point EPSS band, CPE evidence changes and changed NVD patch references can create another event. Disabling change notifications keeps one event per identity. Multiple matching assets can produce separate, explicitly attributed alerts.
 
-## Development automation
+Still planned: arbitrary version applicability and package matching, additional connectors, digests, AI, inventory import/export, retention/backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
 
-An optional, bounded agent runner and a disabled example schedule are documented in [docs/agent-runner.md](docs/agent-runner.md). They develop the project; they do not monitor vulnerabilities.
+The optional [development agent runner](docs/agent-runner.md) is separate from CVE monitoring and is not scheduled automatically.
 
-## CISA known exploited vulnerabilities
-
-Run `vulnrelay sync-kev` to download the CISA KEV catalog, then `vulnrelay cve CVE-2021-44228` to inspect locally stored NVD and CISA records. KEV status is unknown until a catalog has been synchronized; an absent entry in a downloaded catalog is reported as not listed, not proof that the vulnerability is not exploited. The displayed catalog release timestamp indicates the age of the data. Invalid, incomplete, or older catalogs do not replace the last successful snapshot. This is a manual operation and is not yet part of an automatic monitoring cycle. See the [CISA KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog).
-
-## EPSS on demand
-
-Run `vulnrelay lookup-epss CVE-2021-44228` to query and store a single current FIRST EPSS score. `vulnrelay cve` displays any stored score, percentile and measurement date. EPSS estimates exploitation probability; CVSS measures severity, and CISA KEV identifies known exploitation. The score is not refreshed automatically. FIRST recommends its API for individual lookups, not bulk synchronization; see [FIRST EPSS data](https://www.first.org/epss/data).
+Source references: [NVD API](https://nvd.nist.gov/developers/vulnerabilities), [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), [FIRST EPSS data](https://www.first.org/epss/data), [Telegram Bot API](https://core.telegram.org/bots/api#sendmessage). This product uses NVD data but is not endorsed or certified by NVD.

@@ -1,0 +1,110 @@
+"""Local configuration and troubleshooting API."""
+
+from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Query, Request
+from sqlalchemy import text
+
+from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
+from vulnrelay.monitor import state
+from vulnrelay.pipeline import correlate, vulnerabilities
+from vulnrelay.store import delete_document, list_documents, save_document
+
+router = APIRouter(prefix="/api")
+Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.get("/overview")
+def overview(request: Request):
+    engine = request.app.state.engine
+    with engine.connect() as connection:
+        sources = [dict(row) for row in connection.execute(text("SELECT source, checkpoint, last_success_at, last_error FROM source_state ORDER BY source")).mappings()]
+        counts = {table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one() for table in ("assets", "rules", "connectors", "vulnerabilities")}
+        deliveries = {row.state: row.count for row in connection.execute(text("SELECT state, COUNT(*) AS count FROM outbox GROUP BY state"))}
+    return {"counts": counts, "sources": sources, "deliveries": deliveries, "engine": state(engine),
+            "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors"))}
+
+
+@router.get("/config/{collection}")
+def list_config(collection: Collection, request: Request):
+    return list_documents(request.app.state.engine, collection)
+
+
+@router.post("/config/{collection}", status_code=201)
+def create_config(collection: Collection, document: dict, request: Request):
+    try:
+        return save_document(request.app.state.engine, collection, document)
+    except ValueError:
+        raise HTTPException(422, "Invalid configuration or missing asset/connector reference") from None
+
+
+@router.put("/config/{collection}/{document_id}")
+def update_config(collection: Collection, document_id: str, document: dict, request: Request):
+    if document_id not in {row["id"] for row in list_documents(request.app.state.engine, collection)}:
+        raise HTTPException(404, "Configuration entry not found")
+    try:
+        return save_document(request.app.state.engine, collection, document, document_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid configuration or missing asset/connector reference") from None
+
+
+@router.delete("/config/{collection}/{document_id}")
+def delete_config(collection: Collection, document_id: str, request: Request):
+    if not delete_document(request.app.state.engine, collection, document_id):
+        raise HTTPException(404, "Configuration entry not found")
+    return {"deleted": True}
+
+
+@router.get("/evaluate")
+def evaluate_rules(request: Request, rule_id: str | None = None, cve_id: str | None = None):
+    return correlate(request.app.state.engine, rule_id=rule_id, cve_id=cve_id)
+
+
+@router.post("/queue/evaluate")
+def queue_matches(request: Request):
+    return correlate(request.app.state.engine, enqueue=True)
+
+
+@router.post("/connectors/{connector_id}/test", status_code=202)
+def test_connector(connector_id: str, request: Request):
+    try:
+        return {"queued": enqueue_test(request.app.state.engine, connector_id)}
+    except ValueError:
+        raise HTTPException(404, "Connector not found") from None
+
+
+@router.get("/deliveries")
+def deliveries(request: Request, limit: int = Query(100, ge=1, le=1000)):
+    return history(request.app.state.engine, limit)
+
+
+@router.post("/deliveries/next")
+def next_delivery(request: Request):
+    return deliver_one(request.app.state.engine)
+
+
+@router.get("/vulnerabilities")
+def list_vulnerabilities(request: Request, q: str = Query("", max_length=200), limit: int = Query(50, ge=1, le=200)):
+    result = []
+    for entry in vulnerabilities(request.app.state.engine):
+        if q and q.casefold() not in (entry["id"] + " " + entry["description"]).casefold():
+            continue
+        result.append({k: v for k, v in entry.items() if k not in ("nvd", "kev_record")})
+        if len(result) >= limit:
+            break
+    return result
+
+
+@router.get("/vulnerabilities/{cve_id}")
+def vulnerability_details(cve_id: str, request: Request):
+    records = list(vulnerabilities(request.app.state.engine, cve_id.upper()))
+    if not records:
+        raise HTTPException(404, "CVE not found locally")
+    return {"vulnerability": records[0], "matches": correlate(request.app.state.engine, cve_id=cve_id.upper())}
+
+
+@router.post("/deliveries/{message_id}/retry")
+def retry_delivery(message_id: str, request: Request):
+    if not retry_failed(request.app.state.engine, message_id):
+        raise HTTPException(409, "Delivery does not exist or is not in failed state")
+    return {"retrying": message_id}

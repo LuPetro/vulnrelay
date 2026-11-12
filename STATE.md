@@ -1,9 +1,23 @@
-# State
+# Current state
 
-Phase 1 is in progress. FastAPI health endpoint, environment configuration, SQLAlchemy SQLite WAL setup, Alembic migrations, basic CLI, CI and Docker Compose are present. Docker previously built and its health endpoint returned a healthy database response. Remote access is unsupported; Compose publishes the port on localhost only. Phase 1 still needs fuller CLI and configuration coverage, installation documentation, security hardening and additional operational checks.
+VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release. Estate Atlas is outside this project and was not modified.
 
-A first Phase 2 slice supports manual incremental NVD API 2.0 synchronization with a durable checkpoint, pagination, retry/backoff, NVD CVSS extraction, original source record preservation and transaction rollback on failed windows. The initial sync defaults to seven days, later syncs overlap five minutes, and catch-up requires repeated invocations for windows over 119 days. A real one-day sync processed 2,840 records. Fourteen tests and Ruff passed. Failed NVD syncs now persist a generic error without advancing the checkpoint; later success clears it. The sync is not scheduled and does not support concurrent runs safely. CISA KEV synchronization is available manually: a full validated catalog snapshot is stored separately, errors preserve the previous snapshot, and the CLI can display local CVE and KEV data. A live CISA sync stored 1,779 records. An on-demand single-CVE EPSS lookup stores score, percentile and date; a live FIRST query succeeded. Automatic EPSS refresh, matching, alerting, authentication and GUI are not implemented.
+## Implemented
 
-Next: add synchronization locking and automated EPSS enrichment, then assets, rules, and notification delivery. Complete the foundation and scheduler before claiming continuous monitoring. Git is configured locally for the connected GitHub account using its noreply address. The GitHub development branch was initialized separately using the connector; its history differs from the local branch and must be reconciled before a normal push.
+- Packaged migrations through 0005; init/status/doctor; SQLite WAL; .env support; non-root Docker API/UI plus monitoring worker and persistent volume.
+- Incremental NVD ingestion stages downloads before a short atomic write transaction. CISA snapshots preserve valid prior data on failure. FIRST EPSS enriches local CVEs daily from the bulk feed, supports bounded same-host HTTPS redirects, and keeps on-demand API lookup.
+- Persistent monitoring schedule and per-database lock; independent delivery thread; source failure isolation; structured application logging without provider exception URLs.
+- Validated asset/rule/Telegram CRUD shared between CLI and API. Matching returns confidence and evidence; generic version ranges remain unverified. Rule evaluation is three-valued and supports nested AND/OR/NOT.
+- Deduplicated persistent outbox, selected material-change re-notification, destination cooldowns, expiring claims, bounded retries, failure history and explicit operator retry. At-least-once semantics; not exactly once.
+- Local UI: setup guidance, overview/source health, assets, nested rule builder, Telegram connector tests, rule dry runs, CVE search/details, delivery history/retry, dark/light themes and optional API token in browser memory.
+- Configuration API has Host validation, cross-origin mutation checks and optional bearer protection. Remote deployment is unsupported.
 
-A bounded development agent runner and example systemd timer have been added. Runner behavior was tested with a fake Codex executable; no live automated agent run has been performed. The timer is not installed or active: model use may consume allowance or incur costs, and the earlier project constraints prohibit spending money without explicit approval. The runner stops on a dirty working tree and never pushes automatically.
+## Verification
+
+28 backend tests pass, covering sources, matching, missing metrics, API guards/authentication, the complete API-to-queue-to-mocked-Telegram path, deduplication, material changes, retries, claim recovery, schedule persistence, source isolation and independent delivery. Ruff passes. TypeScript/Vite build and one frontend form smoke test pass. A wheel builds with packaged migrations. Docker API and worker started successfully; UI, health and overview were checked. The live monitor has ingested 12,495 NVD records and reported successful NVD, CISA and EPSS synchronization; the native bulk EPSS check enriched 4,387 local records. No real Telegram delivery has been performed because no operator credentials/destination are configured. No full browser visual/accessibility test or PostgreSQL E2E suite has run. CI configuration is present; remote CI outcomes must be checked separately.
+
+## Next priorities
+
+Validate real Telegram setup when credentials are provided; add inventory import/export, better version applicability, broader browser E2E/accessibility tests, notification aggregation, retention/backups and additional connectors/digests. Keep release status alpha until acceptance criteria are independently verified. Optional AI is unfinished and unnecessary for the current engine.
+
+Git is configured locally as the connected LuPetro account with its GitHub noreply address. GitHub development history differs from local history because uploads use the GitHub connector; reconcile before a normal Git push. The development-agent timer is not active. The application's own monitoring worker is separate and runs through Docker Compose.

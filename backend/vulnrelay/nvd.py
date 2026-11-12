@@ -4,6 +4,7 @@ import json
 import time
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
+from tempfile import SpooledTemporaryFile
 
 import httpx
 from sqlalchemy import text
@@ -101,8 +102,9 @@ def sync(engine: Engine, *, api_key: str = "", days: int = 7,
     client = client or httpx.Client(timeout=30, follow_redirects=False)
     count = 0
     try:
-        # Data and cursor commit together; an interrupted page never advances the cursor.
-        with engine.begin() as connection:
+        # Stage the complete response before taking the SQLite write lock. Large windows
+        # spill to a temporary file instead of occupying memory or blocking configuration.
+        with SpooledTemporaryFile(mode="w+t", max_size=1024 * 1024) as staged:
             index = 0
             while True:
                 if index:
@@ -111,28 +113,31 @@ def sync(engine: Engine, *, api_key: str = "", days: int = 7,
                                         "startIndex": index, "resultsPerPage": PAGE_SIZE}, headers, sleeper)
                 records = payload["vulnerabilities"]
                 total = int(payload["totalResults"])
-                if not isinstance(records, list) or int(payload["startIndex"]) != index:
+                if not isinstance(records, list) or int(payload["startIndex"]) != index or total < 0:
                     raise ValueError("NVD returned an invalid page")
                 if not records and index < total:
                     raise ValueError("NVD returned an incomplete page")
                 for record in records:
-                    item = normalize(record)
+                    staged.write(json.dumps(normalize(record)) + "\n")
+                    count += 1
+                index += len(records)
+                if index >= total:
+                    break
+            staged.seek(0)
+            with engine.begin() as connection:
+                for line in staged:
                     connection.execute(text('''INSERT INTO vulnerabilities
                         (id, modified, published, status, description, cvss_score, severity, cvss_version, nvd_raw)
                         VALUES (:id, :modified, :published, :status, :description, :cvss_score, :severity, :cvss_version, :raw)
                         ON CONFLICT(id) DO UPDATE SET modified=excluded.modified, published=excluded.published,
                         status=excluded.status, description=excluded.description, cvss_score=excluded.cvss_score,
                         severity=excluded.severity, cvss_version=excluded.cvss_version, nvd_raw=excluded.nvd_raw
-                        WHERE excluded.modified >= vulnerabilities.modified'''), item)
-                    count += 1
-                index += len(records)
-                if index >= total:
-                    break
-            connection.execute(text('''INSERT INTO source_state (source, checkpoint, last_success_at, last_error)
-                VALUES ('nvd', :checkpoint, :success, NULL)
-                ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
-                last_success_at=excluded.last_success_at, last_error=NULL'''),
-                {"checkpoint": _iso(end), "success": datetime.now(UTC)})
+                        WHERE excluded.modified >= vulnerabilities.modified'''), json.loads(line))
+                connection.execute(text('''INSERT INTO source_state (source, checkpoint, last_success_at, last_error)
+                    VALUES ('nvd', :checkpoint, :success, NULL)
+                    ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
+                    last_success_at=excluded.last_success_at, last_error=NULL'''),
+                    {"checkpoint": _iso(end), "success": datetime.now(UTC).isoformat()})
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
         # Keep the previous successful cursor intact and avoid persisting upstream secrets.
         try:

@@ -56,7 +56,7 @@ def sync(engine: Engine, *, client: httpx.Client | None = None) -> int:
                 VALUES ('cisa_kev', :checkpoint, :success, NULL)
                 ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
                 last_success_at=excluded.last_success_at, last_error=NULL'''),
-                {"checkpoint": released, "success": datetime.now(UTC)})
+                {"checkpoint": released, "success": datetime.now(UTC).isoformat()})
         return len(entries)
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
         try:
