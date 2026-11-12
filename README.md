@@ -29,3 +29,11 @@ Set `VULNRELAY_NVD_API_KEY` as an environment variable to use an optional NVD AP
 ## Development automation
 
 An optional, bounded agent runner and a disabled example schedule are documented in [docs/agent-runner.md](docs/agent-runner.md). They develop the project; they do not monitor vulnerabilities.
+
+## CISA known exploited vulnerabilities
+
+Run `vulnrelay sync-kev` to download the CISA KEV catalog, then `vulnrelay cve CVE-2021-44228` to inspect locally stored NVD and CISA records. KEV status is unknown until a catalog has been synchronized; an absent entry in a downloaded catalog is reported as not listed, not proof that the vulnerability is not exploited. The displayed catalog release timestamp indicates the age of the data. Invalid, incomplete, or older catalogs do not replace the last successful snapshot. This is a manual operation and is not yet part of an automatic monitoring cycle. See the [CISA KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog).
+
+## EPSS on demand
+
+Run `vulnrelay lookup-epss CVE-2021-44228` to query and store a single current FIRST EPSS score. `vulnrelay cve` displays any stored score, percentile and measurement date. EPSS estimates exploitation probability; CVSS measures severity, and CISA KEV identifies known exploitation. The score is not refreshed automatically. FIRST recommends its API for individual lookups, not bulk synchronization; see [FIRST EPSS data](https://www.first.org/epss/data).
