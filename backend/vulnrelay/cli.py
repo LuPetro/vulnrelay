@@ -1,5 +1,6 @@
 import json
 
+import httpx
 import typer
 import uvicorn
 from pydantic import ValidationError
@@ -8,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
+from vulnrelay.nvd import sync as sync_nvd
 
 app = typer.Typer(no_args_is_help=True, help="VulnRelay administration.")
 config_app = typer.Typer(no_args_is_help=True)
@@ -50,3 +52,18 @@ def validate_config():
         typer.echo("Invalid configuration. Check environment settings.", err=True)
         raise typer.Exit(1) from None
     typer.echo("Configuration valid.")
+
+
+@app.command()
+def sync(days: int = typer.Option(7, min=1, max=120)):
+    """Synchronize NVD changes; --days applies only to the first run."""
+    settings = get_settings()
+    engine = create_database_engine(settings.database_url)
+    try:
+        count = sync_nvd(engine, api_key=settings.nvd_api_key, days=days)
+    except (SQLAlchemyError, ValueError, TypeError, KeyError, httpx.HTTPError):
+        typer.echo("NVD sync failed. Check connectivity and run database migrations.", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        engine.dispose()
+    typer.echo(f"NVD synchronization completed: {count} records processed.")
