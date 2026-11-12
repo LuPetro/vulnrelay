@@ -1,0 +1,12 @@
+services:
+  vulnrelay:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      VULNRELAY_DATABASE_URL: sqlite:////app/data/vulnrelay.db
+    volumes:
+      - vulnrelay-data:/app/data
+    restart: unless-stopped
+volumes:
+  vulnrelay-data:
