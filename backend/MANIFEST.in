@@ -1,0 +1,3 @@
+include LICENSE README.md
+recursive-include vulnrelay/migrations *.py
+include requirements*.lock requirements*.in

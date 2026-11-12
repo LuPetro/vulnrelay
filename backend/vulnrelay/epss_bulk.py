@@ -19,7 +19,12 @@ MAX_EXPANDED = 100 * 1024 * 1024
 
 def refresh(engine: Engine, *, client: httpx.Client | None = None) -> int:
     with engine.connect() as connection:
-        wanted = {row.id for row in connection.execute(text("SELECT id FROM vulnerabilities UNION SELECT cve_id AS id FROM kev_entries"))}
+        wanted = {
+            row.id
+            for row in connection.execute(
+                text("SELECT id FROM vulnerabilities UNION SELECT cve_id AS id FROM kev_entries")
+            )
+        }
     if not wanted:
         return 0
     owned = client is None
@@ -31,7 +36,12 @@ def refresh(engine: Engine, *, client: httpx.Client | None = None) -> int:
             with client.stream("GET", url) as response:
                 if response.is_redirect and redirect < 2:
                     target = response.url.join(response.headers.get("location", ""))
-                    if target.scheme != "https" or target.host != "epss.empiricalsecurity.com" or target.port not in (None, 443) or target.username:
+                    if (
+                        target.scheme != "https"
+                        or target.host != "epss.empiricalsecurity.com"
+                        or target.port not in (None, 443)
+                        or target.username
+                    ):
                         raise ValueError("Unsafe EPSS redirect")
                     url = target
                     continue
@@ -64,27 +74,43 @@ def refresh(engine: Engine, *, client: httpx.Client | None = None) -> int:
             score, percentile = float(row["epss"]), float(row["percentile"])
             if not 0 <= score <= 1 or not 0 <= percentile <= 1:
                 raise ValueError("Invalid EPSS metric")
-            rows.append({"id": row["cve"], "score": score, "percentile": percentile,
-                         "measured": measured, "raw": json.dumps({**row, "date": measured})})
+            rows.append(
+                {
+                    "id": row["cve"],
+                    "score": score,
+                    "percentile": percentile,
+                    "measured": measured,
+                    "raw": json.dumps({**row, "date": measured}),
+                }
+            )
         with engine.begin() as connection:
-            previous = connection.execute(text("SELECT checkpoint FROM source_state WHERE source='epss'")).scalar_one_or_none()
+            previous = connection.execute(
+                text("SELECT checkpoint FROM source_state WHERE source='epss'")
+            ).scalar_one_or_none()
             if previous and measured < previous:
                 raise ValueError("EPSS dataset is older than stored checkpoint")
             if rows:
-                connection.execute(text('''INSERT INTO epss_scores (cve_id,score,percentile,measured_on,raw)
+                connection.execute(
+                    text("""INSERT INTO epss_scores (cve_id,score,percentile,measured_on,raw)
                     VALUES (:id,:score,:percentile,:measured,:raw) ON CONFLICT(cve_id) DO UPDATE SET
                     score=excluded.score, percentile=excluded.percentile, measured_on=excluded.measured_on,
-                    raw=excluded.raw WHERE excluded.measured_on>=epss_scores.measured_on'''), rows)
-            connection.execute(text('''INSERT INTO source_state (source,checkpoint,last_success_at,last_error)
+                    raw=excluded.raw WHERE excluded.measured_on>=epss_scores.measured_on"""),
+                    rows,
+                )
+            connection.execute(
+                text("""INSERT INTO source_state (source,checkpoint,last_success_at,last_error)
                 VALUES ('epss',:checkpoint,:success,NULL) ON CONFLICT(source) DO UPDATE SET
-                checkpoint=excluded.checkpoint,last_success_at=excluded.last_success_at,last_error=NULL'''),
-                {"checkpoint": measured, "success": datetime.now(UTC).isoformat()})
+                checkpoint=excluded.checkpoint,last_success_at=excluded.last_success_at,last_error=NULL"""),
+                {"checkpoint": measured, "success": datetime.now(UTC).isoformat()},
+            )
         return len(rows)
     except (httpx.HTTPError, ValueError, TypeError, KeyError, OSError, EOFError):
         try:
             with engine.begin() as connection:
-                connection.execute(text("""INSERT INTO source_state (source,last_error) VALUES ('epss','EPSS refresh failed')
-                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error"""))
+                connection.execute(
+                    text("""INSERT INTO source_state (source,last_error) VALUES ('epss','EPSS refresh failed')
+                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error""")
+                )
         except SQLAlchemyError:
             pass
         raise

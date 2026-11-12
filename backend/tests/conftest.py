@@ -1,7 +1,6 @@
 import pytest
 from alembic import command
 from alembic.config import Config
-
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
 

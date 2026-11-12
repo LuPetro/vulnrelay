@@ -33,8 +33,13 @@ def parse_catalog(payload: object) -> tuple[str, list[dict]]:
         seen.add(cve_id)
         date_added = record["dateAdded"]
         date.fromisoformat(date_added)
-        entries.append({"id": cve_id, "date_added": date_added,
-                        "raw": json.dumps(record, ensure_ascii=False, sort_keys=True)})
+        entries.append(
+            {
+                "id": cve_id,
+                "date_added": date_added,
+                "raw": json.dumps(record, ensure_ascii=False, sort_keys=True),
+            }
+        )
     return released_at, entries
 
 
@@ -47,23 +52,34 @@ def sync(engine: Engine, *, client: httpx.Client | None = None) -> int:
         response.raise_for_status()
         released, entries = parse_catalog(response.json())
         with engine.begin() as connection:
-            previous = connection.execute(text("SELECT checkpoint FROM source_state WHERE source='cisa_kev'")).scalar_one_or_none()
+            previous = connection.execute(
+                text("SELECT checkpoint FROM source_state WHERE source='cisa_kev'")
+            ).scalar_one_or_none()
             if previous and datetime.fromisoformat(released) < datetime.fromisoformat(previous):
                 raise ValueError("Refusing an older KEV catalog")
             connection.execute(text("DELETE FROM kev_entries"))
-            connection.execute(text("INSERT INTO kev_entries (cve_id, date_added, raw) VALUES (:id, :date_added, :raw)"), entries)
-            connection.execute(text('''INSERT INTO source_state (source, checkpoint, last_success_at, last_error)
+            connection.execute(
+                text(
+                    "INSERT INTO kev_entries (cve_id, date_added, raw) VALUES (:id, :date_added, :raw)"
+                ),
+                entries,
+            )
+            connection.execute(
+                text("""INSERT INTO source_state (source, checkpoint, last_success_at, last_error)
                 VALUES ('cisa_kev', :checkpoint, :success, NULL)
                 ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
-                last_success_at=excluded.last_success_at, last_error=NULL'''),
-                {"checkpoint": released, "success": datetime.now(UTC).isoformat()})
+                last_success_at=excluded.last_success_at, last_error=NULL"""),
+                {"checkpoint": released, "success": datetime.now(UTC).isoformat()},
+            )
         return len(entries)
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
         try:
             with engine.begin() as connection:
-                connection.execute(text('''INSERT INTO source_state (source, last_error)
+                connection.execute(
+                    text("""INSERT INTO source_state (source, last_error)
                     VALUES ('cisa_kev', 'CISA KEV synchronization failed')
-                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error'''))
+                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error""")
+                )
         except SQLAlchemyError:
             pass
         raise

@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from typer.testing import CliRunner
-
 from vulnrelay.api import app
 from vulnrelay.cli import app as cli
 from vulnrelay.config import get_settings

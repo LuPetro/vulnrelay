@@ -18,11 +18,31 @@ Collection = Literal["assets", "rules", "connectors"]
 def overview(request: Request):
     engine = request.app.state.engine
     with engine.connect() as connection:
-        sources = [dict(row) for row in connection.execute(text("SELECT source, checkpoint, last_success_at, last_error FROM source_state ORDER BY source")).mappings()]
-        counts = {table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one() for table in ("assets", "rules", "connectors", "vulnerabilities")}
-        deliveries = {row.state: row.count for row in connection.execute(text("SELECT state, COUNT(*) AS count FROM outbox GROUP BY state"))}
-    return {"counts": counts, "sources": sources, "deliveries": deliveries, "engine": state(engine),
-            "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors"))}
+        sources = [
+            dict(row)
+            for row in connection.execute(
+                text(
+                    "SELECT source, checkpoint, last_success_at, last_error FROM source_state ORDER BY source"
+                )
+            ).mappings()
+        ]
+        counts = {
+            table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+            for table in ("assets", "rules", "connectors", "vulnerabilities")
+        }
+        deliveries = {
+            row.state: row.count
+            for row in connection.execute(
+                text("SELECT state, COUNT(*) AS count FROM outbox GROUP BY state")
+            )
+        }
+    return {
+        "counts": counts,
+        "sources": sources,
+        "deliveries": deliveries,
+        "engine": state(engine),
+        "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors")),
+    }
 
 
 @router.get("/config/{collection}")
@@ -35,17 +55,23 @@ def create_config(collection: Collection, document: dict, request: Request):
     try:
         return save_document(request.app.state.engine, collection, document)
     except ValueError:
-        raise HTTPException(422, "Invalid configuration or missing asset/connector reference") from None
+        raise HTTPException(
+            422, "Invalid configuration or missing asset/connector reference"
+        ) from None
 
 
 @router.put("/config/{collection}/{document_id}")
 def update_config(collection: Collection, document_id: str, document: dict, request: Request):
-    if document_id not in {row["id"] for row in list_documents(request.app.state.engine, collection)}:
+    if document_id not in {
+        row["id"] for row in list_documents(request.app.state.engine, collection)
+    }:
         raise HTTPException(404, "Configuration entry not found")
     try:
         return save_document(request.app.state.engine, collection, document, document_id)
     except ValueError:
-        raise HTTPException(422, "Invalid configuration or missing asset/connector reference") from None
+        raise HTTPException(
+            422, "Invalid configuration or missing asset/connector reference"
+        ) from None
 
 
 @router.delete("/config/{collection}/{document_id}")
@@ -84,7 +110,9 @@ def next_delivery(request: Request):
 
 
 @router.get("/vulnerabilities")
-def list_vulnerabilities(request: Request, q: str = Query("", max_length=200), limit: int = Query(50, ge=1, le=200)):
+def list_vulnerabilities(
+    request: Request, q: str = Query("", max_length=200), limit: int = Query(50, ge=1, le=200)
+):
     result = []
     for entry in vulnerabilities(request.app.state.engine):
         if q and q.casefold() not in (entry["id"] + " " + entry["description"]).casefold():
@@ -100,7 +128,10 @@ def vulnerability_details(cve_id: str, request: Request):
     records = list(vulnerabilities(request.app.state.engine, cve_id.upper()))
     if not records:
         raise HTTPException(404, "CVE not found locally")
-    return {"vulnerability": records[0], "matches": correlate(request.app.state.engine, cve_id=cve_id.upper())}
+    return {
+        "vulnerability": records[0],
+        "matches": correlate(request.app.state.engine, cve_id=cve_id.upper()),
+    }
 
 
 @router.post("/deliveries/{message_id}/retry")

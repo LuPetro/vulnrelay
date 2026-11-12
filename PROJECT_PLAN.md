@@ -34,8 +34,10 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.
 - [x] Source health, delivery history, local CVE search/details, dark/light theme and responsive styling.
 - [x] Optional bearer token, Host checking and cross-origin mutation guard.
-- [ ] Full browser E2E/accessibility audit and complete first-run activation wizard.
-- [ ] Retention, backup management and remote-access hardening.
+- [x] Browser E2E for setup, rule matching, failure/retry and a mobile viewport; automated accessibility checks on selected views.
+- [ ] Broader browser coverage, manual accessibility audit and complete first-run activation wizard.
+- [x] Consistent online SQLite backup and documented restore/upgrade rehearsal.
+- [ ] Retention, automated backup management and remote-access hardening.
 
 ## Beyond the MVP
 
@@ -48,3 +50,13 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 - [x] Bounded development runner with simulated CLI validation and an optional timer template.
 - [ ] Schedule activation is deferred; current work focuses on the application.
+
+## Before-first-test and open-source preparation
+
+- [x] Hash-locked runtime/build/developer dependencies and immutable base/action pins.
+- [x] Read-only, time-bounded CI; Python version matrix, coverage threshold, wheel/source metadata checks, browser and isolated container restart tests.
+- [x] Known-vulnerability audits, offline secret checks, metadata/lock/workflow policy checks.
+- [x] Schema readiness, worker heartbeat health, bounded API bodies and private SQLite/backup creation.
+- [x] Governance, code of conduct, CODEOWNERS, issue/PR templates, dependency-update configuration, changelog and third-party notices.
+- [x] Manual unpublished release-candidate artifact/SBOM/checksum workflow.
+- [ ] Owner review of default-branch protections, private security reporting and public visibility before publication; these are not activated by files alone.

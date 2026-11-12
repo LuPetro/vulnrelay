@@ -25,10 +25,13 @@ def _execute(action):
     engine = _engine()
     try:
         value = action(engine)
-        typer.echo(json.dumps(value, ensure_ascii=False, indent=2))
+        typer.echo(json.dumps(value, ensure_ascii=False, indent=2, default=str))
     except (ValidationError, ValueError, SQLAlchemyError, RuntimeError, OSError) as exc:
         # Validation messages may contain submitted content; do not print raw configuration.
-        typer.echo(f"Operation failed ({type(exc).__name__}). Check input, schema migrations and engine status.", err=True)
+        typer.echo(
+            f"Operation failed ({type(exc).__name__}). Check input, schema migrations and engine status.",
+            err=True,
+        )
         raise typer.Exit(1) from None
     finally:
         engine.dispose()
@@ -38,6 +41,7 @@ def register_configuration_commands(root):
     for collection in ("assets", "rules", "connectors"):
         group = typer.Typer(no_args_is_help=True)
         root.add_typer(group, name=collection)
+
         def make_commands(table, target):
             @target.command("list")
             def list_command():
@@ -57,13 +61,20 @@ def register_configuration_commands(root):
             @target.command("update")
             def update_command(entry_id: str, file: Path):
                 """Replace one entry from a JSON file."""
-                _execute(lambda engine: save_document(engine, table, json.loads(file.read_text()), entry_id))
+                _execute(
+                    lambda engine: save_document(
+                        engine, table, json.loads(file.read_text()), entry_id
+                    )
+                )
+
         make_commands(collection, group)
         if collection == "connectors":
+
             @group.command("test")
             def connector_test_alias(connector_id: str):
                 _execute(lambda engine: {"queued": enqueue_test(engine, connector_id)})
         elif collection == "rules":
+
             @group.command("test")
             def rule_test_alias(rule_id: str):
                 _execute(lambda engine: correlate(engine, rule_id=rule_id))
@@ -96,6 +107,7 @@ def history_command():
 @app.command("monitor")
 def monitor_command(once: bool = False, no_sync: bool = False):
     """Monitor continuously, or run one full cycle; --no-sync applies to --once."""
+
     def action(engine):
         if once:
             with monitor_lock(engine):
@@ -104,6 +116,7 @@ def monitor_command(once: bool = False, no_sync: bool = False):
             raise ValueError("--no-sync requires --once")
         run(engine, get_settings())
         return {"status": "stopped"}
+
     _execute(action)
 
 
@@ -113,9 +126,43 @@ def doctor_command():
     from sqlalchemy import text
 
     from vulnrelay.monitor import state
+
     def check(engine):
         with engine.connect() as connection:
-            revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            sources = [dict(row) for row in connection.execute(text("SELECT source,last_success_at,last_error FROM source_state")).mappings()]
+            revision = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+            sources = [
+                dict(row)
+                for row in connection.execute(
+                    text("SELECT source,last_success_at,last_error FROM source_state")
+                ).mappings()
+            ]
         return {"schema_revision": revision, "sources": sources, "engine": state(engine)}
+
     _execute(check)
+
+
+@app.command("backup")
+def backup_command(destination: Path):
+    """Create a private, consistent SQLite backup; never overwrite a file."""
+    from vulnrelay.operations import backup_sqlite
+
+    _execute(lambda engine: backup_sqlite(engine, destination))
+
+
+@app.command("engine-health")
+def engine_health_command():
+    """Exit successfully only if a delivery worker heartbeat is recent."""
+    from vulnrelay.operations import worker_health
+
+    engine = _engine()
+    try:
+        healthy = worker_health(engine)
+    except (SQLAlchemyError, ValueError):
+        healthy = False
+    finally:
+        engine.dispose()
+    typer.echo("healthy" if healthy else "no recent delivery worker heartbeat")
+    if not healthy:
+        raise typer.Exit(1)

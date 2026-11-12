@@ -29,9 +29,17 @@ def match(asset: Asset, vulnerability: dict) -> dict | None:
     if not asset.enabled or vulnerability.get("status", "").casefold() == "rejected":
         return None
     if asset.kind == "keyword":
-        if re.search(r"(?<!\w)" + re.escape(asset.keyword) + r"(?!\w)", vulnerability.get("description") or "", re.IGNORECASE):
-            return {"method": "keyword", "confidence": "potential", "evidence": asset.keyword,
-                    "explanation": "Explicit keyword appears in the description; installed version applicability is unverified."}
+        if re.search(
+            r"(?<!\w)" + re.escape(asset.keyword) + r"(?!\w)",
+            vulnerability.get("description") or "",
+            re.IGNORECASE,
+        ):
+            return {
+                "method": "keyword",
+                "confidence": "potential",
+                "evidence": asset.keyword,
+                "explanation": "Explicit keyword appears in the description; installed version applicability is unverified.",
+            }
         return None
     entries = list(_leaves(vulnerability.get("nvd", {}).get("configurations", [])))
     for item, constrained in entries:
@@ -43,24 +51,45 @@ def match(asset: Asset, vulnerability: dict) -> dict | None:
         if asset.kind == "cpe":
             wanted = split_cpe(asset.cpe)
             # Wildcards and target platform attributes are deliberately not guessed.
-            identity = all(_identity(a) == _identity(b) for a, b in zip(wanted[2:5], parts[2:5], strict=True))
+            identity = all(
+                _identity(a) == _identity(b) for a, b in zip(wanted[2:5], parts[2:5], strict=True)
+            )
         else:
-            identity = (not asset.vendor or _identity(asset.vendor) == _identity(vendor)) and (not asset.product or _identity(asset.product) == _identity(product))
+            identity = (not asset.vendor or _identity(asset.vendor) == _identity(vendor)) and (
+                not asset.product or _identity(asset.product) == _identity(product)
+            )
         if not identity:
             continue
         confidence = "unknown" if asset.version or asset.kind == "cpe" else "potential"
         # A literal whole CPE in an unconstrained OR branch can confirm applicability.
         exact = asset.kind == "cpe" and asset.cpe == item["criteria"] and not constrained
         no_ranges = not any(key.startswith(("versionStart", "versionEnd")) for key in item)
-        if exact and no_ranges and all(part not in ("*", "-") for part in split_cpe(asset.cpe)[2:6]):
+        if (
+            exact
+            and no_ranges
+            and all(part not in ("*", "-") for part in split_cpe(asset.cpe)[2:6])
+        ):
             confidence = "confirmed"
-        return {"method": "cpe_exact" if confidence == "confirmed" else "vendor_product",
-                "confidence": confidence, "evidence": item,
-                "explanation": "Exact vulnerable CPE in an unconstrained OR branch." if confidence == "confirmed" else "Product identity matches; version and environment applicability need verification."}
+        return {
+            "method": "cpe_exact" if confidence == "confirmed" else "vendor_product",
+            "confidence": confidence,
+            "evidence": item,
+            "explanation": "Exact vulnerable CPE in an unconstrained OR branch."
+            if confidence == "confirmed"
+            else "Product identity matches; version and environment applicability need verification.",
+        }
     # CISA identities provide additional evidence without asserting version applicability.
     kev = vulnerability.get("kev_record") or {}
-    if asset.kind != "cpe" and kev and (not asset.vendor or _identity(asset.vendor) == _identity(kev.get("vendorProject", ""))) and (not asset.product or _identity(asset.product) == _identity(kev.get("product", ""))):
-        return {"method": "cisa_identity", "confidence": "unknown" if asset.version else "potential",
-                "evidence": {"vendor": kev.get("vendorProject"), "product": kev.get("product")},
-                "explanation": "CISA catalog product identity matches; installed version applicability is unverified."}
+    if (
+        asset.kind != "cpe"
+        and kev
+        and (not asset.vendor or _identity(asset.vendor) == _identity(kev.get("vendorProject", "")))
+        and (not asset.product or _identity(asset.product) == _identity(kev.get("product", "")))
+    ):
+        return {
+            "method": "cisa_identity",
+            "confidence": "unknown" if asset.version else "potential",
+            "evidence": {"vendor": kev.get("vendorProject"), "product": kev.get("product")},
+            "explanation": "CISA catalog product identity matches; installed version applicability is unverified.",
+        }
     return None

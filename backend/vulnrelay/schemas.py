@@ -27,13 +27,18 @@ class Asset(Document):
 
     @model_validator(mode="after")
     def validate_identity(self):
-        required = {"vendor": (self.vendor,), "product": (self.product,),
-                    "vendor_product": (self.vendor, self.product), "cpe": (self.cpe,),
-                    "keyword": (self.keyword,)}[self.kind]
+        required = {
+            "vendor": (self.vendor,),
+            "product": (self.product,),
+            "vendor_product": (self.vendor, self.product),
+            "cpe": (self.cpe,),
+            "keyword": (self.keyword,),
+        }[self.kind]
         if not all(item.strip() for item in required):
             raise ValueError("The selected asset type needs its identity fields")
         if self.kind == "cpe":
             from vulnrelay.matching import split_cpe
+
             split_cpe(self.cpe)
         if any(len(tag) > 100 for tag in self.tags):
             raise ValueError("Tags must not exceed 100 characters")
@@ -43,8 +48,21 @@ class Asset(Document):
 class Condition(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["condition"] = "condition"
-    field: Literal["cvss", "severity", "epss", "percentile", "kev", "group", "exposed",
-                   "importance", "confidence", "vendor", "product", "keyword", "tags"]
+    field: Literal[
+        "cvss",
+        "severity",
+        "epss",
+        "percentile",
+        "kev",
+        "group",
+        "exposed",
+        "importance",
+        "confidence",
+        "vendor",
+        "product",
+        "keyword",
+        "tags",
+    ]
     op: Literal["gte", "lte", "eq", "in", "contains"]
     value: Any
 
@@ -52,15 +70,27 @@ class Condition(BaseModel):
     def validate_operand(self):
         if self.field in ("cvss", "epss", "percentile"):
             maximum = 10 if self.field == "cvss" else 1
-            if self.op not in ("gte", "lte", "eq") or type(self.value) not in (int, float) or not 0 <= self.value <= maximum:
+            if (
+                self.op not in ("gte", "lte", "eq")
+                or type(self.value) not in (int, float)
+                or not 0 <= self.value <= maximum
+            ):
                 raise ValueError("Invalid metric condition")
         elif self.field in ("kev", "exposed"):
             if self.op != "eq" or type(self.value) is not bool:
                 raise ValueError("Boolean fields require eq and a boolean")
         elif self.op == "in":
-            if not isinstance(self.value, list) or not 1 <= len(self.value) <= 100 or not all(isinstance(v, str) and len(v) <= 200 for v in self.value):
+            if (
+                not isinstance(self.value, list)
+                or not 1 <= len(self.value) <= 100
+                or not all(isinstance(v, str) and len(v) <= 200 for v in self.value)
+            ):
                 raise ValueError("in requires a bounded list of strings")
-        elif self.op not in ("eq", "contains") or not isinstance(self.value, str) or not 1 <= len(self.value) <= 200:
+        elif (
+            self.op not in ("eq", "contains")
+            or not isinstance(self.value, str)
+            or not 1 <= len(self.value) <= 200
+        ):
             raise ValueError("Invalid text condition")
         return self
 
@@ -68,7 +98,9 @@ class Condition(BaseModel):
 class Group(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["all", "any", "not"]
-    children: list[Annotated[Union[Condition, "Group"], Field(discriminator="kind")]] = Field(min_length=1, max_length=30)
+    children: list[Annotated[Union[Condition, "Group"], Field(discriminator="kind")]] = Field(
+        min_length=1, max_length=30
+    )
 
     @model_validator(mode="after")
     def validate_not(self):
@@ -94,7 +126,12 @@ class Rule(Document):
         def count(node, depth):
             if depth > 8:
                 raise ValueError("Rule nesting exceeds eight levels")
-            return 1 + (sum(count(child, depth + 1) for child in node.children) if isinstance(node, Group) else 0)
+            return 1 + (
+                sum(count(child, depth + 1) for child in node.children)
+                if isinstance(node, Group)
+                else 0
+            )
+
         if count(self.condition, 0) > 100:
             raise ValueError("Rule contains too many conditions")
         return self

@@ -45,7 +45,8 @@ Python 3.12+ with pip/venv is required:
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-pip install -e 'backend[dev]'
+pip install --require-hashes -r backend/requirements-build.lock -r backend/requirements.lock
+pip install --no-build-isolation --no-deps ./backend
 cp .env.example .env
 vulnrelay init
 vulnrelay start
@@ -84,8 +85,14 @@ See [Telegram setup](docs/telegram.md), [rules and assets](docs/configuration.md
 
 Delivery is **at least once**. A crash after Telegram accepted a message and before the database recorded success can cause a repeat; Telegram does not provide an idempotency key for `sendMessage`. Messages have six automatic attempts with backoff, one-second destination spacing, rate-limit cooldowns, expiring claims and visible terminal failures. An unchanged alert is not queued again for the same CVE, asset, rule and destination. KEV changes, CVSS/status changes, a new ten-percentage-point EPSS band, CPE evidence changes and changed NVD patch references can create another event. Disabling change notifications keeps one event per identity. Multiple matching assets can produce separate, explicitly attributed alerts.
 
-Still planned: arbitrary version applicability and package matching, additional connectors, digests, AI, inventory import/export, retention/backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
+Still planned: arbitrary version applicability and package matching, additional connectors, digests, AI, inventory import/export, retention and automated backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
 
 The optional [development agent runner](docs/agent-runner.md) is separate from CVE monitoring and is not scheduled automatically.
 
 Source references: [NVD API](https://nvd.nist.gov/developers/vulnerabilities), [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), [FIRST EPSS data](https://www.first.org/epss/data), [Telegram Bot API](https://core.telegram.org/bots/api#sendmessage). This product uses NVD data but is not endorsed or certified by NVD.
+
+## Before testing or contributing
+
+Use the [testing and development guide](docs/development.md) for locked dependencies, style/type checks, coverage, browser E2E tests, security audits and package verification. Read the [backup and upgrade procedure](docs/backup-and-upgrade.md) before storing an inventory you depend on. `/health` checks connectivity; `/ready` checks the database revision; `vulnrelay engine-health` checks the monitoring worker heartbeat. `vulnrelay --version` reports the installed backend version.
+
+The [changelog](CHANGELOG.md), [governance](GOVERNANCE.md), [community guidelines](CODE_OF_CONDUCT.md), issue/PR templates and [manual release process](docs/releasing.md) prepare the project for open-source collaboration. Repository visibility, branch rules and GitHub security features are operator settings; see [the administration checklist](docs/github-settings.md). No public publication or package upload is automatic.

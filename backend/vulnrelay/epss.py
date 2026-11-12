@@ -33,15 +33,32 @@ def lookup(engine: Engine, cve_id: str, *, client: httpx.Client | None = None) -
         if not 0 <= score <= 1 or not 0 <= percentile <= 1:
             raise ValueError("Invalid EPSS score")
         measured_on = date.fromisoformat(row["date"]).isoformat()
-        item = {"id": cve_id, "score": score, "percentile": percentile,
-                "measured_on": measured_on, "raw": json.dumps(row, sort_keys=True)}
+        item = {
+            "id": cve_id,
+            "score": score,
+            "percentile": percentile,
+            "measured_on": measured_on,
+            "raw": json.dumps(row, sort_keys=True),
+        }
         with engine.begin() as connection:
-            connection.execute(text('''INSERT INTO epss_scores (cve_id, score, percentile, measured_on, raw)
+            connection.execute(
+                text("""INSERT INTO epss_scores (cve_id, score, percentile, measured_on, raw)
                 VALUES (:id, :score, :percentile, :measured_on, :raw)
                 ON CONFLICT(cve_id) DO UPDATE SET score=excluded.score, percentile=excluded.percentile,
                 measured_on=excluded.measured_on, raw=excluded.raw
-                WHERE excluded.measured_on >= epss_scores.measured_on'''), item)
-            stored = connection.execute(text("SELECT cve_id AS id, score, percentile, measured_on, raw FROM epss_scores WHERE cve_id=:id"), {"id": cve_id}).mappings().one()
+                WHERE excluded.measured_on >= epss_scores.measured_on"""),
+                item,
+            )
+            stored = (
+                connection.execute(
+                    text(
+                        "SELECT cve_id AS id, score, percentile, measured_on, raw FROM epss_scores WHERE cve_id=:id"
+                    ),
+                    {"id": cve_id},
+                )
+                .mappings()
+                .one()
+            )
         return dict(stored)
     finally:
         if owned:

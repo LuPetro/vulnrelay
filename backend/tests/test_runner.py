@@ -11,7 +11,21 @@ def test_runner_executes_once_and_refuses_dirty_tree(tmp_path):
     (root / ".gitignore").write_text("data/\n")
     subprocess.run(["git", "init", "-q", str(root)], check=True)
     subprocess.run(["git", "-C", str(root), "add", "."], check=True)
-    subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "fixture"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        check=True,
+    )
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     fake = fake_bin / "codex"
@@ -19,14 +33,18 @@ def test_runner_executes_once_and_refuses_dirty_tree(tmp_path):
     fake.chmod(0o755)
     env = {**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}"}
     runner = scripts / "agent-runner.sh"
-    result = subprocess.run([runner], cwd=root, env=env, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        [runner], cwd=root, env=env, capture_output=True, text=True, check=False
+    )
     assert result.returncode == 0
     logs = list((root / "data/agent-runner").glob("*.log"))
     assert len(logs) == 1
     assert "--sandbox workspace-write" in logs[0].read_text()
     assert "Do not publish" in logs[0].read_text()
     (root / "uncommitted.txt").write_text("user data")
-    result = subprocess.run([runner], cwd=root, env=env, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        [runner], cwd=root, env=env, capture_output=True, text=True, check=False
+    )
     assert result.returncode != 0
     assert "Working tree has changes" in result.stderr
     assert len(list((root / "data/agent-runner").glob("*.log"))) == 1

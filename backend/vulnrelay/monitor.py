@@ -1,6 +1,5 @@
 """A restart-safe polling loop with persisted schedule and one monitor per database."""
 
-import fcntl
 import json
 import logging
 import signal
@@ -20,12 +19,21 @@ from vulnrelay.logging_config import configure
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.pipeline import correlate
 
+try:
+    import fcntl
+except ImportError:  # Windows can use configuration commands; the monitor remains Unix-only.
+    fcntl = None
+
 logger = logging.getLogger(__name__)
 
 
 @contextmanager
 def monitor_lock(engine: Engine):
     if engine.dialect.name == "sqlite":
+        if fcntl is None:
+            raise RuntimeError(
+                "Native monitoring requires Unix file locking; use Docker on Windows"
+            )
         database = make_url(engine.url).database
         if not database or database == ":memory:":
             raise ValueError("Monitoring needs a persistent database")
@@ -53,29 +61,48 @@ def monitor_lock(engine: Engine):
 
 def state(engine: Engine) -> dict:
     with engine.connect() as connection:
-        return {row.name: json.loads(row.value) for row in connection.execute(text("SELECT name, value FROM engine_state"))}
+        return {
+            row.name: json.loads(row.value)
+            for row in connection.execute(text("SELECT name, value FROM engine_state"))
+        }
 
 
 def set_state(engine: Engine, name: str, value):
     with engine.begin() as connection:
-        connection.execute(text('''INSERT INTO engine_state (name,value) VALUES (:name,:value)
-            ON CONFLICT(name) DO UPDATE SET value=excluded.value'''), {"name": name, "value": json.dumps(value)})
+        connection.execute(
+            text("""INSERT INTO engine_state (name,value) VALUES (:name,:value)
+            ON CONFLICT(name) DO UPDATE SET value=excluded.value"""),
+            {"name": name, "value": json.dumps(value)},
+        )
 
 
-def cycle(engine: Engine, settings: Settings, *, now: float | None = None, sync_sources: bool = True, process_deliveries: bool = True) -> dict:
+def cycle(
+    engine: Engine,
+    settings: Settings,
+    *,
+    now: float | None = None,
+    sync_sources: bool = True,
+    process_deliveries: bool = True,
+) -> dict:
     current = time.time() if now is None else now
     schedule = state(engine)
     outcomes = {}
-    for source, action in (("nvd", lambda: sync_nvd(engine, api_key=settings.nvd_api_key)),
-                           ("cisa_kev", lambda: sync_kev(engine)),
-                           ("epss", lambda: refresh_epss(engine))):
+    for source, action in (
+        ("nvd", lambda: sync_nvd(engine, api_key=settings.nvd_api_key.get_secret_value())),
+        ("cisa_kev", lambda: sync_kev(engine)),
+        ("epss", lambda: refresh_epss(engine)),
+    ):
         if sync_sources and current >= schedule.get(f"next_{source}", 0):
             try:
                 outcomes[source] = {"ok": True, "records": action()}
             except Exception:  # noqa: BLE001 - isolate untrusted upstream adapters
                 outcomes[source] = {"ok": False}
                 logger.warning("Source synchronization failed", extra={"source": source})
-            set_state(engine, f"next_{source}", current + (86400 if source == "epss" else settings.sync_interval_minutes * 60))
+            set_state(
+                engine,
+                f"next_{source}",
+                current + (86400 if source == "epss" else settings.sync_interval_minutes * 60),
+            )
     result = correlate(engine, enqueue=True, limit=0)
     deliveries = []
     for _ in range(50 if process_deliveries else 0):
@@ -84,7 +111,12 @@ def cycle(engine: Engine, settings: Settings, *, now: float | None = None, sync_
             break
         deliveries.append(delivery)
     set_state(engine, "last_cycle", current)
-    return {"sources": outcomes, "evaluations": result["evaluations"], "queued": result["queued"], "deliveries": deliveries}
+    return {
+        "sources": outcomes,
+        "evaluations": result["evaluations"],
+        "queued": result["queued"],
+        "deliveries": deliveries,
+    }
 
 
 def run(engine: Engine, settings: Settings):
@@ -93,9 +125,14 @@ def run(engine: Engine, settings: Settings):
     previous = {}
     for signum in (signal.SIGINT, signal.SIGTERM):
         previous[signum] = signal.signal(signum, lambda *_: stop.set())
+
     def pump_deliveries():
+        last_heartbeat = 0
         while not stop.is_set():
             try:
+                if time.time() - last_heartbeat >= 30:
+                    set_state(engine, "delivery_heartbeat", time.time())
+                    last_heartbeat = time.time()
                 delivery = deliver_one(engine)
                 if delivery:
                     logger.info("Delivery processed", extra={"deliveries": 1})
@@ -112,7 +149,10 @@ def run(engine: Engine, settings: Settings):
                     try:
                         result = cycle(engine, settings, process_deliveries=False)
                         if result["queued"] or result["sources"]:
-                            logger.info("Monitoring cycle completed", extra={"queued": result["queued"], "deliveries": 0})
+                            logger.info(
+                                "Monitoring cycle completed",
+                                extra={"queued": result["queued"], "deliveries": 0},
+                            )
                     except Exception:  # noqa: BLE001 - keep the long-running worker alive
                         logger.error("Monitoring cycle failed; retrying after delay")
                     stop.wait(10)

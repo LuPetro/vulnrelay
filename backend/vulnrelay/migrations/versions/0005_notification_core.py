@@ -11,8 +11,11 @@ depends_on = None
 
 def upgrade():
     for name in ("assets", "rules", "connectors"):
-        op.create_table(name, sa.Column("id", sa.String(36), primary_key=True),
-                        sa.Column("document", sa.Text(), nullable=False))
+        op.create_table(
+            name,
+            sa.Column("id", sa.String(36), primary_key=True),
+            sa.Column("document", sa.Text(), nullable=False),
+        )
     op.create_table(
         "outbox",
         sa.Column("id", sa.String(36), primary_key=True),
@@ -29,10 +32,16 @@ def upgrade():
         sa.Column("last_error", sa.Text(), nullable=True),
     )
     op.create_index("ix_outbox_pending", "outbox", ["state", "available_at"])
-    op.create_table("connector_limits", sa.Column("id", sa.String(36), primary_key=True),
-                    sa.Column("available_at", sa.Float(), nullable=False))
-    op.create_table("engine_state", sa.Column("name", sa.String(80), primary_key=True),
-                    sa.Column("value", sa.Text(), nullable=False))
+    op.create_table(
+        "connector_limits",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("available_at", sa.Float(), nullable=False),
+    )
+    op.create_table(
+        "engine_state",
+        sa.Column("name", sa.String(80), primary_key=True),
+        sa.Column("value", sa.Text(), nullable=False),
+    )
 
 
 def downgrade():

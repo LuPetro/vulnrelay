@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible problem with VulnRelay.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "For a suspected security vulnerability, follow SECURITY.md. Do not include .env files, tokens, private chat IDs, asset inventories or unredacted logs."
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation
+      options: [Docker Compose, Native Python, Development checkout]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include minimal sanitized configuration and the expected versus actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Relevant OS, Python/Node/Docker versions and redacted error messages. Review output before posting.

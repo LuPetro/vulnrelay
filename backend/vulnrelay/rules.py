@@ -22,12 +22,22 @@ def evaluate(node: Condition | Group, context: dict) -> dict:
     elif node.op == "lte":
         result = actual <= node.value
     elif node.op == "eq":
-        result = actual.casefold() == node.value.casefold() if isinstance(actual, str) else actual == node.value
+        result = (
+            actual.casefold() == node.value.casefold()
+            if isinstance(actual, str)
+            else actual == node.value
+        )
     elif node.op == "in":
         result = str(actual).casefold() in [value.casefold() for value in node.value]
     elif isinstance(actual, list):
         result = node.value.casefold() in [str(value).casefold() for value in actual]
     else:
         result = node.value.casefold() in str(actual).casefold()
-    return {"kind": "condition", "field": node.field, "op": node.op,
-            "expected": node.value, "actual": actual, "result": result}
+    return {
+        "kind": "condition",
+        "field": node.field,
+        "op": node.op,
+        "expected": node.value,
+        "actual": actual,
+        "result": result,
+    }

@@ -9,6 +9,7 @@ export default defineConfig({
     },
   },
   test: {
+    include: ["src/**/*.test.{ts,tsx}"],
     maxWorkers: 1,
     fileParallelism: false,
     environment: "jsdom",

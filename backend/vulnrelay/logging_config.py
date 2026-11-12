@@ -9,8 +9,12 @@ from datetime import UTC, datetime
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         message = re.sub(r"\d{5,20}:[A-Za-z0-9_-]{20,200}", "[REDACTED]", record.getMessage())
-        event = {"timestamp": datetime.now(UTC).isoformat(), "level": record.levelname,
-                 "logger": record.name, "message": message}
+        event = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": message,
+        }
         for key in ("source", "queued", "deliveries"):
             if hasattr(record, key):
                 event[key] = getattr(record, key)

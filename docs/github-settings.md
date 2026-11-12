@@ -1,0 +1,11 @@
+# GitHub administration before public release
+
+These are operator settings, not settings applied by committing YAML. The repository remains private until the owner explicitly chooses otherwise. Do not enable paid products or change billing to satisfy a checklist.
+
+1. On the default branch, protect against force pushes and deletion; require pull requests and the tested CI contexts. Require resolved review conversations. Configure one approving review and code-owner review if feasible for the maintainer team; a sole owner needs a documented review exception rather than an impossible approval requirement.
+2. Require the CI jobs `backend (3.12)`, `backend (3.13)`, `frontend`, `browser`, `container`, and the security job `audit`. Verify their actual names in a completed run before making them required. Do not require checks that cannot run on fork PRs. All PR workflows use read-only repository permissions and never `pull_request_target`.
+3. Allow GitHub Actions only as appropriate to the repository, retain workflow-token write permissions at the minimum, and avoid passing production tokens into CI. Actions are pinned to commit SHAs, with Dependabot updates proposed weekly.
+4. When available for the account/repository, enable secret-scanning alerts/push protection, dependency alerts and private vulnerability reporting. Availability varies; the committed audit workflows are separate and do not imply these features are enabled.
+5. Enable issue templates and read the security-reporting route as an outside contributor before making the repository public. Do not configure a guessed private email address. Set a maintainer-approved reporting contact if private vulnerability reporting is unavailable.
+6. Review license and third-party notices, remove private inventories from the entire Git history, rotate any credential that was ever committed, and check examples/screenshots for private infrastructure details. Local secret checks reduce risk but do not certify history as secret-free.
+7. Keep releases manual. The release-candidate workflow builds private artifacts without publishing packages, images, releases or changing visibility. A human validates and approves the final release.

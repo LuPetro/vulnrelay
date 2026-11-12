@@ -13,3 +13,16 @@ dist/
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+.coverage*
+coverage.xml
+artifacts/
+test-results/
+playwright-report/
+frontend/test-results/
+frontend/playwright-report/

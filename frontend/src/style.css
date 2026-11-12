@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "./**/*.{ts,tsx}";
 :root {
   font-family: "DM Sans", system-ui, sans-serif;
   color: #223430;
@@ -9,7 +10,7 @@
   --bg: #f6f8f7;
   --surface: #fff;
   --ink: #223430;
-  --muted: #78857f;
+  --muted: #586c61;
   --line: #e6ebe8;
   --green: #16735c;
   --soft: #edf6f1;
@@ -186,7 +187,7 @@ nav button span {
   font-size: 10px;
 }
 .version span {
-  color: #59786c;
+  color: #91b3a2;
   font-family: monospace;
 }
 .version button {
@@ -247,7 +248,7 @@ main {
   font-size: 8px;
   letter-spacing: 1.8px;
   font-weight: 700;
-  color: #879d90;
+  color: #536e5e;
 }
 .page-heading h1 {
   font-family: "Manrope", system-ui, sans-serif;
@@ -317,24 +318,24 @@ main {
   padding: 4px 7px;
   border-radius: 4px;
   background: #f1f4f2;
-  color: #79877f;
+  color: #536259;
   border: 1px solid #e8ede9;
   font-size: 9px;
   font-weight: 500;
 }
 .badge.green {
   background: #edf7f1;
-  color: #428362;
+  color: #28613f;
   border-color: #dceee2;
 }
 .badge.amber {
   background: #fdf6e8;
-  color: #a17930;
+  color: #77531d;
   border-color: #f0e7d1;
 }
 .badge.red {
   background: #fff0ee;
-  color: #b06459;
+  color: #914438;
   border-color: #f4ded9;
 }
 .engine-banner {
@@ -364,7 +365,7 @@ main {
 }
 .engine-banner p {
   font-size: 11px;
-  color: #7e9481;
+  color: #4e6c55;
   margin: 0;
 }
 .engine-banner > .badge {
@@ -403,7 +404,7 @@ main {
 }
 .metric small {
   font-size: 9px;
-  color: #90a095;
+  color: #586c61;
 }
 .panel {
   background: var(--surface);
@@ -526,7 +527,7 @@ h2 {
   height: 33px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  color: #8da093;
+  color: #536b5b;
   font-size: 13px;
   font-weight: 600;
   background: var(--bg);
@@ -535,7 +536,7 @@ h2 {
   padding: 13px 21px;
   font-size: 9px;
   line-height: 1.7;
-  color: #91a095;
+  color: #586c61;
   background: var(--bg);
 }
 .empty {
@@ -887,7 +888,7 @@ footer {
   gap: 15px;
   align-items: center;
   padding: 10px 0 4px;
-  color: #9ba99e;
+  color: #5c7063;
   font-size: 9px;
 }
 footer > span:first-child {
@@ -1206,5 +1207,24 @@ footer > span:first-child {
   }
   footer > span:last-child {
     display: none;
+  }
+}
+
+/* Keep small operational text legible on narrow screens. */
+@media (max-width: 760px) {
+  .metric small,
+  .source-row small,
+  .delivery-row small,
+  .panel-footer,
+  .group-row small {
+    font-size: 11px;
+  }
+  .source-row strong,
+  .collection-toolbar,
+  .help {
+    font-size: 11px;
+  }
+  .badge {
+    font-size: 10px;
   }
 }

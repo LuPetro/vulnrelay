@@ -3,7 +3,6 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
-
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
 from vulnrelay.epss import lookup
@@ -21,7 +20,11 @@ def database(tmp_path, monkeypatch):
 
 
 def client(rows):
-    return httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"status": "OK", "data": rows})))
+    return httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"status": "OK", "data": rows})
+        )
+    )
 
 
 def row(score="0.35", measured="2026-11-10"):

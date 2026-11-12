@@ -30,14 +30,19 @@ def start():
     if settings.host not in ("127.0.0.1", "localhost", "::1"):
         typer.echo("Remote exposure is unsupported: authentication is not implemented.", err=True)
         raise typer.Exit(1)
-    uvicorn.run("vulnrelay.api:app", host=settings.host, port=settings.port,
-                log_level=settings.log_level.lower())
+    uvicorn.run(
+        "vulnrelay.api:app",
+        host=settings.host,
+        port=settings.port,
+        log_level=settings.log_level.lower(),
+    )
 
 
 @app.command()
 def status(json_output: bool = typer.Option(False, "--json")):
     """Check database connectivity; does not imply monitoring is running."""
     from vulnrelay.monitor import state
+
     engine = create_database_engine(get_settings().database_url)
     try:
         with engine.connect() as connection:
@@ -51,8 +56,16 @@ def status(json_output: bool = typer.Option(False, "--json")):
         raise typer.Exit(1) from None
     finally:
         engine.dispose()
-    result = {"database": "reachable", "last_cycle": schedule.get("last_cycle"), "schedule": schedule}
-    typer.echo(json.dumps(result) if json_output else f"Database reachable; last monitoring cycle: {schedule.get('last_cycle', 'never')}")
+    result = {
+        "database": "reachable",
+        "last_cycle": schedule.get("last_cycle"),
+        "schedule": schedule,
+    }
+    typer.echo(
+        json.dumps(result)
+        if json_output
+        else f"Database reachable; last monitoring cycle: {schedule.get('last_cycle', 'never')}"
+    )
 
 
 @config_app.command("validate")
@@ -73,7 +86,7 @@ def sync(days: int = typer.Option(7, min=1, max=120)):
     engine = create_database_engine(settings.database_url)
     try:
         with monitor_lock(engine):
-            count = sync_nvd(engine, api_key=settings.nvd_api_key, days=days)
+            count = sync_nvd(engine, api_key=settings.nvd_api_key.get_secret_value(), days=days)
     except (SQLAlchemyError, ValueError, TypeError, KeyError, RuntimeError, httpx.HTTPError):
         typer.echo("NVD sync failed. Check connectivity and run database migrations.", err=True)
         raise typer.Exit(1) from None
@@ -103,10 +116,30 @@ def cve(cve_id: str):
     engine = create_database_engine(get_settings().database_url)
     try:
         with engine.connect() as connection:
-            nvd = connection.execute(text("SELECT id, description, cvss_score, severity, cvss_version, status FROM vulnerabilities WHERE id=:id"), {"id": cve_id.upper()}).mappings().one_or_none()
-            kev = connection.execute(text("SELECT raw FROM kev_entries WHERE cve_id=:id"), {"id": cve_id.upper()}).scalar_one_or_none()
-            epss = connection.execute(text("SELECT score, percentile, measured_on FROM epss_scores WHERE cve_id=:id"), {"id": cve_id.upper()}).mappings().one_or_none()
-            catalog = connection.execute(text("SELECT checkpoint FROM source_state WHERE source='cisa_kev'")).scalar_one_or_none()
+            nvd = (
+                connection.execute(
+                    text(
+                        "SELECT id, description, cvss_score, severity, cvss_version, status FROM vulnerabilities WHERE id=:id"
+                    ),
+                    {"id": cve_id.upper()},
+                )
+                .mappings()
+                .one_or_none()
+            )
+            kev = connection.execute(
+                text("SELECT raw FROM kev_entries WHERE cve_id=:id"), {"id": cve_id.upper()}
+            ).scalar_one_or_none()
+            epss = (
+                connection.execute(
+                    text("SELECT score, percentile, measured_on FROM epss_scores WHERE cve_id=:id"),
+                    {"id": cve_id.upper()},
+                )
+                .mappings()
+                .one_or_none()
+            )
+            catalog = connection.execute(
+                text("SELECT checkpoint FROM source_state WHERE source='cisa_kev'")
+            ).scalar_one_or_none()
     except SQLAlchemyError:
         typer.echo("Database unavailable or migrations missing.", err=True)
         raise typer.Exit(1) from None
@@ -115,10 +148,14 @@ def cve(cve_id: str):
     if not nvd and not kev and not epss:
         typer.echo("CVE not found locally.", err=True)
         raise typer.Exit(1)
-    result = {"id": cve_id.upper(), "nvd": dict(nvd) if nvd else None,
-              "cisa_kev": json.loads(kev) if kev else None,
-              "kev_status": "listed" if kev else "not listed" if catalog else "unknown",
-              "kev_catalog_released": catalog, "epss": dict(epss) if epss else None}
+    result = {
+        "id": cve_id.upper(),
+        "nvd": dict(nvd) if nvd else None,
+        "cisa_kev": json.loads(kev) if kev else None,
+        "kev_status": "listed" if kev else "not listed" if catalog else "unknown",
+        "kev_catalog_released": catalog,
+        "epss": dict(epss) if epss else None,
+    }
     typer.echo(json.dumps(result, ensure_ascii=False))
 
 
@@ -146,6 +183,7 @@ def init():
 
     from alembic import command
     from alembic.config import Config
+
     config = Config()
     config.set_main_option("script_location", str(files("vulnrelay") / "migrations"))
     try:
@@ -154,3 +192,18 @@ def init():
         typer.echo("Database initialization failed.", err=True)
         raise typer.Exit(1) from None
     typer.echo("Database initialized.")
+
+
+def _version_callback(value: bool):
+    if value:
+        from vulnrelay import __version__
+
+        typer.echo(__version__)
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(False, "--version", callback=_version_callback, is_eager=True),
+):
+    """Operate a local vulnerability notification engine."""

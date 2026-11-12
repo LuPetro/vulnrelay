@@ -15,11 +15,15 @@ def list_documents(engine: Engine, table: str) -> list[dict]:
     if table not in MODELS:
         raise ValueError("Unknown configuration collection")
     with engine.connect() as connection:
-        return [{"id": row.id, **json.loads(row.document)} for row in
-                connection.execute(text(f"SELECT id, document FROM {table} ORDER BY id"))]
+        return [
+            {"id": row.id, **json.loads(row.document)}
+            for row in connection.execute(text(f"SELECT id, document FROM {table} ORDER BY id"))
+        ]
 
 
-def save_document(engine: Engine, table: str, document: dict, document_id: str | None = None) -> dict:
+def save_document(
+    engine: Engine, table: str, document: dict, document_id: str | None = None
+) -> dict:
     if table not in MODELS:
         raise ValueError("Unknown configuration collection")
     validated = MODELS[table].model_validate(document)
@@ -30,9 +34,11 @@ def save_document(engine: Engine, table: str, document: dict, document_id: str |
         if set(validated.destinations) - connectors or set(validated.assets) - assets:
             raise ValueError("Rule refers to an unknown connector or asset")
     with engine.begin() as connection:
-        connection.execute(text(f"""INSERT INTO {table} (id, document) VALUES (:id, :document)
+        connection.execute(
+            text(f"""INSERT INTO {table} (id, document) VALUES (:id, :document)
             ON CONFLICT(id) DO UPDATE SET document=excluded.document"""),
-            {"id": document_id, "document": validated.model_dump_json()})
+            {"id": document_id, "document": validated.model_dump_json()},
+        )
     return {"id": document_id, **validated.model_dump()}
 
 
@@ -40,4 +46,9 @@ def delete_document(engine: Engine, table: str, document_id: str) -> bool:
     if table not in MODELS:
         raise ValueError("Unknown configuration collection")
     with engine.begin() as connection:
-        return connection.execute(text(f"DELETE FROM {table} WHERE id=:id"), {"id": document_id}).rowcount > 0
+        return (
+            connection.execute(
+                text(f"DELETE FROM {table} WHERE id=:id"), {"id": document_id}
+            ).rowcount
+            > 0
+        )

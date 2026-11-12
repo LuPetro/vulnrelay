@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/vulnrelay.db"
     sync_interval_minutes: int = Field(default=30, ge=1)
     log_level: str = "INFO"
-    nvd_api_key: str = ""
+    nvd_api_key: SecretStr = SecretStr("")
     api_token: SecretStr = SecretStr("")
     ui_dir: str = "./frontend/dist"
 

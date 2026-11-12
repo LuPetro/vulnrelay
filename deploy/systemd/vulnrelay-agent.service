@@ -3,7 +3,7 @@ Description=VulnRelay bounded development agent run
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/projects/neues-projekt
+WorkingDirectory=%h/projects/vulnrelay
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=%h/projects/neues-projekt/scripts/agent-runner.sh
+ExecStart=%h/projects/vulnrelay/scripts/agent-runner.sh
 TimeoutStartSec=1900

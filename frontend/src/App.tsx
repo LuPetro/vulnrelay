@@ -1,3 +1,4 @@
+import { version as appVersion } from "../package.json";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Activity,
@@ -480,7 +481,8 @@ export default function App() {
     await action(() => api(`/config/rules/${entry.id}`, "PUT", document));
   }
   const activeRules = rules.filter((row) => row.enabled).length;
-  const monitorSeen = overview.engine.last_cycle;
+  const monitorSeen =
+    overview.engine.delivery_heartbeat || overview.engine.last_cycle;
   const monitorRecent = monitorSeen && Date.now() / 1000 - monitorSeen < 120;
   return (
     <div className="app">
@@ -534,7 +536,7 @@ export default function App() {
             </div>
           </div>
           <div className="version">
-            VulnRelay <span>0.1.0-alpha</span>
+            VulnRelay <span>{appVersion}</span>
             <button
               className="icon-button"
               aria-label="Toggle color theme"
@@ -624,7 +626,7 @@ export default function App() {
                       </h2>
                       <p>
                         {monitorSeen
-                          ? `Last engine cycle: ${date(monitorSeen)}`
+                          ? `Last worker heartbeat: ${date(monitorSeen)}`
                           : "Configure an asset, connect Telegram, then start the monitor."}
                       </p>
                     </div>
