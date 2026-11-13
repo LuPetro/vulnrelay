@@ -27,11 +27,14 @@ def vulnerabilities(
 ):
     query = """SELECT ids.id, v.nvd_raw, v.description, v.status, v.cvss_score, v.severity,
                k.raw AS kev_raw, e.score AS epss, e.percentile, e.measured_on,
+               o.normalized AS opencve_data,o.checked_at AS opencve_checked_at,o.synced_at AS opencve_synced_at,
                (SELECT checkpoint FROM source_state WHERE source='cisa_kev') AS kev_catalog
-               FROM (SELECT id FROM vulnerabilities UNION SELECT cve_id AS id FROM kev_entries) ids
+               FROM (SELECT id FROM vulnerabilities UNION SELECT cve_id AS id FROM kev_entries
+                     UNION SELECT cve_id AS id FROM opencve_records WHERE normalized IS NOT NULL) ids
                LEFT JOIN vulnerabilities v ON v.id=ids.id
                LEFT JOIN kev_entries k ON k.cve_id=ids.id
-               LEFT JOIN epss_scores e ON e.cve_id=ids.id"""
+               LEFT JOIN epss_scores e ON e.cve_id=ids.id
+               LEFT JOIN opencve_records o ON o.cve_id=ids.id"""
     conditions, params = [], {}
     if cve_id:
         conditions.append("ids.id=:id")
@@ -49,14 +52,37 @@ def vulnerabilities(
         for row in connection.execute(text(query), params).mappings():
             nvd = json.loads(row["nvd_raw"]) if row["nvd_raw"] else {}
             kev = json.loads(row["kev_raw"]) if row["kev_raw"] else None
+            opencve = json.loads(row["opencve_data"]) if row["opencve_data"] else None
+            cvss_source = (
+                "NVD"
+                if row["cvss_score"] is not None
+                else "OpenCVE"
+                if opencve and opencve["cvss"] is not None
+                else None
+            )
+            sources = (
+                (["NVD"] if row["nvd_raw"] else [])
+                + (["CISA KEV"] if row["kev_catalog"] or kev else [])
+                + (["FIRST EPSS"] if row["epss"] is not None else [])
+                + (["OpenCVE"] if opencve else [])
+            )
             yield {
                 "id": row["id"],
                 "nvd": nvd,
                 "kev_record": kev,
-                "description": row["description"] or (kev or {}).get("shortDescription", ""),
+                "description": row["description"]
+                or (kev or {}).get("shortDescription")
+                or (opencve or {}).get("description", ""),
                 "status": row["status"] or "Unknown",
-                "cvss": row["cvss_score"],
-                "severity": row["severity"],
+                "cvss": row["cvss_score"] if cvss_source == "NVD" else (opencve or {}).get("cvss"),
+                "severity": row["severity"]
+                if cvss_source == "NVD"
+                else (opencve or {}).get("severity"),
+                "cvss_source": cvss_source,
+                "sources": sources,
+                "opencve": opencve,
+                "opencve_checked_at": row["opencve_checked_at"],
+                "opencve_synced_at": row["opencve_synced_at"],
                 "epss": row["epss"],
                 "percentile": row["percentile"],
                 "epss_date": row["measured_on"],
@@ -165,7 +191,9 @@ def _evaluate_pair(
         "match": evidence,
         "evaluation": explanation,
         "matched": explanation["result"] is True,
-        "vulnerability": {k: v for k, v in vulnerability.items() if k not in ("nvd", "kev_record")},
+        "vulnerability": {
+            k: v for k, v in vulnerability.items() if k not in ("nvd", "kev_record", "opencve")
+        },
         "format": rule.format,
     }
 

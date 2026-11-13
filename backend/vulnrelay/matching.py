@@ -105,4 +105,28 @@ def match(asset: Asset, vulnerability: dict) -> dict | None:
             "evidence": {"vendor": kev.get("vendorProject"), "product": kev.get("product")},
             "explanation": "CISA catalog product identity matches; installed version applicability is unverified.",
         }
+    # Flat OpenCVE CPEs lack applicability logic and can only provide identity evidence.
+    opencve = vulnerability.get("opencve") or {}
+    wanted_vendor, wanted_product = asset.vendor, asset.product
+    if asset.kind == "cpe":
+        parts = split_cpe(asset.cpe)
+        wanted_vendor, wanted_product = parts[3:5]
+    identities = list(opencve.get("vendors", []))
+    for cpe in opencve.get("cpes", []):
+        try:
+            parts = split_cpe(cpe)
+        except ValueError:
+            continue
+        identities.append({"vendor": parts[3], "product": parts[4]})
+    for identity in identities:
+        if (not wanted_vendor or _identity(wanted_vendor) == _identity(identity["vendor"])) and (
+            not wanted_product
+            or _identity(wanted_product) == _identity(identity.get("product") or "")
+        ):
+            return {
+                "method": "opencve_identity",
+                "confidence": "unknown" if asset.version or asset.kind == "cpe" else "potential",
+                "evidence": {**identity, "source": "OpenCVE", "source_url": opencve["source_url"]},
+                "explanation": "OpenCVE product identity matches; merged CPEs do not establish installed-version applicability.",
+            }
     return None

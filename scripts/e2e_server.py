@@ -13,13 +13,35 @@ with tempfile.TemporaryDirectory(prefix="vulnrelay-browser-") as directory:
     os.environ["VULNRELAY_API_TOKEN"] = ""
     os.environ["VULNRELAY_UI_DIR"] = str(root / "frontend/dist")
     os.environ["TELEGRAM_BOT_TOKEN"] = ""  # Deliberately forbid outbound Telegram calls in tests.
+    os.environ["VULNRELAY_OPENCVE_ENABLED"] = "false"
 
+    import httpx
     import uvicorn
     from alembic import command
     from alembic.config import Config
     from sqlalchemy import text
+    from vulnrelay import opencve, routes
     from vulnrelay.config import get_settings
     from vulnrelay.db import create_database_engine
+
+    # Exercise real API/storage normalization with a synthetic upstream, never public traffic.
+    def fixture_opencve_lookup(engine, cve_id):
+        fixture = {
+            "cve": cve_id,
+            "opencve": {
+                "description": {"data": "Synthetic OpenCVE browser fixture", "provider": "mitre"},
+                "created": {"data": "2026-11-01T00:00:00Z"},
+                "updated": {"data": "2026-11-13T00:00:00Z"},
+                "metrics": {"cvssV3_1": {"data": {"score": 8.2}, "provider": "mitre"}},
+                "vendors": {"data": ["example$PRODUCT$server"]},
+            },
+        }
+        with httpx.Client(
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=fixture))
+        ) as client:
+            return opencve.lookup(engine, cve_id, client=client)
+
+    routes.lookup_opencve = fixture_opencve_lookup
 
     get_settings.cache_clear()
     config = Config()

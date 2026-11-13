@@ -33,6 +33,7 @@ type Overview = {
   deliveries: Record<string, number>;
   engine: Record<string, number>;
   setup_required: boolean;
+  opencve_enabled?: boolean;
 };
 type Expression = {
   kind: string;
@@ -730,7 +731,7 @@ export default function App() {
                         <h2>Intelligence sources</h2>
                         <span className="muted">Saved checkpoints</span>
                       </div>
-                      {["nvd", "cisa_kev", "epss"].map((name) => {
+                      {["nvd", "cisa_kev", "epss", "opencve"].map((name) => {
                         const source = overview.sources.find(
                           (row) => row.source === name,
                         );
@@ -741,7 +742,9 @@ export default function App() {
                                 ? "N"
                                 : name === "epss"
                                   ? "E"
-                                  : "C"}
+                                  : name === "opencve"
+                                    ? "O"
+                                    : "C"}
                             </div>
                             <div>
                               <strong>
@@ -749,7 +752,9 @@ export default function App() {
                                   ? "National Vulnerability Database"
                                   : name === "epss"
                                     ? "FIRST EPSS · daily scores"
-                                    : "CISA Known Exploited Vulnerabilities"}
+                                    : name === "opencve"
+                                      ? "OpenCVE Knowledge Base"
+                                      : "CISA Known Exploited Vulnerabilities"}
                               </strong>
                               <small>
                                 {source?.last_error ||
@@ -767,9 +772,12 @@ export default function App() {
                             >
                               {source?.last_error
                                 ? "Error"
-                                : source?.last_success_at
-                                  ? "Synced"
-                                  : "Not synced"}
+                                : name === "opencve" &&
+                                    !overview.opencve_enabled
+                                  ? "Manual"
+                                  : source?.last_success_at
+                                    ? "Synced"
+                                    : "Not synced"}
                             </Badge>
                           </div>
                         );
@@ -1596,6 +1604,61 @@ export default function App() {
                         catalog:{" "}
                         {detail.vulnerability.kev_catalog || "not synchronized"}
                       </p>
+                      <p className="help">
+                        CVSS assessment:{" "}
+                        {detail.vulnerability.cvss_source || "unknown"}
+                      </p>
+                      <button
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() =>
+                          void action(async () => {
+                            const result = await api(
+                              `/sources/opencve/${detail.vulnerability.id}/lookup`,
+                              "POST",
+                            );
+                            if (!result.found)
+                              throw new Error(
+                                "No record found in the OpenCVE Knowledge Base. Existing data was preserved.",
+                              );
+                            setDetail(
+                              await api(
+                                `/vulnerabilities/${detail.vulnerability.id}`,
+                              ),
+                            );
+                            return result;
+                          }, "OpenCVE record checked and cached.")
+                        }
+                      >
+                        Load OpenCVE details
+                      </button>
+                      {detail.vulnerability.opencve && (
+                        <div>
+                          <a
+                            href={detail.vulnerability.opencve.source_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            View OpenCVE record ↗
+                          </a>
+                          <p className="help">
+                            OpenCVE checked:{" "}
+                            {date(detail.vulnerability.opencve_checked_at)}.
+                            Merged product identities do not confirm version
+                            applicability.
+                          </p>
+                          <details>
+                            <summary>Separate OpenCVE assessment</summary>
+                            <pre>
+                              {JSON.stringify(
+                                detail.vulnerability.opencve,
+                                null,
+                                2,
+                              )}
+                            </pre>
+                          </details>
+                        </div>
+                      )}
                       <a
                         href={`https://nvd.nist.gov/vuln/detail/${detail.vulnerability.id}`}
                         target="_blank"
@@ -1666,6 +1729,13 @@ export default function App() {
                       the database. Sync intervals and connector tokens are
                       configured through environment variables. AI is optional
                       and is not used by this version.
+                    </p>
+                    <p className="help">
+                      OpenCVE is optional. Load a CVE from its detail view, or
+                      set VULNRELAY_OPENCVE_ENABLED=true in .env for bounded
+                      background enrichment. Recreate both containers after
+                      configuration changes. No OpenCVE account or API key is
+                      required.
                     </p>
                     <button
                       className="secondary"

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     nvd_api_key: SecretStr = SecretStr("")
     api_token: SecretStr = SecretStr("")
     ui_dir: str = "./frontend/dist"
+    opencve_enabled: bool = False
+    opencve_batch_size: int = Field(default=25, ge=1, le=100)
 
 
 @lru_cache

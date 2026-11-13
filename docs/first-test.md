@@ -76,4 +76,6 @@ Erwartung: Der Monitor wird wieder gesund und die gespeicherte Konfiguration ble
 
 ## Ergebnis festhalten
 
+Optionaler OpenCVE-Test: Öffne einen gespeicherten CVE unter **Vulnerabilities**, klicke **Load OpenCVE details** und prüfe **Separate OpenCVE assessment**. Bei vorhandener NVD-Bewertung bleibt sie die primäre Bewertung. Eine Fehlermeldung oder ein fehlender OpenCVE-Datensatz muss sichtbar werden, ohne gespeicherte Daten zu löschen. Die [OpenCVE-Anleitung](opencve.md) beschreibt Hintergrundaktualisierung und Grenzen. Prüfe diese Erweiterung zunächst mit deaktivierten Regeln, bevor du angereicherte Daten automatisch auswerten lässt.
+
 Notiere den getesteten Commit, Betriebssystem/Docker-Version und für die fünf Schritte jeweils bestanden oder den konkreten Fehler. Für den späteren Dauerbetrieb zusätzlich [Backup und Wiederherstellung](backup-and-upgrade.md) auf einer separaten Installation üben. Token und private Inventardaten gehören nicht in einen Fehlerbericht. Erst ein tatsächlich empfangener CVE-Alert schließt den bisher offenen Telegram-End-to-End-Nachweis ab.

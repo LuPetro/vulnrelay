@@ -23,6 +23,7 @@ The first source synchronization can take several minutes, especially without an
 - NVD API 2.0 incremental ingestion, checkpoints, pagination, bounded retry/backoff, and original record preservation.
 - CISA KEV authoritative snapshots with validation, rollback on invalid catalogs and stale-catalog rejection.
 - Daily EPSS CSV enrichment of locally stored CVEs, plus individual FIRST API lookups.
+- Optional OpenCVE Knowledge Base enrichment, manual UI/CLI lookups, conditional caching and separate source assessments.
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
 - Telegram destinations, compact/detailed plain-text messages, queued test notifications and delivery history.
@@ -80,6 +81,8 @@ vulnrelay monitor --once --no-sync
 ```
 
 See [Telegram setup](docs/telegram.md), [rules and assets](docs/configuration.md), [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md), [security](SECURITY.md), and [contributing](CONTRIBUTING.md). Local API documentation is at `/docs`; mutations require `X-VulnRelay-Request: 1` and the bearer token if configured.
+
+For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE details**, or run `vulnrelay lookup-opencve CVE-2021-44228`. Background enrichment is opt-in with `VULNRELAY_OPENCVE_ENABLED=true`. Existing NVD scores remain primary; OpenCVE assessments are stored separately. The integration reads OpenCVE's public KB and requires no account.
 
 ## Delivery guarantees and remaining work
 

@@ -8,6 +8,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import httpx
 from sqlalchemy import text
 from sqlalchemy.engine import Engine, make_url
 
@@ -17,6 +18,8 @@ from vulnrelay.epss_bulk import refresh as refresh_epss
 from vulnrelay.kev import sync as sync_kev
 from vulnrelay.logging_config import configure
 from vulnrelay.nvd import sync as sync_nvd
+from vulnrelay.opencve import refresh as refresh_opencve
+from vulnrelay.opencve import retry_delay as opencve_retry_delay
 from vulnrelay.pipeline import correlate
 
 try:
@@ -87,21 +90,32 @@ def cycle(
     current = time.time() if now is None else now
     schedule = state(engine)
     outcomes = {}
-    for source, action in (
+    sources = [
         ("nvd", lambda: sync_nvd(engine, api_key=settings.nvd_api_key.get_secret_value())),
         ("cisa_kev", lambda: sync_kev(engine)),
         ("epss", lambda: refresh_epss(engine)),
-    ):
+    ]
+    if settings.opencve_enabled:
+        sources.append(
+            ("opencve", lambda: refresh_opencve(engine, batch_size=settings.opencve_batch_size))
+        )
+    for source, action in sources:
         if sync_sources and current >= schedule.get(f"next_{source}", 0):
+            deferred_until = 0
             try:
                 outcomes[source] = {"ok": True, "records": action()}
-            except Exception:  # noqa: BLE001 - isolate untrusted upstream adapters
+            except Exception as exc:  # noqa: BLE001 - isolate untrusted upstream adapters
                 outcomes[source] = {"ok": False}
                 logger.warning("Source synchronization failed", extra={"source": source})
+                if source == "opencve" and isinstance(exc, httpx.HTTPStatusError):
+                    deferred_until = time.time() + opencve_retry_delay(exc.response)
             set_state(
                 engine,
                 f"next_{source}",
-                current + (86400 if source == "epss" else settings.sync_interval_minutes * 60),
+                max(
+                    deferred_until,
+                    current + (86400 if source == "epss" else settings.sync_interval_minutes * 60),
+                ),
             )
     result = correlate(engine, enqueue=True, limit=0)
     deliveries = []

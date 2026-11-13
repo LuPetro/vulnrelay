@@ -11,6 +11,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Optional OpenCVE public Knowledge Base adapter, cached manual UI/CLI/API lookups, bounded opt-in background enrichment, separate assessments and source attribution without an account.
 - Incremental NVD ingestion, CISA KEV snapshots and FIRST EPSS enrichment with source provenance.
 - Explicit asset matching, nested explainable rules and persistent Telegram notification delivery.
 - Optional local React configuration UI, source/queue history, CLI and Docker Compose deployment.

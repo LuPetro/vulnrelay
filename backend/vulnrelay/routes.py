@@ -2,12 +2,16 @@
 
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import text
 
+from vulnrelay.config import get_settings
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
 from vulnrelay.monitor import state
+from vulnrelay.opencve import lookup as lookup_opencve
+from vulnrelay.opencve import validate_id
 from vulnrelay.pipeline import correlate, vulnerabilities
 from vulnrelay.store import delete_document, list_documents, save_document
 
@@ -53,6 +57,7 @@ def overview(request: Request):
         "deliveries": deliveries,
         "engine": state(engine),
         "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors")),
+        "opencve_enabled": get_settings().opencve_enabled,
     }
 
 
@@ -124,7 +129,7 @@ def list_vulnerabilities(
     for entry in vulnerabilities(request.app.state.engine):
         if q and q.casefold() not in (entry["id"] + " " + entry["description"]).casefold():
             continue
-        result.append({k: v for k, v in entry.items() if k not in ("nvd", "kev_record")})
+        result.append({k: v for k, v in entry.items() if k not in ("nvd", "kev_record", "opencve")})
         if len(result) >= limit:
             break
     return result
@@ -139,6 +144,19 @@ def vulnerability_details(cve_id: str, request: Request):
         "vulnerability": records[0],
         "matches": correlate(request.app.state.engine, cve_id=cve_id.upper()),
     }
+
+
+@router.post("/sources/opencve/{cve_id}/lookup")
+def lookup_opencve_record(cve_id: str, request: Request):
+    try:
+        cve_id = validate_id(cve_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid CVE identifier") from None
+    try:
+        result = lookup_opencve(request.app.state.engine, cve_id)
+    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
+        raise HTTPException(502, "OpenCVE lookup failed; existing data was preserved") from None
+    return {"found": result is not None, "record": result}
 
 
 @router.post("/deliveries/{message_id}/retry")

@@ -48,10 +48,17 @@ def render(payload: dict) -> str:
         f"Why: rule '{payload['rule']}', asset '{payload['asset']}'.",
         f"Match: {payload['match']['confidence']} · {payload['match']['explanation']}",
     ]
+    if vulnerability.get("cvss_source"):
+        lines.append(f"CVSS assessment: {vulnerability['cvss_source']}")
+    sources = " · ".join(vulnerability.get("sources") or ["NVD", "CISA KEV", "FIRST EPSS"])
     footer = [
         f"https://nvd.nist.gov/vuln/detail/{vulnerability['id']}",
-        "Sources: NVD · CISA KEV · FIRST EPSS (only available metrics shown).",
+        f"Sources: {sources} (only available metrics shown).",
     ]
+    if "OpenCVE" in vulnerability.get("sources", []):
+        from vulnrelay.opencve import record_url
+
+        footer.insert(1, record_url(vulnerability["id"]))
     prefix, suffix = "\n".join(lines), "\n".join(footer)
     middle = ""
     if payload["format"] == "detailed":

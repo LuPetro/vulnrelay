@@ -99,10 +99,17 @@ test("configure an asset, destination and rule, explain the match, then inspect 
     .getByRole("button", { name: "Connectors", exact: true })
     .click();
   await expect
-    .poll(async () => {
-      await page.getByRole("button", { name: "Process next message" }).click();
-      return page.getByText("cancelled", { exact: true }).count();
-    })
+    .poll(
+      async () => {
+        const processNext = page.getByRole("button", {
+          name: "Process next message",
+        });
+        await processNext.click();
+        await expect(processNext).toBeEnabled({ timeout: 15000 });
+        return page.getByText("cancelled", { exact: true }).count();
+      },
+      { timeout: 30000 },
+    )
     .toBe(1);
   await expect(page.getByText(/Rule disabled or removed/)).toBeVisible();
   await expect(
@@ -112,6 +119,25 @@ test("configure an asset, destination and rule, explain the match, then inspect 
   await expect(page.getByText("A few steps to your first alert")).toHaveCount(
     0,
   );
+
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "Vulnerabilities", exact: true })
+    .click();
+  await page.getByRole("button", { name: /CVE-2026-1234/ }).click();
+  await page.getByRole("button", { name: "Load OpenCVE details" }).click();
+  await expect(
+    page.getByRole("link", { name: "View OpenCVE record ↗" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("CVSS assessment: NVD", { exact: true }),
+  ).toBeVisible();
+  await page.getByText("Separate OpenCVE assessment", { exact: true }).click();
+  await expect(page.getByText(/"cvss": 8.2/)).toBeVisible();
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "Overview", exact: true })
+    .click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(

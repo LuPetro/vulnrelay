@@ -15,6 +15,8 @@ from vulnrelay.manage_cli import app as engine_commands
 from vulnrelay.manage_cli import register_configuration_commands
 from vulnrelay.monitor import monitor_lock
 from vulnrelay.nvd import sync as sync_nvd
+from vulnrelay.opencve import lookup as lookup_opencve
+from vulnrelay.opencve import refresh as refresh_opencve
 
 app = typer.Typer(no_args_is_help=True, help="VulnRelay administration.")
 config_app = typer.Typer(no_args_is_help=True)
@@ -140,12 +142,16 @@ def cve(cve_id: str):
             catalog = connection.execute(
                 text("SELECT checkpoint FROM source_state WHERE source='cisa_kev'")
             ).scalar_one_or_none()
+            opencve = connection.execute(
+                text("SELECT normalized FROM opencve_records WHERE cve_id=:id"),
+                {"id": cve_id.upper()},
+            ).scalar_one_or_none()
     except SQLAlchemyError:
         typer.echo("Database unavailable or migrations missing.", err=True)
         raise typer.Exit(1) from None
     finally:
         engine.dispose()
-    if not nvd and not kev and not epss:
+    if not nvd and not kev and not epss and not opencve:
         typer.echo("CVE not found locally.", err=True)
         raise typer.Exit(1)
     result = {
@@ -155,6 +161,7 @@ def cve(cve_id: str):
         "kev_status": "listed" if kev else "not listed" if catalog else "unknown",
         "kev_catalog_released": catalog,
         "epss": dict(epss) if epss else None,
+        "opencve": json.loads(opencve) if opencve else None,
     }
     typer.echo(json.dumps(result, ensure_ascii=False))
 
@@ -174,6 +181,43 @@ def lookup_epss_command(cve_id: str):
         typer.echo("No EPSS score available for this CVE.")
     else:
         typer.echo(json.dumps(result))
+
+
+@app.command("lookup-opencve")
+def lookup_opencve_command(cve_id: str):
+    """Fetch and cache one record from the public OpenCVE Knowledge Base."""
+    engine = create_database_engine(get_settings().database_url)
+    try:
+        result = lookup_opencve(engine, cve_id)
+    except (SQLAlchemyError, ValueError, TypeError, KeyError, AttributeError, httpx.HTTPError):
+        typer.echo("OpenCVE lookup failed. Check the CVE, connectivity and migrations.", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        engine.dispose()
+    typer.echo(json.dumps({"found": result is not None, "record": result}, ensure_ascii=False))
+
+
+@app.command("sync-opencve")
+def sync_opencve_command():
+    """Refresh a bounded batch of known CVEs from OpenCVE (not a full KB import)."""
+    engine = create_database_engine(get_settings().database_url)
+    try:
+        with monitor_lock(engine):
+            result = refresh_opencve(engine, batch_size=get_settings().opencve_batch_size)
+    except (
+        SQLAlchemyError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        RuntimeError,
+        httpx.HTTPError,
+    ):
+        typer.echo("OpenCVE refresh failed. Existing records were preserved.", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        engine.dispose()
+    typer.echo(json.dumps(result))
 
 
 @app.command()

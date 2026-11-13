@@ -14,6 +14,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] CISA KEV validated authoritative snapshots with stale-feed rejection.
 - [x] FIRST EPSS individual lookup and daily CSV enrichment of local CVEs.
 - [x] Source health, failure isolation and original source records.
+- [x] Optional OpenCVE public KB lookups and bounded enrichment, independent assessments, conditional requests, UI/CLI/API and provider failure tests.
 - [x] Persistent monitor schedule, database-specific monitor lock and graceful signal handling.
 - [ ] Broader source normalization, conditional requests and longer-term performance testing.
 
