@@ -2,16 +2,20 @@
 
 import hashlib
 import json
+import logging
 import time
 from uuid import uuid4
 
+from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from vulnrelay.matching import match, split_cpe
 from vulnrelay.rules import evaluate
 from vulnrelay.schemas import Asset, Rule
-from vulnrelay.store import list_documents
+from vulnrelay.store import get_document, list_documents
+
+logger = logging.getLogger(__name__)
 
 
 def vulnerabilities(
@@ -111,6 +115,93 @@ def _event_key(
     return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
 
 
+def _evaluate_pair(
+    vulnerability: dict,
+    asset_id: str,
+    asset: Asset,
+    rule_id: str,
+    rule: Rule,
+    *,
+    evidence: dict | None = None,
+) -> dict | None:
+    """The same matching and rule decision is used at enqueue and before delivery."""
+    if (rule.assets and asset_id not in rule.assets) or (
+        rule.groups and asset.group not in rule.groups
+    ):
+        return None
+    evidence = evidence if evidence is not None else match(asset, vulnerability)
+    if not evidence:
+        return None
+    vendor, product = asset.vendor, asset.product
+    if isinstance(evidence["evidence"], dict):
+        details = evidence["evidence"]
+        if "criteria" in details:
+            identity = split_cpe(details["criteria"])
+            vendor, product = vendor or identity[3], product or identity[4]
+        else:
+            vendor, product = vendor or details.get("vendor"), product or details.get("product")
+    context = {
+        "cvss": vulnerability["cvss"],
+        "severity": vulnerability["severity"],
+        "epss": vulnerability["epss"],
+        "percentile": vulnerability["percentile"],
+        "kev": vulnerability["kev"],
+        "group": asset.group,
+        "exposed": asset.exposed,
+        "importance": asset.importance,
+        "confidence": evidence["confidence"],
+        "vendor": vendor or None,
+        "product": product or None,
+        "keyword": vulnerability["description"],
+        "tags": asset.tags,
+    }
+    explanation = evaluate(rule.condition, context)
+    return {
+        "cve_id": vulnerability["id"],
+        "asset_id": asset_id,
+        "asset": asset.name,
+        "rule_id": rule_id,
+        "rule": rule.name,
+        "match": evidence,
+        "evaluation": explanation,
+        "matched": explanation["result"] is True,
+        "vulnerability": {k: v for k, v in vulnerability.items() if k not in ("nvd", "kev_record")},
+        "format": rule.format,
+    }
+
+
+def refresh_alert(
+    engine: Engine, payload: dict, destination: str
+) -> tuple[dict | None, str | None]:
+    """Revalidate queued alerts using current config and intelligence; tests need no rule."""
+    if not isinstance(payload, dict):
+        return None, "Invalid queued alert"
+    if payload.get("test") is True:
+        return payload, None
+    if not all(isinstance(payload.get(key), str) for key in ("rule_id", "asset_id", "cve_id")):
+        return None, "Queued alert is missing its configuration identity"
+    rule_row = get_document(engine, "rules", payload["rule_id"])
+    if not rule_row or not rule_row.get("enabled", True):
+        return None, "Rule disabled or removed"
+    asset_row = get_document(engine, "assets", payload["asset_id"])
+    if not asset_row or not asset_row.get("enabled", True):
+        return None, "Asset disabled or removed"
+    try:
+        rule = Rule.model_validate({k: v for k, v in rule_row.items() if k != "id"})
+        asset = Asset.model_validate({k: v for k, v in asset_row.items() if k != "id"})
+    except ValidationError:
+        return None, "Asset or rule configuration is invalid; review the current configuration"
+    if destination not in rule.destinations:
+        return None, "Destination removed from rule"
+    vulnerability = next(vulnerabilities(engine, payload["cve_id"]), None)
+    if not vulnerability:
+        return None, "Vulnerability no longer available"
+    refreshed = _evaluate_pair(vulnerability, asset_row["id"], asset, rule_row["id"], rule)
+    if not refreshed or not refreshed["matched"]:
+        return None, "Current asset, vulnerability or rule no longer matches"
+    return refreshed, None
+
+
 def correlate(
     engine: Engine,
     *,
@@ -119,10 +210,15 @@ def correlate(
     cve_id: str | None = None,
     limit: int = 200,
 ) -> dict:
-    assets = [
-        (row["id"], Asset.model_validate({k: v for k, v in row.items() if k != "id"}))
-        for row in list_documents(engine, "assets")
-    ]
+    assets = []
+    for row in list_documents(engine, "assets"):
+        try:
+            asset = Asset.model_validate({k: v for k, v in row.items() if k != "id"})
+        except ValidationError:
+            # An invalid legacy asset must not stop monitoring other assets.
+            logger.warning("Skipping invalid asset configuration", extra={"asset_id": row["id"]})
+            continue
+        assets.append((row["id"], asset))
     rules = [
         (row["id"], Rule.model_validate({k: v for k, v in row.items() if k != "id"}))
         for row in list_documents(engine, "rules")
@@ -142,62 +238,20 @@ def correlate(
             evidence = match(asset, vulnerability)
             if not evidence:
                 continue
-            vendor, product = asset.vendor, asset.product
-            if isinstance(evidence["evidence"], dict):
-                details = evidence["evidence"]
-                if "criteria" in details:
-                    identity = split_cpe(details["criteria"])
-                    vendor, product = vendor or identity[3], product or identity[4]
-                else:
-                    vendor, product = (
-                        vendor or details.get("vendor"),
-                        product or details.get("product"),
-                    )
-            context = {
-                "cvss": vulnerability["cvss"],
-                "severity": vulnerability["severity"],
-                "epss": vulnerability["epss"],
-                "percentile": vulnerability["percentile"],
-                "kev": vulnerability["kev"],
-                "group": asset.group,
-                "exposed": asset.exposed,
-                "importance": asset.importance,
-                "confidence": evidence["confidence"],
-                "vendor": vendor or None,
-                "product": product or None,
-                "keyword": vulnerability["description"],
-                "tags": asset.tags,
-            }
             for current_rule_id, rule in rules:
-                if (
-                    (enqueue and not rule.enabled)
-                    or (rule.assets and asset_id not in rule.assets)
-                    or (rule.groups and asset.group not in rule.groups)
-                ):
+                if enqueue and not rule.enabled:
                     continue
-                explanation = evaluate(rule.condition, context)
-                report = {
-                    "cve_id": vulnerability["id"],
-                    "asset_id": asset_id,
-                    "asset": asset.name,
-                    "rule_id": current_rule_id,
-                    "rule": rule.name,
-                    "match": evidence,
-                    "evaluation": explanation,
-                    "matched": explanation["result"] is True,
-                }
+                payload = _evaluate_pair(
+                    vulnerability, asset_id, asset, current_rule_id, rule, evidence=evidence
+                )
+                if payload is None:
+                    continue
+                report = {k: v for k, v in payload.items() if k not in ("vulnerability", "format")}
                 if len(reports) < limit:
                     reports.append(report)
                 count += 1
-                if not enqueue or explanation["result"] is not True:
+                if not enqueue or not payload["matched"]:
                     continue
-                payload = {
-                    **report,
-                    "vulnerability": {
-                        k: v for k, v in vulnerability.items() if k not in ("nvd", "kev_record")
-                    },
-                    "format": rule.format,
-                }
                 with engine.begin() as connection:
                     for destination in set(rule.destinations) & destinations:
                         key = _event_key(
@@ -205,14 +259,18 @@ def correlate(
                             asset_id,
                             destination,
                             vulnerability,
-                            evidence,
+                            payload["match"],
                             rule.renotify_changes,
                         )
                         result = connection.execute(
                             text("""INSERT INTO outbox
                             (id, event_key, connector_id, payload, state, attempts, available_at, created_at)
                             VALUES (:id, :key, :destination, :payload, 'pending', 0, :now, :now)
-                            ON CONFLICT(event_key) DO NOTHING"""),
+                            ON CONFLICT(event_key) DO UPDATE SET
+                            payload=excluded.payload, state='pending', attempts=0,
+                            available_at=excluded.available_at, lease_until=NULL,
+                            lease_token=NULL, last_error=NULL
+                            WHERE outbox.state='cancelled'"""),
                             {
                                 "id": str(uuid4()),
                                 "key": key,

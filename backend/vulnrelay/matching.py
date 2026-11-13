@@ -12,6 +12,16 @@ def split_cpe(value: str) -> list[str]:
     return parts
 
 
+def cpe_version_consistent(cpe: str, version: str) -> bool:
+    """An explicit inventory version must agree with an explicit CPE version."""
+    component = split_cpe(cpe)[5]
+    return (
+        not version.strip()
+        or component == "*"
+        or version.strip() == re.sub(r"\\(.)", r"\1", component)
+    )
+
+
 def _identity(value: str) -> str:
     return re.sub(r"\\(.)", r"\1", value).casefold().replace(" ", "_")
 
@@ -27,6 +37,9 @@ def _leaves(nodes, constrained=False):
 
 def match(asset: Asset, vulnerability: dict) -> dict | None:
     if not asset.enabled or vulnerability.get("status", "").casefold() == "rejected":
+        return None
+    if asset.kind == "cpe" and not cpe_version_consistent(asset.cpe, asset.version):
+        # Also protect callers holding an old/unchecked model after an upgrade.
         return None
     if asset.kind == "keyword":
         if re.search(

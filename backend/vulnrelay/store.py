@@ -11,6 +11,16 @@ from vulnrelay.schemas import Asset, Connector, Rule
 MODELS = {"assets": Asset, "rules": Rule, "connectors": Connector}
 
 
+def get_document(engine: Engine, table: str, document_id: str) -> dict | None:
+    if table not in MODELS:
+        raise ValueError("Unknown configuration collection")
+    with engine.connect() as connection:
+        row = connection.execute(
+            text(f"SELECT id, document FROM {table} WHERE id=:id"), {"id": document_id}
+        ).one_or_none()
+        return {"id": row.id, **json.loads(row.document)} if row else None
+
+
 def list_documents(engine: Engine, table: str) -> list[dict]:
     if table not in MODELS:
         raise ValueError("Unknown configuration collection")

@@ -3,6 +3,7 @@
 from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_core import PydanticCustomError
 
 
 class Document(BaseModel):
@@ -37,9 +38,13 @@ class Asset(Document):
         if not all(item.strip() for item in required):
             raise ValueError("The selected asset type needs its identity fields")
         if self.kind == "cpe":
-            from vulnrelay.matching import split_cpe
+            from vulnrelay.matching import cpe_version_consistent
 
-            split_cpe(self.cpe)
+            if not cpe_version_consistent(self.cpe, self.version):
+                raise PydanticCustomError(
+                    "cpe_version_conflict",
+                    "Inventory version conflicts with the version in the CPE",
+                )
         if any(len(tag) > 100 for tag in self.tags):
             raise ValueError("Tags must not exceed 100 characters")
         return self

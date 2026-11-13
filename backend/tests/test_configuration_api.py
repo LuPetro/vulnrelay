@@ -55,6 +55,19 @@ def test_optional_api_token_is_required(configured_engine, monkeypatch):
         assert client.get("/health").status_code == 200
 
 
+def test_api_rejects_conflicting_versions_without_overwriting_valid_asset(configured_engine):
+    cpe = "cpe:2.3:a:example:server:1.0:*:*:*:*:*:*:*"
+    document = {"name": "Server", "kind": "cpe", "cpe": cpe, "version": "1.0"}
+    with TestClient(app, base_url="http://localhost", headers=HEADERS) as client:
+        bad = client.post("/api/config/assets", json={**document, "version": "2.0"})
+        assert bad.status_code == 422 and "version conflicts" in bad.json()["detail"]
+        assert client.get("/api/config/assets").json() == []
+        asset = client.post("/api/config/assets", json=document).json()
+        bad = client.put(f"/api/config/assets/{asset['id']}", json={**document, "version": "2.0"})
+        assert bad.status_code == 422 and "version conflicts" in bad.json()["detail"]
+        assert client.get("/api/config/assets").json() == [asset]
+
+
 def test_api_to_queue_to_telegram_end_to_end(configured_engine, monkeypatch):
     import json
 

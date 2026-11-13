@@ -10,7 +10,7 @@ from vulnrelay.monitor import cycle, monitor_lock, state
 from vulnrelay.pipeline import correlate
 from vulnrelay.rules import evaluate
 from vulnrelay.schemas import Asset, Condition, Group, Rule
-from vulnrelay.store import list_documents, save_document
+from vulnrelay.store import delete_document, list_documents, save_document
 
 CPE = "cpe:2.3:a:example:server:1.2.3:*:*:*:*:*:*:*"
 
@@ -96,6 +96,173 @@ def test_matching_never_confirms_keyword_or_version_range():
     assert match(keyword, cve) is None
     cve["status"] = "Rejected"
     assert match(asset, cve) is None
+
+
+def test_conflicting_cpe_versions_are_rejected_and_never_confirmed(configured_engine, caplog):
+    asset, _, _ = seed(configured_engine)
+    document = {"name": "Conflicting server", "kind": "cpe", "cpe": CPE, "version": "2.0"}
+    with pytest.raises(ValidationError, match="version conflicts"):
+        save_document(configured_engine, "assets", document)
+    cve = {
+        "status": "Analyzed",
+        "nvd": {"configurations": [{"cpeMatch": [{"vulnerable": True, "criteria": CPE}]}]},
+    }
+    # Protect unchecked models and already persisted documents from older installations.
+    assert match(Asset.model_construct(**document), cve) is None
+    with configured_engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO assets (id,document) VALUES ('legacy',:document)"),
+            {"document": json.dumps(document)},
+        )
+    reports = correlate(configured_engine)["reports"]
+    assert [row["asset_id"] for row in reports] == [asset["id"]]
+    assert "Skipping invalid asset configuration" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("component", "version", "confidence"),
+    [
+        ("1.2.3", "1.2.3", "confirmed"),
+        (r"1.2.3\+build", "1.2.3+build", "confirmed"),
+        ("*", "1.2.3", "unknown"),
+    ],
+)
+def test_consistent_cpe_versions_preserve_conservative_matching(component, version, confidence):
+    cpe = CPE.replace(":1.2.3:", f":{component}:")
+    asset = Asset(name="Server", kind="cpe", cpe=cpe, version=version)
+    cve = {"nvd": {"configurations": [{"cpeMatch": [{"vulnerable": True, "criteria": cpe}]}]}}
+    assert match(asset, cve)["confidence"] == confidence
+
+
+@pytest.mark.parametrize("queue_state", ["pending", "retry", "sending"])
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ("rule_disabled", "Rule disabled"),
+        ("rule_removed", "Rule disabled or removed"),
+        ("asset_disabled", "Asset disabled"),
+        ("asset_removed", "Asset disabled or removed"),
+        ("condition_changed", "no longer matches"),
+        ("group_changed", "no longer matches"),
+        ("identity_changed", "no longer matches"),
+        ("selection_changed", "no longer matches"),
+        ("destination_removed", "Destination removed"),
+        ("cve_rejected", "no longer matches"),
+        ("cve_removed", "no longer available"),
+        ("legacy_version_conflict", "configuration is invalid"),
+    ],
+)
+def test_obsolete_alerts_are_cancelled_before_http_delivery(
+    configured_engine, monkeypatch, queue_state, change, reason
+):
+    asset, connector, rule = seed(configured_engine)
+    assert correlate(configured_engine, enqueue=True)["queued"] == 1
+    with configured_engine.begin() as connection:
+        connection.execute(
+            text("UPDATE outbox SET state=:state, attempts=1, available_at=0, lease_until=1"),
+            {"state": queue_state},
+        )
+    asset_id, rule_id = asset.pop("id"), rule.pop("id")
+    if change == "rule_disabled":
+        save_document(configured_engine, "rules", {**rule, "enabled": False}, rule_id)
+    elif change == "rule_removed":
+        delete_document(configured_engine, "rules", rule_id)
+    elif change == "asset_disabled":
+        save_document(configured_engine, "assets", {**asset, "enabled": False}, asset_id)
+    elif change == "asset_removed":
+        delete_document(configured_engine, "assets", asset_id)
+    elif change == "condition_changed":
+        condition = {"kind": "condition", "field": "epss", "op": "gte", "value": 0.9}
+        save_document(configured_engine, "rules", {**rule, "condition": condition}, rule_id)
+    elif change == "group_changed":
+        save_document(configured_engine, "assets", {**asset, "group": "other"}, asset_id)
+    elif change == "identity_changed":
+        save_document(configured_engine, "assets", {**asset, "product": "other"}, asset_id)
+    elif change == "selection_changed":
+        other = save_document(configured_engine, "assets", {**asset, "name": "Other asset"})
+        save_document(configured_engine, "rules", {**rule, "assets": [other["id"]]}, rule_id)
+    elif change == "destination_removed":
+        other = save_document(configured_engine, "connectors", {"name": "Other", "chat_id": "-1"})
+        save_document(configured_engine, "rules", {**rule, "destinations": [other["id"]]}, rule_id)
+    elif change == "cve_rejected":
+        with configured_engine.begin() as connection:
+            connection.execute(text("UPDATE vulnerabilities SET status='Rejected'"))
+    elif change == "cve_removed":
+        with configured_engine.begin() as connection:
+            connection.execute(text("DELETE FROM vulnerabilities"))
+    elif change == "legacy_version_conflict":
+        with configured_engine.begin() as connection:
+            connection.execute(
+                text("UPDATE assets SET document=:document WHERE id=:id"),
+                {
+                    "id": asset_id,
+                    "document": json.dumps({**asset, "kind": "cpe", "cpe": CPE, "version": "2.0"}),
+                },
+            )
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:" + "x" * 30)
+
+    def unexpected_send(request):
+        pytest.fail("An obsolete alert reached the Telegram HTTP adapter")
+
+    with httpx.Client(transport=httpx.MockTransport(unexpected_send)) as client:
+        outcome = deliver_one(configured_engine, now=2000000000, client=client)
+        assert outcome["state"] == "cancelled"
+        assert reason in outcome["error"]
+        assert deliver_one(configured_engine, now=2000004000, client=client) is None
+    row = history(configured_engine)[0]
+    assert row["connector_id"] == connector["id"] and row["sent_at"] is None
+    assert row["state"] == "cancelled" and reason in row["last_error"]
+    assert retry_failed(configured_engine, row["id"]) is False
+
+
+def test_reenabled_rule_can_requeue_cancelled_alert_without_duplicate_delivery(
+    configured_engine, monkeypatch
+):
+    _, _, rule = seed(configured_engine)
+    rule_id = rule.pop("id")
+    assert correlate(configured_engine, enqueue=True)["queued"] == 1
+    save_document(configured_engine, "rules", {**rule, "enabled": False}, rule_id)
+    assert deliver_one(configured_engine, now=2000000000)["state"] == "cancelled"
+    save_document(configured_engine, "rules", rule, rule_id)
+    assert correlate(configured_engine, enqueue=True)["queued"] == 1
+    assert correlate(configured_engine, enqueue=True)["queued"] == 0
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:" + "x" * 30)
+    sent = []
+
+    def handler(request):
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, json={"ok": True})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert deliver_one(configured_engine, now=2000000002, client=client)["state"] == "sent"
+        assert deliver_one(configured_engine, now=2000000004, client=client) is None
+    assert correlate(configured_engine, enqueue=True)["queued"] == 0
+    assert len(sent) == len(history(configured_engine)) == 1
+
+
+def test_delivery_uses_current_matching_data_and_rule_format(configured_engine, monkeypatch):
+    asset, _, rule = seed(configured_engine)
+    assert correlate(configured_engine, enqueue=True)["queued"] == 1
+    asset_id, rule_id = asset.pop("id"), rule.pop("id")
+    save_document(configured_engine, "assets", {**asset, "name": "Renamed server"}, asset_id)
+    save_document(configured_engine, "rules", {**rule, "format": "detailed"}, rule_id)
+    with configured_engine.begin() as connection:
+        connection.execute(
+            text("UPDATE vulnerabilities SET description='Updated source description'")
+        )
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:" + "x" * 30)
+    sent = []
+
+    def handler(request):
+        sent.append(json.loads(request.content)["text"])
+        return httpx.Response(200, json={"ok": True})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert deliver_one(configured_engine, now=2000000000, client=client)["state"] == "sent"
+    assert "Renamed server" in sent[0] and "Updated source description" in sent[0]
+    with configured_engine.connect() as connection:
+        payload = json.loads(connection.execute(text("SELECT payload FROM outbox")).scalar_one())
+    assert payload["asset"] == "Renamed server" and payload["format"] == "detailed"
 
 
 def test_pipeline_queue_dedup_and_material_change(configured_engine):

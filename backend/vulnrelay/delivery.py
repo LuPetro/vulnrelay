@@ -14,6 +14,7 @@ from dotenv import dotenv_values
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
+from vulnrelay.pipeline import refresh_alert
 from vulnrelay.schemas import Connector
 from vulnrelay.store import list_documents
 
@@ -170,13 +171,31 @@ def deliver_one(
         ),
         None,
     )
+    cancellation = None
     if not connector or not connector["enabled"]:
         outcome = DeliveryResult(False, error="Connector disabled or removed")
     else:
         config = Connector.model_validate({k: v for k, v in connector.items() if k != "id"})
-        outcome = send_telegram(config, render(json.loads(row["payload"])), client=client)
+        payload, cancellation = refresh_alert(engine, json.loads(row["payload"]), connector["id"])
+        if cancellation:
+            outcome = DeliveryResult(False, error=cancellation)
+        else:
+            with engine.begin() as connection:
+                updated = connection.execute(
+                    text("UPDATE outbox SET payload=:payload WHERE id=:id AND lease_token=:lease"),
+                    {
+                        "payload": json.dumps(payload, ensure_ascii=False),
+                        "id": row["id"],
+                        "lease": lease,
+                    },
+                )
+                if updated.rowcount != 1:
+                    return None
+            outcome = send_telegram(config, render(payload), client=client)
     state = (
-        "sent"
+        "cancelled"
+        if cancellation
+        else "sent"
         if outcome.success
         else "retry"
         if outcome.retryable and row["attempts"] < MAX_ATTEMPTS

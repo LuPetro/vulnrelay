@@ -4,6 +4,11 @@ Changes are recorded here before a release is published. No stable version has b
 
 ## Unreleased — 0.1.0-alpha.0
 
+### Fixed
+
+- Reject conflicting inventory/CPE versions and skip invalid legacy assets without stopping other monitoring.
+- Revalidate alerts before delivery/retry, cancel obsolete alerts visibly, refresh eligible message content and allow cancelled events to be reconsidered after reactivation.
+
 ### Added
 
 - Incremental NVD ingestion, CISA KEV snapshots and FIRST EPSS enrichment with source provenance.

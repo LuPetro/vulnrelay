@@ -808,7 +808,9 @@ export default function App() {
                                   ? "green"
                                   : row.state === "failed"
                                     ? "red"
-                                    : "amber"
+                                    : row.state === "cancelled"
+                                      ? "neutral"
+                                      : "amber"
                               }
                             >
                               {row.state}
@@ -1473,7 +1475,9 @@ export default function App() {
                                   ? "green"
                                   : row.state === "failed"
                                     ? "red"
-                                    : "amber"
+                                    : row.state === "cancelled"
+                                      ? "neutral"
+                                      : "amber"
                               }
                             >
                               {row.state}

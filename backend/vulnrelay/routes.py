@@ -3,6 +3,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import ValidationError
 from sqlalchemy import text
 
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
@@ -12,6 +13,16 @@ from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+def _configuration_error(error: ValueError) -> str:
+    # Only expose reviewed static messages, never validation inputs or credentials.
+    if isinstance(error, ValidationError) and any(
+        item["type"] == "cpe_version_conflict"
+        for item in error.errors(include_input=False, include_context=False)
+    ):
+        return "Inventory version conflicts with the version in the CPE"
+    return "Invalid configuration or missing asset/connector reference"
 
 
 @router.get("/overview")
@@ -54,10 +65,8 @@ def list_config(collection: Collection, request: Request):
 def create_config(collection: Collection, document: dict, request: Request):
     try:
         return save_document(request.app.state.engine, collection, document)
-    except ValueError:
-        raise HTTPException(
-            422, "Invalid configuration or missing asset/connector reference"
-        ) from None
+    except ValueError as error:
+        raise HTTPException(422, _configuration_error(error)) from None
 
 
 @router.put("/config/{collection}/{document_id}")
@@ -68,10 +77,8 @@ def update_config(collection: Collection, document_id: str, document: dict, requ
         raise HTTPException(404, "Configuration entry not found")
     try:
         return save_document(request.app.state.engine, collection, document, document_id)
-    except ValueError:
-        raise HTTPException(
-            422, "Invalid configuration or missing asset/connector reference"
-        ) from None
+    except ValueError as error:
+        raise HTTPException(422, _configuration_error(error)) from None
 
 
 @router.delete("/config/{collection}/{document_id}")

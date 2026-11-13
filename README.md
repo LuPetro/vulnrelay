@@ -14,7 +14,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Open **http://localhost:8080**. Add an asset, add a Telegram connector with your chat ID, create a rule, and queue a test message. The monitoring worker synchronizes NVD/CISA, refreshes EPSS daily, evaluates rules, and sends queued messages. The database and schedules live in a persistent Docker volume. Restart both services after changing `.env` values. Ports bind to localhost; do not publish this alpha to the Internet.
+Open **http://localhost:8080**. Add an asset, add a Telegram connector with your chat ID, create a rule, and queue a test message. The monitoring worker synchronizes NVD/CISA, refreshes EPSS daily, evaluates rules, and sends queued messages. The database and schedules live in a persistent Docker volume. After changing `.env`, recreate both containers with `docker compose up -d --force-recreate`; a plain restart does not reload container environment variables. Ports bind to localhost; do not publish this alpha to the Internet.
 
 The first source synchronization can take several minutes, especially without an NVD API key. Sources fail independently. The UI shows saved source checkpoints, errors, delivery states and the last engine heartbeat. A saved checkpoint is not a real-time guarantee of source availability.
 
@@ -94,5 +94,7 @@ Source references: [NVD API](https://nvd.nist.gov/developers/vulnerabilities), [
 ## Before testing or contributing
 
 Use the [testing and development guide](docs/development.md) for locked dependencies, style/type checks, coverage, browser E2E tests, security audits and package verification. Read the [backup and upgrade procedure](docs/backup-and-upgrade.md) before storing an inventory you depend on. `/health` checks connectivity; `/ready` checks the database revision; `vulnrelay engine-health` checks the monitoring worker heartbeat. `vulnrelay --version` reports the installed backend version.
+
+For your first real Telegram acceptance run, follow the [step-by-step checklist (German)](docs/first-test.md). It covers a real test message and CVE alert, matching evidence, duplicate prevention, restart persistence and cancellation after disabling a rule. A rule/asset/CVE is revalidated before every queued alert attempt; an obsolete alert becomes `cancelled` with a visible reason.
 
 The [changelog](CHANGELOG.md), [governance](GOVERNANCE.md), [community guidelines](CODE_OF_CONDUCT.md), issue/PR templates and [manual release process](docs/releasing.md) prepare the project for open-source collaboration. Repository visibility, branch rules and GitHub security features are operator settings; see [the administration checklist](docs/github-settings.md). No public publication or package upload is automatic.
