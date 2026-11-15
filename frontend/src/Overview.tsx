@@ -740,10 +740,10 @@ export default function OverviewPage({
           </div>
         )}
       </section>
-      <footer className="overview-bottom-note">
+      <div className="overview-bottom-note">
         <span>VULNRELAY / INSTANCE OVERVIEW</span>
         <span>Intelligence has a destination.</span>
-      </footer>
+      </div>
     </div>
   );
 }

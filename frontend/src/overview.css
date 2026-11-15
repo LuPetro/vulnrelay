@@ -82,6 +82,7 @@
   font-weight: 500;
   font-size: clamp(32px, 3.3vw, 48px);
   letter-spacing: -1.8px;
+  text-wrap: balance;
   line-height: 1.1;
   color: var(--ov-ink);
   margin: 14px 0 12px;
@@ -179,7 +180,7 @@
   margin-top: 4px;
   color: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.7;
 }
 .overview-status-pill {
@@ -381,10 +382,10 @@
 .relay-stage-label {
   fill: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 8px;
+  font-size: 9px;
 }
 .relay-stage-label {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.5px;
 }
 .relay-inventory > path,
@@ -543,7 +544,7 @@
   gap: var(--ov-space-2);
   width: 100%;
   font-family: var(--ov-mono);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.8;
   color: var(--ov-muted);
 }
@@ -620,7 +621,7 @@
   display: block;
   color: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.8;
   margin-top: 9px;
   overflow-wrap: anywhere;
@@ -632,7 +633,7 @@
   padding: 3px 0;
   color: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
   white-space: nowrap;
 }
@@ -669,7 +670,7 @@
 .overview-metric-note {
   color: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.9;
   padding-top: var(--ov-space-4);
 }
@@ -706,7 +707,7 @@
   display: block;
   color: var(--ov-muted);
   font-family: var(--ov-mono);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.8;
   margin-top: 5px;
   overflow-wrap: anywhere;
@@ -738,10 +739,9 @@
 }
 .overview-group {
   display: grid;
-  grid-template-columns: 20px minmax(100px, 1fr) minmax(0, 1.5fr) minmax(
-      95px,
-      0.7fr
-    ) 18px;
+  grid-template-columns:
+    20px minmax(100px, 1fr) minmax(0, 1.5fr) minmax(95px, 0.7fr)
+    18px;
   align-items: center;
   gap: var(--ov-space-4);
   width: 100%;
@@ -962,9 +962,6 @@
     grid-template-columns: 1fr;
     gap: var(--ov-space-10);
   }
-  .overview-kpi-note {
-    font-size: 9px;
-  }
   .overview-kpi-note svg {
     display: none;
   }
@@ -1045,7 +1042,7 @@
     font-size: 9px;
   }
   .overview-status-copy p {
-    font-size: 9px;
+    font-size: 10px;
   }
   .overview-route-brief {
     display: flex;
@@ -1065,7 +1062,7 @@
     margin-top: 12px;
   }
   .overview-flow-caption > span {
-    font-size: 8px;
+    font-size: 9px;
   }
   .overview-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));

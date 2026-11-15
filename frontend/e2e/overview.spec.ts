@@ -109,6 +109,15 @@ test("overview shows honest state, motion controls, branding and responsive layo
     "animation-name",
     "relay-packet-travel",
   );
+  const packet = page.locator(".relay-desktop .signal-packet").first();
+  const initialPosition = await packet.evaluate(
+    (element) => getComputedStyle(element).offsetDistance,
+  );
+  await expect
+    .poll(() =>
+      packet.evaluate((element) => getComputedStyle(element).offsetDistance),
+    )
+    .not.toBe(initialPosition);
   await page
     .getByRole("button", { name: "Pause overview animation", exact: true })
     .click();
@@ -229,6 +238,13 @@ test("overview shows honest state, motion controls, branding and responsive layo
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".relay-mobile")).toBeVisible();
   await expect(page.locator(".relay-desktop")).not.toBeVisible();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     page.getByText("Stale heartbeat", { exact: true }),
   ).toBeVisible();
