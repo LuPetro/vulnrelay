@@ -1,6 +1,19 @@
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
 
+test.use({ actionTimeout: 15000 });
+test.afterEach(async ({ request }) => {
+  // Keep retries independent while preserving fixtures owned by other scenarios.
+  const assets = await (await request.get("/api/config/assets")).json();
+  for (const asset of assets.filter(
+    (a: any) => a.group === "acceptance-stack",
+  )) {
+    await request.delete(`/api/config/assets/${asset.id}`, {
+      headers: { "X-VulnRelay-Request": "1" },
+    });
+  }
+});
+
 test("assemble a pack, review safely, reuse duplicates and keep manual entry", async ({
   page,
 }) => {
@@ -92,6 +105,10 @@ test("assemble a pack, review safely, reuse duplicates and keep manual entry", a
     (await (await page.request.get("/api/config/assets")).json()).length,
   ).toBe(before + 4);
   await page.getByRole("button", { name: "View assets", exact: true }).click();
+  await page.getByLabel("Search assets").fill("missing-inventory");
+  await expect(
+    page.getByText("No matching assets", { exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Search assets").fill("acceptance-stack");
   await expect(page.locator(".entry-row")).toHaveCount(4);
   await page.getByRole("button", { name: "Add asset", exact: true }).click();
@@ -136,6 +153,15 @@ test("assemble a pack, review safely, reuse duplicates and keep manual entry", a
     ),
   ).toBeTruthy();
   await page.screenshot({ path: "test-results/catalog-mobile.png" });
+  await page.getByRole("button", { name: "Select Linux essentials" }).click();
+  await expect(
+    page.getByRole("link", { name: "Review 4 selected" }),
+  ).toBeInViewport();
+  await page.getByRole("link", { name: "Review 4 selected" }).click();
+  await expect(
+    page.getByLabel("Asset group", { exact: true }),
+  ).toBeInViewport();
+  await page.screenshot({ path: "test-results/catalog-mobile-selection.png" });
   expect(
     (
       await new AxeBuilder({ page })

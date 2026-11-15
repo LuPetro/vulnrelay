@@ -357,7 +357,12 @@ export default function Catalog({
             </button>
           </div>
         </section>
-        <aside className="selection-panel" aria-label="Selected technologies">
+        <aside
+          className="selection-panel"
+          id="catalog-selection"
+          tabIndex={-1}
+          aria-label="Selected technologies"
+        >
           <div className="selection-heading">
             <div>
               <span className="eyebrow">YOUR SELECTION</span>
@@ -401,8 +406,9 @@ export default function Catalog({
               />
             </label>
             <label>
-              Environment
+              <span id="catalog-environment-label">Environment</span>
               <select
+                aria-labelledby="catalog-environment-label"
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
               >
@@ -424,8 +430,9 @@ export default function Catalog({
                 />
               </label>
               <label>
-                Importance
+                <span id="catalog-importance-label">Importance</span>
                 <select
+                  aria-labelledby="catalog-importance-label"
                   value={importance}
                   onChange={(e) => setImportance(e.target.value)}
                 >
@@ -474,6 +481,11 @@ export default function Catalog({
           </button>
         </aside>
       </div>
+      {selected.length > 0 && (
+        <a className="mobile-selection-link" href="#catalog-selection">
+          Review {selected.length} selected <ArrowRight size={18} />
+        </a>
+      )}
     </>
   );
 }

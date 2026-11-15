@@ -499,6 +499,11 @@ export default function App() {
   const monitorSeen =
     overview.engine.delivery_heartbeat || overview.engine.last_cycle;
   const monitorRecent = monitorSeen && Date.now() / 1000 - monitorSeen < 120;
+  const visibleAssets = assets.filter((entry) =>
+    `${entry.name} ${entry.group} ${entry.environment} ${entry.vendor} ${entry.product}`
+      .toLowerCase()
+      .includes(assetQuery.trim().toLowerCase()),
+  );
   return (
     <div className="app">
       <a className="skip-link" href="#main-content">
@@ -1411,121 +1416,117 @@ export default function App() {
                             ? "Connect a Telegram bot to your group, channel or direct chat."
                             : "Start with CVSS ≥ 9 or known exploitation, then refine your filters."}
                       </Empty>
+                    ) : page === "Assets" && visibleAssets.length === 0 ? (
+                      <Empty title="No matching assets">
+                        Try a different name, group or environment.
+                      </Empty>
                     ) : (
                       (page === "Assets"
-                        ? assets
+                        ? visibleAssets
                         : page === "Connectors"
                           ? connectors
                           : rules
-                      )
-                        .filter(
-                          (entry) =>
-                            page !== "Assets" ||
-                            `${entry.name} ${entry.group} ${entry.environment} ${entry.vendor} ${entry.product}`
-                              .toLowerCase()
-                              .includes(assetQuery.toLowerCase()),
-                        )
-                        .map((entry) => (
-                          <div className="entry-row" key={entry.id}>
-                            <div className="entry-icon">
-                              {page === "Assets" ? (
-                                <Layers3 size={21} />
-                              ) : page === "Connectors" ? (
-                                <Radio size={21} />
-                              ) : (
-                                <ListFilter size={21} />
-                              )}
-                            </div>
-                            <div className="entry-main">
-                              <strong>{entry.name}</strong>
-                              <small>
-                                {page === "Assets"
-                                  ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
-                                  : page === "Connectors"
-                                    ? `${entry.chat_id} · token: $${entry.token_env}`
-                                    : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
-                              </small>
-                            </div>
-                            <Badge tone={entry.enabled ? "green" : "neutral"}>
-                              {entry.enabled ? "Enabled" : "Disabled"}
-                            </Badge>
-                            <div className="row-actions">
-                              {page === "Notification rules" && (
-                                <>
-                                  <button
-                                    className="secondary small"
-                                    onClick={() =>
-                                      void action(async () => {
-                                        const result = await api(
-                                          "/evaluate?rule_id=" + entry.id,
-                                        );
-                                        setReport(result);
-                                        return result;
-                                      }, "Rule evaluated against stored intelligence.")
-                                    }
-                                  >
-                                    Test rule
-                                  </button>
-                                  <button
-                                    className="text-button"
-                                    onClick={() => void toggle(entry)}
-                                  >
-                                    {entry.enabled ? "Disable" : "Enable"}
-                                  </button>
-                                </>
-                              )}
-                              {page === "Connectors" && (
+                      ).map((entry) => (
+                        <div className="entry-row" key={entry.id}>
+                          <div className="entry-icon">
+                            {page === "Assets" ? (
+                              <Layers3 size={21} />
+                            ) : page === "Connectors" ? (
+                              <Radio size={21} />
+                            ) : (
+                              <ListFilter size={21} />
+                            )}
+                          </div>
+                          <div className="entry-main">
+                            <strong>{entry.name}</strong>
+                            <small>
+                              {page === "Assets"
+                                ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
+                                : page === "Connectors"
+                                  ? `${entry.chat_id} · token: $${entry.token_env}`
+                                  : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
+                            </small>
+                          </div>
+                          <Badge tone={entry.enabled ? "green" : "neutral"}>
+                            {entry.enabled ? "Enabled" : "Disabled"}
+                          </Badge>
+                          <div className="row-actions">
+                            {page === "Notification rules" && (
+                              <>
                                 <button
                                   className="secondary small"
-                                  disabled={busy}
                                   onClick={() =>
-                                    void action(
-                                      () =>
-                                        api(
-                                          `/connectors/${entry.id}/test`,
-                                          "POST",
-                                        ),
-                                      "Test queued. The monitoring worker sends queued messages.",
-                                    )
+                                    void action(async () => {
+                                      const result = await api(
+                                        "/evaluate?rule_id=" + entry.id,
+                                      );
+                                      setReport(result);
+                                      return result;
+                                    }, "Rule evaluated against stored intelligence.")
                                   }
                                 >
-                                  <Send size={14} /> Test
+                                  Test rule
                                 </button>
-                              )}
+                                <button
+                                  className="text-button"
+                                  onClick={() => void toggle(entry)}
+                                >
+                                  {entry.enabled ? "Disable" : "Enable"}
+                                </button>
+                              </>
+                            )}
+                            {page === "Connectors" && (
                               <button
-                                className="text-button"
+                                className="secondary small"
+                                disabled={busy}
                                 onClick={() =>
-                                  openEditor(
-                                    page === "Assets"
-                                      ? "assets"
-                                      : page === "Connectors"
-                                        ? "connectors"
-                                        : "rules",
-                                    entry,
+                                  void action(
+                                    () =>
+                                      api(
+                                        `/connectors/${entry.id}/test`,
+                                        "POST",
+                                      ),
+                                    "Test queued. The monitoring worker sends queued messages.",
                                   )
                                 }
                               >
-                                Edit
+                                <Send size={14} /> Test
                               </button>
-                              <button
-                                className="icon-button danger"
-                                aria-label={`Delete ${entry.name}`}
-                                onClick={() =>
-                                  void remove(
-                                    page === "Assets"
-                                      ? "assets"
-                                      : page === "Connectors"
-                                        ? "connectors"
-                                        : "rules",
-                                    entry,
-                                  )
-                                }
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
+                            )}
+                            <button
+                              className="text-button"
+                              onClick={() =>
+                                openEditor(
+                                  page === "Assets"
+                                    ? "assets"
+                                    : page === "Connectors"
+                                      ? "connectors"
+                                      : "rules",
+                                  entry,
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="icon-button danger"
+                              aria-label={`Delete ${entry.name}`}
+                              onClick={() =>
+                                void remove(
+                                  page === "Assets"
+                                    ? "assets"
+                                    : page === "Connectors"
+                                      ? "connectors"
+                                      : "rules",
+                                  entry,
+                                )
+                              }
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
-                        ))
+                        </div>
+                      ))
                     )}
                   </section>
                   {report && (

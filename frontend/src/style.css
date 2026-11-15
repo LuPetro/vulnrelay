@@ -2021,6 +2021,30 @@ footer {
   border-radius: 14px;
   background: var(--surface);
   box-shadow: 0 8px 25px #162d4d07;
+  scroll-margin-top: 20px;
+}
+.mobile-selection-link {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .mobile-selection-link {
+    position: sticky;
+    bottom: 16px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px;
+    margin-top: 20px;
+    border-radius: 12px;
+    background: #2457d7;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 20px #111d3040;
+  }
 }
 .selection-heading {
   display: flex;
