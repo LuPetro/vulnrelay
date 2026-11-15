@@ -8,6 +8,8 @@ The **Catalog** page offers 50 bundled technologies and ten starter packs: Linux
 4. **Review selection** shows new and already-present assets without writing anything. A context change requires a new review.
 5. **Add assets** saves the selection in one transaction. The Assets page can search names, products, groups and environments. Existing manual add/edit remains available.
 
+On smaller screens, **Review N selected** takes you directly to your selection and environment settings. It does not import anything.
+
 Packs are examples, not automatic inventory discovery or a claim that a stack is complete. No software is installed on your server. Catalog items use explicit product identities, never automatic fuzzy matching. A product match is potential; it does not confirm that an installed version is vulnerable. Add installed versions by editing the resulting assets, keeping the existing version-matching limitations in mind. CMS plugins, Java distributions and Docker Desktop need their own appropriate entries. Product-only entries intentionally cover vendor renames and disclose their broader scope.
 
 Existing enabled rules may apply to new assets immediately, particularly rules selecting all assets or an existing group. Review your rules before importing a large selection. Catalog imports do not create rules or connectors, change existing settings, or directly enqueue alerts.
