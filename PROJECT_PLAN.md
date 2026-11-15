@@ -29,6 +29,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Reject inconsistent CPE/inventory versions and isolate invalid legacy assets.
 - [x] Revalidate queued/retried alerts against current rules, assets and intelligence; visible cancellation and safe reconsideration after reactivation.
 - [x] Document a controlled real Telegram acceptance test before extending features.
+- [x] Document a fresh private-repository server installation with separate Compose project, image, port and data volume.
 - [ ] Real operator-owned Telegram end-to-end validation (no credentials supplied yet).
 - [ ] Generic version applicability, packages/PURLs and OSV matching.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.

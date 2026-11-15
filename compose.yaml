@@ -1,6 +1,6 @@
 services:
   vulnrelay:
-    image: vulnrelay-local:development
+    image: ${VULNRELAY_IMAGE:-vulnrelay-local:development}
     build: .
     ports:
       - "127.0.0.1:${VULNRELAY_PORT:-8080}:8080"
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     mem_limit: 256m
   monitor:
-    image: vulnrelay-local:development
+    image: ${VULNRELAY_IMAGE:-vulnrelay-local:development}
     command: ["vulnrelay", "monitor"]
     env_file:
       - path: .env

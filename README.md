@@ -8,6 +8,8 @@ VulnRelay is an Apache-2.0, self-hosted vulnerability notification engine. Decla
 
 ## Start with Docker
 
+For a fresh installation alongside an existing deployment, use the [separate server test installation guide (German)](docs/server-test-installation.md). It uses its own directory, Compose project, image, port and empty database.
+
 ```sh
 cp .env.example .env
 # Put your Telegram bot token in .env, then:

@@ -19,6 +19,8 @@ VulnRelay now has an integrated alpha notification engine and optional React/Typ
 
 ## Next priorities
 
+For an operator-driven clean install alongside development, follow docs/server-test-installation.md. Compose now accepts VULNRELAY_IMAGE with the existing image as default; the test procedure selects its own project/image/localhost port and starts with a new named volume. Default and isolated Compose rendering were checked for both services, host binding, port and distinct volume names; git diff --check passed. No test instance is started automatically, and no existing deployment configuration is changed.
+
 Follow docs/first-test.md with real operator-owned Telegram credentials before extending features. Keep release status alpha until acceptance criteria are independently verified. Afterwards prioritize version applicability, inventory import/export, notification aggregation and retention/backups. Optional AI is deferred.
 
 Git is configured locally as the connected LuPetro account with its GitHub noreply address. GitHub development history differs from local history because uploads use the GitHub connector; reconcile before a normal Git push. The development-agent timer is not active. The application's own monitoring worker is separate and runs through Docker Compose.
