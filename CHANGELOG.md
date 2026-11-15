@@ -6,11 +6,13 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Fixed
 
+- Replace generic NVD failure text with safe HTTP, timeout, connectivity, malformed-response, checkpoint and database diagnostics in source status, logs and manual sync output. Retain successful state on failure and clear errors after recovery.
 - Reject conflicting inventory/CPE versions and skip invalid legacy assets without stopping other monitoring.
 - Revalidate alerts before delivery/retry, cancel obsolete alerts visibly, refresh eligible message content and allow cancelled events to be reconsidered after reactivation.
 
 ### Added
 
+- Read-only `vulnrelay check-nvd [--json]` connectivity probe that works while monitoring, reports key presence without revealing it and does not change synchronization state.
 - Original SVG logo/wordmarks and favicon; redesigned Overview with motion controls, a source-to-delivery illustration, actionable counts, source/queue attention states and responsive asset-group cards. Motion respects reduced-motion preferences and hidden tabs.
 
 - Searchable bundled catalog with 50 technologies, ten editable starter-pack selections, context selection, read-only preview and atomic/idempotent imports through UI, API and CLI.

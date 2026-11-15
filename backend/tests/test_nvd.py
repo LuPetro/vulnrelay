@@ -7,7 +7,7 @@ from alembic.config import Config
 from sqlalchemy import text
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
-from vulnrelay.nvd import normalize, sync
+from vulnrelay.nvd import CheckpointError, normalize, sync
 
 NOW = datetime(2026, 11, 12, tzinfo=UTC)
 
@@ -118,7 +118,98 @@ def test_failed_page_rolls_back_records_and_checkpoint(engine):
             text("SELECT checkpoint, last_error FROM source_state WHERE source='nvd'")
         ).one()
         assert state.checkpoint is None
-        assert state.last_error == "NVD synchronization failed"
+        assert state.last_error == "NVD HTTP 503: upstream service unavailable; retry later."
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        (403, "NVD HTTP 403: access denied"),
+        (429, "NVD HTTP 429: request limit reached"),
+        (httpx.ReadTimeout, "NVD request timed out"),
+        (httpx.ConnectError, "NVD connection failed"),
+        (httpx.RemoteProtocolError, "NVD network request failed"),
+        ("invalid_json", "NVD returned an invalid or incomplete response"),
+        ("invalid_page", "NVD returned an invalid or incomplete response"),
+    ],
+)
+def test_failure_diagnostics_are_safe_and_recover(engine, caplog, failure, expected):
+    def handler(request):
+        if isinstance(failure, int):
+            return httpx.Response(
+                failure, text="private upstream content", headers={"message": "private-key"}
+            )
+        if failure == "invalid_json":
+            return httpx.Response(200, text="private upstream content")
+        if failure == "invalid_page":
+            return httpx.Response(200, json={"private-key": "private upstream content"})
+        raise failure("private-key at https://private.example", request=request)
+
+    def healthy(request):
+        return httpx.Response(
+            200, json={"startIndex": 0, "totalResults": 1, "vulnerabilities": [record()]}
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(healthy)) as client:
+        sync(engine, client=client, now=NOW)
+    with (
+        httpx.Client(transport=httpx.MockTransport(handler)) as client,
+        pytest.raises((httpx.HTTPError, ValueError, KeyError)),
+    ):
+        sync(
+            engine,
+            api_key="private-key",  # pragma: allowlist secret -- synthetic leak-test fixture
+            client=client,
+            now=NOW.replace(hour=1),
+            sleeper=lambda _: None,
+        )
+    with engine.connect() as connection:
+        state = connection.execute(
+            text(
+                "SELECT checkpoint, last_success_at, last_error FROM source_state WHERE source='nvd'"
+            )
+        ).one()
+        assert state.checkpoint.startswith("2026-11-12T00:00:00")
+        assert state.last_success_at is not None
+        assert state.last_error.startswith(expected)
+        assert connection.execute(text("SELECT COUNT(*) FROM vulnerabilities")).scalar_one() == 1
+    assert expected in caplog.text
+    for private in ("private-key", "private upstream content", "private.example"):
+        assert private not in state.last_error
+        assert private not in caplog.text
+    with httpx.Client(transport=httpx.MockTransport(healthy)) as client:
+        sync(engine, client=client, now=NOW.replace(hour=2))
+    with engine.connect() as connection:
+        state = connection.execute(
+            text("SELECT checkpoint, last_error FROM source_state WHERE source='nvd'")
+        ).one()
+        assert state.last_error is None
+        assert state.checkpoint.startswith("2026-11-12T02:00:00")
+
+
+@pytest.mark.parametrize("checkpoint", ["2030-01-01T00:00:00Z", "invalid private value"])
+def test_bad_checkpoint_is_reported_without_resetting_it(engine, checkpoint):
+    with engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO source_state (source, checkpoint) VALUES ('nvd', :checkpoint)"),
+            {"checkpoint": checkpoint},
+        )
+
+    def forbidden(request):
+        raise AssertionError("Invalid checkpoints must not trigger a request")
+
+    with (
+        httpx.Client(transport=httpx.MockTransport(forbidden)) as client,
+        pytest.raises(CheckpointError),
+    ):
+        sync(engine, client=client, now=NOW)
+    with engine.connect() as connection:
+        state = connection.execute(
+            text("SELECT checkpoint, last_error FROM source_state WHERE source='nvd'")
+        ).one()
+        assert state.checkpoint == checkpoint
+        assert state.last_error.startswith("NVD checkpoint is invalid or in the future")
+        assert checkpoint not in state.last_error
 
 
 def test_older_record_cannot_overwrite_newer(engine):

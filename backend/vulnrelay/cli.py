@@ -14,6 +14,8 @@ from vulnrelay.kev import sync as sync_kev
 from vulnrelay.manage_cli import app as engine_commands
 from vulnrelay.manage_cli import register_configuration_commands
 from vulnrelay.monitor import monitor_lock
+from vulnrelay.nvd import URL as NVD_URL
+from vulnrelay.nvd import failure_message as nvd_failure_message
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import refresh as refresh_opencve
@@ -89,12 +91,51 @@ def sync(days: int = typer.Option(7, min=1, max=120)):
     try:
         with monitor_lock(engine):
             count = sync_nvd(engine, api_key=settings.nvd_api_key.get_secret_value(), days=days)
-    except (SQLAlchemyError, ValueError, TypeError, KeyError, RuntimeError, httpx.HTTPError):
-        typer.echo("NVD sync failed. Check connectivity and run database migrations.", err=True)
+    except RuntimeError:
+        typer.echo(
+            "NVD sync could not start; another monitor or synchronization may be running.", err=True
+        )
+        raise typer.Exit(1) from None
+    except (SQLAlchemyError, ValueError, TypeError, KeyError, httpx.HTTPError) as error:
+        typer.echo(nvd_failure_message(error), err=True)
         raise typer.Exit(1) from None
     finally:
         engine.dispose()
     typer.echo(f"NVD synchronization completed: {count} records processed.")
+
+
+@app.command("check-nvd")
+def check_nvd(json_output: bool = typer.Option(False, "--json")):
+    """Probe one NVD response without changing the database or waiting for the monitor lock."""
+    key = get_settings().nvd_api_key.get_secret_value()
+    result = {"ok": False, "api_key_configured": bool(key), "http_status": None}
+    if not json_output:
+        typer.echo("Checking NVD connectivity (10-second network timeout)...")
+    try:
+        response = httpx.get(
+            NVD_URL,
+            params={"resultsPerPage": 1},
+            headers={"apiKey": key} if key else {},
+            timeout=10,
+            follow_redirects=False,
+        )
+        result["http_status"] = response.status_code
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict) or not isinstance(payload.get("vulnerabilities"), list):
+            raise ValueError("Invalid NVD response")
+        result.update(
+            ok=True, message="NVD reachable; this probe does not verify a full synchronization."
+        )
+    except (httpx.HTTPError, ValueError, TypeError, KeyError) as error:
+        result["message"] = nvd_failure_message(error)
+    if json_output:
+        typer.echo(json.dumps(result))
+    else:
+        typer.echo(f"NVD API key configured: {bool(key)}")
+        typer.echo(result["message"])
+    if not result["ok"]:
+        raise typer.Exit(1)
 
 
 @app.command("sync-kev")

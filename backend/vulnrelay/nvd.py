@@ -1,6 +1,7 @@
 """Incremental NVD ingestion with atomic checkpoints and source provenance."""
 
 import json
+import logging
 import time
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -13,6 +14,45 @@ from sqlalchemy.exc import SQLAlchemyError
 
 URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 PAGE_SIZE = 2000
+logger = logging.getLogger(__name__)
+
+
+class CheckpointError(ValueError):
+    """The saved synchronization window cannot be used safely."""
+
+
+def failure_message(error: Exception) -> str:
+    """Return allowlisted diagnostics without upstream bodies, URLs or exception text."""
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        reasons = {
+            400: "request rejected; check the server clock and synchronization window",
+            401: "authentication rejected; check the configured NVD API key",
+            403: "access denied; check the API key if configured, request limits and network access",
+            429: "request limit reached; wait before retrying",
+        }
+        reason = reasons.get(status)
+        if reason is None:
+            if status >= 500:
+                reason = "upstream service unavailable; retry later"
+            elif 300 <= status < 400:
+                reason = "unexpected redirect; check network or proxy configuration"
+            else:
+                reason = "unexpected HTTP response"
+        return f"NVD HTTP {status}: {reason}."
+    if isinstance(error, httpx.TimeoutException):
+        return "NVD request timed out; check connectivity or retry later."
+    if isinstance(error, httpx.ConnectError):
+        return "NVD connection failed; check DNS, TLS, proxy and outbound HTTPS access."
+    if isinstance(error, httpx.TransportError):
+        return "NVD network request failed; check connectivity and proxy configuration."
+    if isinstance(error, CheckpointError):
+        return "NVD checkpoint is invalid or in the future; check the server clock and saved state."
+    if isinstance(error, SQLAlchemyError):
+        return "NVD database operation failed; check database access and migrations."
+    if isinstance(error, (ValueError, TypeError, KeyError)):
+        return "NVD returned an invalid or incomplete response; retry later."
+    return "NVD synchronization failed; check source status and application health."
 
 
 def _timestamp(value: str) -> datetime:
@@ -110,23 +150,28 @@ def sync(
     end = now or datetime.now(UTC)
     if end.tzinfo is None:
         raise ValueError("now must be timezone-aware")
-    with engine.connect() as connection:
-        checkpoint = connection.execute(
-            text("SELECT checkpoint FROM source_state WHERE source='nvd'")
-        ).scalar_one_or_none()
-    # Overlap guards against boundary precision and delayed upstream updates.
-    start = (
-        _timestamp(checkpoint) - timedelta(minutes=5) if checkpoint else end - timedelta(days=days)
-    )
-    if start >= end:
-        raise ValueError("NVD checkpoint is in the future")
-    # NVD limits date windows to 120 days. Catch up in bounded consecutive windows.
-    end = min(end, start + timedelta(days=119))
     headers = {"apiKey": api_key} if api_key else {}
     owned_client = client is None
     client = client or httpx.Client(timeout=30, follow_redirects=False)
     count = 0
     try:
+        with engine.connect() as connection:
+            checkpoint = connection.execute(
+                text("SELECT checkpoint FROM source_state WHERE source='nvd'")
+            ).scalar_one_or_none()
+        # Overlap guards against boundary precision and delayed upstream updates.
+        try:
+            start = (
+                _timestamp(checkpoint) - timedelta(minutes=5)
+                if checkpoint
+                else end - timedelta(days=days)
+            )
+        except (ValueError, TypeError) as error:
+            raise CheckpointError from error
+        if start >= end:
+            raise CheckpointError
+        # NVD limits date windows to 120 days. Catch up in bounded consecutive windows.
+        end = min(end, start + timedelta(days=119))
         # Stage the complete response before taking the SQLite write lock. Large windows
         # spill to a temporary file instead of occupying memory or blocking configuration.
         with SpooledTemporaryFile(mode="w+t", max_size=1024 * 1024) as staged:
@@ -181,14 +226,17 @@ def sync(
                     last_success_at=excluded.last_success_at, last_error=NULL"""),
                     {"checkpoint": _iso(end), "success": datetime.now(UTC).isoformat()},
                 )
-    except (httpx.HTTPError, ValueError, TypeError, KeyError):
+    except (httpx.HTTPError, ValueError, TypeError, KeyError, SQLAlchemyError) as error:
         # Keep the previous successful cursor intact and avoid persisting upstream secrets.
+        message = failure_message(error)
+        logger.warning(message, extra={"source": "nvd"})
         try:
             with engine.begin() as connection:
                 connection.execute(
                     text("""INSERT INTO source_state (source, last_error)
-                    VALUES ('nvd', 'NVD synchronization failed')
-                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error""")
+                    VALUES ('nvd', :error)
+                    ON CONFLICT(source) DO UPDATE SET last_error=excluded.last_error"""),
+                    {"error": message},
                 )
         except SQLAlchemyError:
             pass  # A missing schema or unavailable database cannot record its own error.

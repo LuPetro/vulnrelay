@@ -67,6 +67,7 @@ vulnrelay doctor
 vulnrelay catalog list --query postgres
 vulnrelay catalog pack linux-server --group servers --environment production --preview
 vulnrelay status --json
+vulnrelay check-nvd
 vulnrelay sync --days 7
 vulnrelay sync-kev
 vulnrelay lookup-epss CVE-2021-44228

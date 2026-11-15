@@ -149,7 +149,8 @@ test("overview shows honest state, motion controls, branding and responsive layo
   );
 
   snapshot.engine.delivery_heartbeat = now - 600;
-  snapshot.sources[0].last_error = "Source temporarily unavailable";
+  snapshot.sources[0].last_error =
+    "NVD request timed out; check connectivity or retry later.";
   snapshot.deliveries.failed = 1;
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect(
@@ -160,6 +161,9 @@ test("overview shows honest state, motion controls, branding and responsive layo
   );
   await expect(
     page.getByRole("button", { name: /1 source error/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(snapshot.sources[0].last_error, { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /1 failed message/ }).click();
   await expect(
