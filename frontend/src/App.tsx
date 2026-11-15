@@ -1378,18 +1378,18 @@ export default function App() {
                           value={deliveryFilter}
                           onChange={(e) => setDeliveryFilter(e.target.value)}
                         >
-                          {[
-                            "all",
-                            "failed",
-                            "retry",
-                            "pending",
-                            "sending",
-                            "sent",
-                            "dismissed",
-                            "cancelled",
-                          ].map((state) => (
+                          {Object.entries({
+                            all: "All messages",
+                            failed: "Failed",
+                            retry: "Retrying",
+                            pending: "Waiting",
+                            sending: "In flight",
+                            sent: "Sent",
+                            dismissed: "Discarded",
+                            cancelled: "Cancelled",
+                          }).map(([state, label]) => (
                             <option key={state} value={state}>
-                              {state === "all" ? "All messages" : state}
+                              {label}
                             </option>
                           ))}
                         </select>

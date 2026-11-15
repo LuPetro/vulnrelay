@@ -82,14 +82,28 @@ test("configure an asset, destination and rule, explain the match, then inspect 
     .getByRole("button", { name: "Connectors", exact: true })
     .click();
   await page.getByRole("button", { name: "Process next message" }).click();
-  await expect(page.getByText("failed", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".delivery-row").getByText("failed", { exact: true }),
+  ).toBeVisible();
   await expect(
     page
       .locator(".delivery-row")
       .getByText(/Telegram token environment variable is missing or invalid/),
   ).toBeVisible();
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/deliveries?state=failed") &&
+        response.status() === 200,
+    ),
+    page.getByLabel("Filter delivery history").selectOption("failed"),
+  ]);
+  await expect(page.locator(".delivery-row .badge")).toHaveText("failed");
+  await page.getByLabel("Filter delivery history").selectOption("all");
   await page.getByRole("button", { name: "Retry", exact: true }).click();
-  await expect(page.getByText("retry", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".delivery-row").getByText("retry", { exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("navigation")
     .getByRole("button", { name: "Notification rules", exact: true })
@@ -108,7 +122,10 @@ test("configure an asset, destination and rule, explain the match, then inspect 
         });
         await processNext.click();
         await expect(processNext).toBeEnabled({ timeout: 15000 });
-        return page.getByText("cancelled", { exact: true }).count();
+        return page
+          .locator(".delivery-row")
+          .getByText("cancelled", { exact: true })
+          .count();
       },
       { timeout: 30000 },
     )
