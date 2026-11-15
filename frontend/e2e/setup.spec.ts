@@ -84,7 +84,9 @@ test("configure an asset, destination and rule, explain the match, then inspect 
   await page.getByRole("button", { name: "Process next message" }).click();
   await expect(page.getByText("failed", { exact: true })).toBeVisible();
   await expect(
-    page.getByText(/Telegram token environment variable is missing or invalid/),
+    page
+      .locator(".delivery-row")
+      .getByText(/Telegram token environment variable is missing or invalid/),
   ).toBeVisible();
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByText("retry", { exact: true })).toBeVisible();

@@ -6,11 +6,17 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Fixed
 
+- Synchronize pipeline ingress at a shared merge point, render packets above nodes/lines, align registration marks and simplify the inventory inlet.
+- Separate Telegram 429 cooldowns from bounded delivery failures, retain provider deadlines across restart/new destinations, share alias pacing and remove the blind post-send worker delay.
+
 - Replace generic NVD failure text with safe HTTP, timeout, connectivity, malformed-response, checkpoint and database diagnostics in source status, logs and manual sync output. Retain successful state on failure and clear errors after recovery.
 - Reject conflicting inventory/CPE versions and skip invalid legacy assets without stopping other monitoring.
 - Revalidate alerts before delivery/retry, cancel obsolete alerts visibly, refresh eligible message content and allow cancelled events to be reconsidered after reactivation.
 
 ### Added
+
+- Configurable Telegram send intervals, queue diagnostics/clear controls in Overview and Connectors plus CLI/API. Discarded events retain their deduplication keys.
+- Independently refreshed sent totals and an accessible rolling counter with k notation above 1,000.
 
 - Overview-only editorial design study: locally served IBM Plex typography, ruled coverage/source/inventory layouts, restrained colors and coordinated packet/matching/filter/delivery motion with a separately composed mobile diagram. Other application pages retain their design.
 - Read-only `vulnrelay check-nvd [--json]` connectivity probe that works while monitoring, reports key presence without revealing it and does not change synchronization state.

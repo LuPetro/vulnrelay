@@ -314,45 +314,27 @@
   stroke: var(--ov-line-strong);
   stroke-width: 1;
 }
-.signal-flow {
-  stroke: var(--ov-accent);
-  stroke-width: 1.5;
-  stroke-dasharray: 3 97;
-  stroke-linecap: round;
-  animation: signal-transit 6.8s linear infinite;
-}
-.signal-flow-1,
-.signal-flow-4 {
-  animation-delay: -1.3s;
-}
-.signal-flow-2,
-.signal-flow-5 {
-  animation-delay: -2.8s;
-}
-.signal-flow-3 {
-  animation-delay: -4.5s;
-}
+/* All ingress paths share a timeline and normalized progress, then one merged packet continues. */
 .signal-packet {
   fill: var(--ov-accent);
+  stroke: none;
   offset-rotate: 0deg;
-  animation: relay-packet-travel 6.8s linear infinite;
-}
-.packet-1 {
-  animation-delay: -1.3s;
-}
-.packet-2 {
-  animation-delay: -2.8s;
+  animation: signal-transit 6.8s linear infinite;
 }
 .packet-3 {
-  animation-delay: -4.5s;
+  animation-name: relay-inventory-transit;
 }
 .packet-4 {
-  animation-delay: -2s;
+  animation-name: relay-filter-transit;
 }
 .packet-5 {
-  animation-delay: -4s;
+  animation-name: relay-notify-transit;
+}
+.packet-6 {
+  animation-name: relay-merge-transit;
 }
 .relay-input > rect,
+.relay-inventory > rect,
 .relay-core > rect,
 .relay-filter > rect,
 .relay-output > rect {
@@ -365,12 +347,6 @@
 }
 .relay-input > rect {
   animation: relay-input-receive 6.8s ease-in-out infinite;
-}
-.relay-input-1 > rect {
-  animation-delay: -1.3s;
-}
-.relay-input-2 > rect {
-  animation-delay: -2.8s;
 }
 .relay-node-title {
   fill: var(--ov-ink);
@@ -402,7 +378,7 @@
   stroke: var(--ov-accent);
   stroke-width: 2;
   stroke-dasharray: 24 76;
-  animation: signal-transit 3.4s linear infinite;
+  animation: relay-core-progress 6.8s linear infinite;
 }
 .relay-filter-baseline {
   stroke: var(--ov-line);
@@ -824,26 +800,106 @@
   opacity: 0;
 }
 @keyframes signal-transit {
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-@keyframes relay-packet-travel {
-  0% {
+  0%,
+  4% {
     offset-distance: 0%;
-    opacity: 0;
-  }
-  5% {
     opacity: 1;
   }
-  68% {
+  32%,
+  36% {
     offset-distance: 100%;
     opacity: 1;
   }
-  74%,
+  37%,
   100% {
     offset-distance: 100%;
     opacity: 0;
+  }
+}
+@keyframes relay-merge-transit {
+  0%,
+  35% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  36% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  44% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  45%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes relay-inventory-transit {
+  0%,
+  4% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  44% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  45%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes relay-filter-transit {
+  0%,
+  52% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  53% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  66% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  67%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes relay-notify-transit {
+  0%,
+  75% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  76% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  88% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  89%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes relay-core-progress {
+  0%,
+  44% {
+    stroke-dashoffset: 0;
+  }
+  54%,
+  100% {
+    stroke-dashoffset: -100;
   }
 }
 @keyframes relay-input-receive {
@@ -873,8 +929,8 @@
   100% {
     scale: 0.35 1;
   }
-  40%,
-  78% {
+  60%,
+  76% {
     scale: 1 1;
   }
 }
@@ -884,8 +940,8 @@
   100% {
     translate: 0 0;
   }
-  66%,
-  79% {
+  86%,
+  94% {
     translate: 0 -5px;
   }
 }
@@ -1138,4 +1194,8 @@
 .brand-symbol {
   flex: 0 0 40px;
   object-fit: contain;
+}
+
+.overview-delivery-marker.muted {
+  background: var(--ov-muted);
 }

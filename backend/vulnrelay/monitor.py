@@ -143,6 +143,7 @@ def run(engine: Engine, settings: Settings):
     def pump_deliveries():
         last_heartbeat = 0
         while not stop.is_set():
+            delivery = None
             try:
                 if time.time() - last_heartbeat >= 30:
                     set_state(engine, "delivery_heartbeat", time.time())
@@ -152,7 +153,8 @@ def run(engine: Engine, settings: Settings):
                     logger.info("Delivery processed", extra={"deliveries": 1})
             except Exception:  # noqa: BLE001 - a failed delivery must not stop source monitoring
                 logger.error("Delivery worker failed; claims will expire and recover")
-            stop.wait(1)
+            # Connector deadlines govern pacing; do not add a fixed sleep after each send.
+            stop.wait(0.25 if delivery is None else 0)
 
     try:
         with monitor_lock(engine):

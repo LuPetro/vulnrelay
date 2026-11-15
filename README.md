@@ -67,6 +67,7 @@ vulnrelay doctor
 vulnrelay catalog list --query postgres
 vulnrelay catalog pack linux-server --group servers --environment production --preview
 vulnrelay status --json
+vulnrelay queue status
 vulnrelay check-nvd
 vulnrelay sync --days 7
 vulnrelay sync-kev
@@ -113,3 +114,5 @@ Use the [testing and development guide](docs/development.md) for locked dependen
 For your first real Telegram acceptance run, follow the [step-by-step checklist (German)](docs/first-test.md). It covers a real test message and CVE alert, matching evidence, duplicate prevention, restart persistence and cancellation after disabling a rule. A rule/asset/CVE is revalidated before every queued alert attempt; an obsolete alert becomes `cancelled` with a visible reason.
 
 The [changelog](CHANGELOG.md), [governance](GOVERNANCE.md), [community guidelines](CODE_OF_CONDUCT.md), issue/PR templates and [manual release process](docs/releasing.md) prepare the project for open-source collaboration. Repository visibility, branch rules and GitHub security features are operator settings; see [the administration checklist](docs/github-settings.md). No public publication or package upload is automatic.
+
+See [delivery queue controls and Telegram pacing](docs/delivery-queue.md) for configurable send intervals, provider cooldowns, backlog clearing and precise sent-count semantics.

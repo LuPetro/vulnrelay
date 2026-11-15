@@ -14,6 +14,7 @@ from vulnrelay.monitor import state
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import validate_id
 from vulnrelay.pipeline import correlate, vulnerabilities
+from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
@@ -60,16 +61,12 @@ def overview(request: Request):
             table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
             for table in ("assets", "rules", "connectors", "vulnerabilities")
         }
-        deliveries = {
-            row.state: row.count
-            for row in connection.execute(
-                text("SELECT state, COUNT(*) AS count FROM outbox GROUP BY state")
-            )
-        }
+    queue = queue_status(engine)
     return {
         "counts": counts,
         "sources": sources,
-        "deliveries": deliveries,
+        "deliveries": queue["counts"],
+        "queue": queue,
         "engine": state(engine),
         "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors")),
         "opencve_enabled": get_settings().opencve_enabled,
@@ -127,8 +124,23 @@ def test_connector(connector_id: str, request: Request):
 
 
 @router.get("/deliveries")
-def deliveries(request: Request, limit: int = Query(100, ge=1, le=1000)):
-    return history(request.app.state.engine, limit)
+def deliveries(
+    request: Request,
+    limit: int = Query(100, ge=1, le=1000),
+    state: Literal["pending", "retry", "sending", "sent", "failed", "cancelled", "dismissed"]
+    | None = None,
+):
+    return history(request.app.state.engine, limit, state)
+
+
+@router.get("/queue/status")
+def get_queue_status(request: Request):
+    return queue_status(request.app.state.engine)
+
+
+@router.post("/queue/clear")
+def clear_waiting_queue(selection: ClearQueue, request: Request):
+    return clear_queue(request.app.state.engine, selection)
 
 
 @router.post("/deliveries/next")

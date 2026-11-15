@@ -17,6 +17,38 @@ test("overview shows honest state, motion controls, branding and responsive layo
       { source: "epss", last_success_at: now - 3600, last_error: "" },
     ],
   };
+  const queue = {
+    as_of: now,
+    queued: 2,
+    ready: 0,
+    sending: 0,
+    last_sent_at: now - 120,
+    next_attempt_at: now + 30,
+    counts: snapshot.deliveries,
+    destinations: [
+      {
+        id: "telegram",
+        name: "Security channel",
+        status: "rate_limited",
+        queued: 2,
+        sending: 0,
+        min_interval_seconds: 3.1,
+        next_attempt_at: now + 30,
+        rate_limited_until: now + 30,
+      },
+    ],
+  };
+  Object.assign(snapshot, { queue });
+  let cleared = 0;
+  await page.route("**/api/queue/status", (r) => r.fulfill({ json: queue }));
+  await page.route("**/api/queue/clear", (r) => {
+    expect(r.request().postDataJSON()).toEqual({ before: now });
+    cleared++;
+    queue.queued = 0;
+    queue.destinations = [];
+    snapshot.deliveries.pending = 0;
+    return r.fulfill({ json: { cleared: 2, before: now } });
+  });
   const inventory = [
     {
       id: "one",
@@ -107,7 +139,7 @@ test("overview shows honest state, motion controls, branding and responsive layo
   );
   await expect(page.locator(".signal-packet").first()).toHaveCSS(
     "animation-name",
-    "relay-packet-travel",
+    "signal-transit",
   );
   const packet = page.locator(".relay-desktop .signal-packet").first();
   const initialPosition = await packet.evaluate(
@@ -118,6 +150,30 @@ test("overview shows honest state, motion controls, branding and responsive layo
       packet.evaluate((element) => getComputedStyle(element).offsetDistance),
     )
     .not.toBe(initialPosition);
+  const ingress = page.locator(".relay-desktop .packet-input");
+  const centers = await ingress.evaluateAll((elements) => {
+    for (const element of elements)
+      for (const animation of element.getAnimations()) {
+        animation.pause();
+        animation.currentTime = 2380;
+      }
+    return elements.map((element) => {
+      const box = element.getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+  });
+  expect(centers).toHaveLength(3);
+  for (const point of centers) {
+    expect(Math.abs(point.x - centers[0].x)).toBeLessThan(1);
+    expect(Math.abs(point.y - centers[0].y)).toBeLessThan(1);
+  }
+  expect(
+    await page
+      .locator(".relay-desktop")
+      .evaluate((element) =>
+        element.lastElementChild?.classList.contains("relay-packets"),
+      ),
+  ).toBeTruthy();
   await page
     .getByRole("button", { name: "Pause overview animation", exact: true })
     .click();
@@ -198,6 +254,37 @@ test("overview shows honest state, motion controls, branding and responsive layo
     "data-motion",
     "running",
   );
+  snapshot.deliveries.sent = 1234;
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(page.locator(".animated-count .count-current")).toHaveText(
+    /1[,.]2k/,
+  );
+  snapshot.deliveries.sent = 1235;
+  const preciseCount = await page.evaluate(() => (1235).toLocaleString());
+  await expect(page.locator(".animated-count")).toHaveAttribute(
+    "title",
+    preciseCount,
+    { timeout: 10000 },
+  );
+  await expect(
+    page.getByText("Telegram rate limit", { exact: true }),
+  ).toBeVisible();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page
+    .getByRole("button", { name: "Clear waiting messages", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Clear waiting messages", exact: true }),
+  ).toBeEnabled();
+  expect(cleared).toBe(0);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Clear waiting messages", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Clear waiting messages", exact: true }),
+  ).toBeDisabled();
+  expect(cleared).toBe(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(
     page.getByRole("button", { name: "Motion reduced by system preference" }),

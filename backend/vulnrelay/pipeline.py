@@ -295,7 +295,7 @@ def correlate(
                             (id, event_key, connector_id, payload, state, attempts, available_at, created_at)
                             VALUES (:id, :key, :destination, :payload, 'pending', 0, :now, :now)
                             ON CONFLICT(event_key) DO UPDATE SET
-                            payload=excluded.payload, state='pending', attempts=0,
+                            payload=excluded.payload, state='pending', attempts=0, failures=0,
                             available_at=excluded.available_at, lease_until=NULL,
                             lease_token=NULL, last_error=NULL
                             WHERE outbox.state='cancelled'"""),

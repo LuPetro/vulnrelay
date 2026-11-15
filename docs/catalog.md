@@ -50,7 +50,7 @@ Unchanged alerts for the same CVE/asset/rule/destination are deduplicated. Relev
 
 ## Update and test an existing Docker installation
 
-Run from your own installation folder. Keep its `.env`, project/image names and persistent data volume. This increment needs no new schema migration and preserves existing asset IDs, rules, connectors and notification history.
+Run from your own installation folder. Keep its `.env`, project/image names and persistent data volume. The catalog increment preserves existing asset IDs, rules, connectors and notification history. Later updates can include migrations: current queue controls add migration 0007, applied at startup. Back up before updating and review [queue upgrade notes](delivery-queue.md#sent-counter-and-updating).
 
 First create a new backup and copy it outside the container (keep it private):
 

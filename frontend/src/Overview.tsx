@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, ChevronRight, Pause, Play } from "lucide-react";
+import AnimatedCount from "./AnimatedCount";
+import QueuePanel, { type QueueSummary } from "./QueuePanel";
 import "./overview.css";
 
 export type OverviewData = {
@@ -13,6 +15,7 @@ export type OverviewData = {
   engine: Record<string, number>;
   setup_required: boolean;
   opencve_enabled?: boolean;
+  queue?: QueueSummary;
 };
 type Item = {
   id: string;
@@ -36,6 +39,8 @@ type Props = {
   connectors: Item[];
   deliveries: Delivery[];
   navigate: (page: string) => void;
+  clearQueue?: () => void;
+  busy?: boolean;
 };
 const date = (value?: string | number) =>
   value
@@ -50,6 +55,21 @@ const sourceNames = [
   { id: "opencve", label: "OpenCVE", detail: "Additional assessments" },
 ];
 
+function PacketLayer({ paths }: { paths: string[] }) {
+  return (
+    <g className="relay-packets">
+      {paths.map((d, i) => (
+        <circle
+          key={d}
+          r="3"
+          className={`signal-flow signal-packet packet-${i} ${i < 3 ? "packet-input" : ""}`}
+          style={{ offsetPath: `path("${d}")` }}
+        />
+      ))}
+    </g>
+  );
+}
+
 function FlowIllustration({
   rules,
   destinations,
@@ -58,36 +78,34 @@ function FlowIllustration({
   destinations: number;
 }) {
   const paths = [
-    "M149 51H202Q224 51 224 73V115Q224 137 246 137H295",
-    "M149 113H198Q216 113 226 124Q238 137 257 137H295",
-    "M149 175H198Q216 175 226 158Q238 137 257 137H295",
-    "M121 242H318Q345 242 345 215V187",
+    "M149 51H202Q224 51 224 73V115Q224 137 246 137",
+    "M149 113H198Q216 113 226 124Q238 137 246 137",
+    "M149 175H198Q216 175 226 158Q238 137 246 137",
+    "M149 242H255Q275 242 275 222V190Q275 169 295 169",
     "M395 137H486",
     "M584 137H651",
+    "M246 137H295",
+  ];
+  const mobilePaths = [
+    "M58 58V76Q58 94 76 94H152Q170 94 170 112",
+    "M170 58V112",
+    "M282 58V76Q282 94 264 94H188Q170 94 170 112",
+    "M95 163H132",
+    "M170 202V243",
+    "M208 265H244",
+    "M170 112V126",
   ];
   return (
     <div className="signal-map" aria-hidden="true">
       <svg className="relay-desktop" viewBox="0 0 760 288" fill="none">
         <path className="relay-guide" d="M16 19H744M16 269H744" />
-        {[17, 269].map((y) => (
+        {[19, 269].map((y) => (
           <g key={y} className="relay-registration">
             <path d={`M16 ${y - 4}V${y + 4}M744 ${y - 4}V${y + 4}`} />
           </g>
         ))}
-        {paths.map((d, i) => (
-          <g key={d}>
-            <path d={d} className="relay-track" />
-            <path
-              d={d}
-              className={`signal-flow signal-flow-${i}`}
-              pathLength="100"
-            />
-            <circle
-              r="3"
-              className={`signal-packet packet-${i}`}
-              style={{ offsetPath: `path("${d}")` }}
-            />
-          </g>
+        {paths.map((d) => (
+          <path key={d} d={d} className="relay-track" />
         ))}
         {[
           { y: 51, title: "NVD", detail: "CVE records" },
@@ -106,12 +124,9 @@ function FlowIllustration({
           </g>
         ))}
         <g className="relay-inventory">
-          <path d="M23 229v20M19 233h8M19 241h8" />
-          <text x="39" y="238" className="relay-node-title">
+          <rect x="16" y="225" width="133" height="34" rx="2" />
+          <text x="29" y="247" className="relay-node-title">
             Your assets
-          </text>
-          <text x="39" y="252" className="relay-node-detail">
-            Declared inventory
           </text>
         </g>
         <g className="relay-core">
@@ -169,29 +184,11 @@ function FlowIllustration({
         <text x="345" y="222" textAnchor="middle" className="relay-node-title">
           VulnRelay
         </text>
+        <PacketLayer paths={paths} />
       </svg>
       <svg className="relay-mobile" viewBox="0 0 340 342" fill="none">
-        {[
-          "M58 58V76Q58 94 76 94H152Q170 94 170 112V126",
-          "M170 58V126",
-          "M282 58V76Q282 94 264 94H188Q170 94 170 112V126",
-          "M95 163H132",
-          "M170 202V243",
-          "M208 265H244",
-        ].map((d, i) => (
-          <g key={d}>
-            <path d={d} className="relay-track" />
-            <path
-              d={d}
-              pathLength="100"
-              className={`signal-flow signal-flow-${i}`}
-            />
-            <circle
-              r="3"
-              className={`signal-packet packet-${i}`}
-              style={{ offsetPath: `path("${d}")` }}
-            />
-          </g>
+        {mobilePaths.map((d) => (
+          <path key={d} d={d} className="relay-track" />
         ))}
         {[
           { x: 14, title: "NVD" },
@@ -214,11 +211,9 @@ function FlowIllustration({
           PUBLIC INTELLIGENCE
         </text>
         <g className="relay-inventory">
-          <text x="14" y="159" className="relay-node-title">
+          <rect x="10" y="145" width="85" height="36" rx="2" />
+          <text x="19" y="167" className="relay-node-title">
             Your assets
-          </text>
-          <text x="14" y="175" className="relay-node-detail">
-            Inventory
           </text>
         </g>
         <g className="relay-core">
@@ -276,6 +271,7 @@ function FlowIllustration({
         <text x="282" y="330" textAnchor="middle" className="relay-node-title">
           {destinations} {destinations === 1 ? "destination" : "destinations"}
         </text>
+        <PacketLayer paths={mobilePaths} />
       </svg>
     </div>
   );
@@ -288,6 +284,8 @@ export default function OverviewPage({
   connectors,
   deliveries,
   navigate,
+  clearQueue,
+  busy,
 }: Props) {
   const [paused, setPaused] = useState(
     () => localStorage.getItem("vulnrelay-motion") === "paused",
@@ -492,7 +490,14 @@ export default function OverviewPage({
               onClick={() => navigate(target)}
             >
               <span className="overview-kpi-label">{label}</span>
-              <strong>{value.toLocaleString()}</strong>
+              {label === "Sent messages" ? (
+                <AnimatedCount
+                  value={value}
+                  motion={!paused && !reduced && !hidden}
+                />
+              ) : (
+                <strong>{value.toLocaleString()}</strong>
+              )}
               <span className="overview-kpi-note">
                 {note}
                 <ArrowRight size={14} />
@@ -501,6 +506,8 @@ export default function OverviewPage({
           ))}
         </div>
       </section>
+
+      <QueuePanel summary={overview.queue} busy={busy} onClear={clearQueue} />
 
       {overview.setup_required && (
         <section className="overview-setup" aria-label="First-run setup">
@@ -637,7 +644,7 @@ export default function OverviewPage({
               {deliveries.slice(0, 5).map((row) => (
                 <li key={row.id}>
                   <span
-                    className={`overview-delivery-marker ${row.state === "sent" ? "sent" : row.state === "failed" ? "error" : ""}`}
+                    className={`overview-delivery-marker ${row.state === "sent" ? "sent" : row.state === "failed" ? "error" : row.state === "dismissed" || row.state === "cancelled" ? "muted" : ""}`}
                     aria-hidden="true"
                   />
                   <div className="overview-delivery-body">

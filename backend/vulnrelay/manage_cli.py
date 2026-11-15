@@ -13,6 +13,7 @@ from vulnrelay.db import create_database_engine
 from vulnrelay.delivery import deliver_one, enqueue_test, history
 from vulnrelay.monitor import cycle, monitor_lock, run
 from vulnrelay.pipeline import correlate
+from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.store import delete_document, list_documents, save_document
 
 app = typer.Typer(no_args_is_help=True)
@@ -20,6 +21,29 @@ catalog_app = typer.Typer(
     no_args_is_help=True, help="Browse technologies and import starter packs."
 )
 app.add_typer(catalog_app, name="catalog")
+queue_app = typer.Typer(no_args_is_help=True, help="Inspect or discard waiting notifications.")
+app.add_typer(queue_app, name="queue")
+
+
+@queue_app.command("status")
+def queue_status_command():
+    """Show counts and destination cooldowns without sending messages."""
+    _execute(queue_status)
+
+
+@queue_app.command("clear")
+def queue_clear_command(yes: bool = typer.Option(False, "--yes"), connector: str | None = None):
+    """Discard pending/retry events in a captured snapshot; keep history and in-flight requests."""
+
+    def action(engine):
+        snapshot = queue_status(engine)
+        if not yes and not typer.confirm(
+            "Discard waiting messages? Unchanged events stay dismissed; history is retained."
+        ):
+            return {"cleared": 0}
+        return clear_queue(engine, ClearQueue(before=snapshot["as_of"], connector_id=connector))
+
+    _execute(action)
 
 
 @catalog_app.command("list")

@@ -1,7 +1,8 @@
 import { version as appVersion } from "../package.json";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./Catalog";
 import OverviewPage, { type OverviewData } from "./Overview";
+import QueuePanel from "./QueuePanel";
 import {
   Activity,
   Boxes,
@@ -311,6 +312,7 @@ function ConditionEditor({
 export default function App() {
   const [page, setPage] = useState("Overview");
   const [assetQuery, setAssetQuery] = useState("");
+  const [deliveryFilter, setDeliveryFilter] = useState("all");
   const [overview, setOverview] = useState<OverviewData>(emptyOverview);
   const [assets, setAssets] = useState<Entry[]>([]),
     [rules, setRules] = useState<Entry[]>([]),
@@ -321,6 +323,9 @@ export default function App() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState("");
+  const statusSequence = useRef(0);
+  const configSequence = useRef(0);
   const [token, setToken] = useState(""),
     [tokenDraft, setTokenDraft] = useState("");
   const [query, setQuery] = useState(""),
@@ -334,6 +339,7 @@ export default function App() {
       name: "",
       chat_id: "",
       token_env: "TELEGRAM_BOT_TOKEN",
+      min_interval_seconds: 3.1,
       enabled: true,
       kind: "telegram",
     });
@@ -373,31 +379,65 @@ export default function App() {
     },
     [token],
   );
-  const load = useCallback(async () => {
+  const loadStatus = useCallback(async () => {
+    const sequence = ++statusSequence.current;
     try {
-      const [status, a, r, c, d] = await Promise.all([
+      const [status, history] = await Promise.all([
         api("/overview"),
+        api(
+          "/deliveries" +
+            (page === "Connectors" && deliveryFilter !== "all"
+              ? "?state=" + encodeURIComponent(deliveryFilter)
+              : ""),
+        ),
+      ]);
+      if (sequence !== statusSequence.current) return;
+      setOverview(status);
+      setDeliveries(history);
+      setStatusError("");
+    } catch (e) {
+      if (sequence === statusSequence.current)
+        setStatusError((e as Error).message);
+    }
+  }, [api, page, deliveryFilter]);
+  const load = useCallback(async () => {
+    const sequence = ++configSequence.current;
+    try {
+      const [, a, r, c] = await Promise.all([
+        loadStatus(),
         api("/config/assets"),
         api("/config/rules"),
         api("/config/connectors"),
-        api("/deliveries"),
       ]);
-      setOverview(status);
+      if (sequence !== configSequence.current) return;
       setAssets(a);
       setRules(r);
       setConnectors(c);
-      setDeliveries(d);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [api, loadStatus]);
   useEffect(() => {
     void load();
     const interval = setInterval(() => void load(), 15000);
     return () => clearInterval(interval);
   }, [load]);
+  useEffect(() => {
+    if (page !== "Overview" && page !== "Connectors") return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      if (!document.hidden) await loadStatus();
+      if (!stopped) timer = setTimeout(tick, 5000);
+    };
+    timer = setTimeout(tick, 5000);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [page, loadStatus]);
   useEffect(() => {
     if (page === "Vulnerabilities") {
       const timer = setTimeout(
@@ -448,6 +488,7 @@ export default function App() {
               name: "",
               chat_id: "",
               token_env: "TELEGRAM_BOT_TOKEN",
+              min_interval_seconds: 3.1,
               enabled: true,
               kind: "telegram",
             },
@@ -479,6 +520,34 @@ export default function App() {
       () => api(`/config/${collection}/${entry.id}`, "DELETE"),
       "Deleted.",
     );
+  }
+  async function clearPendingQueue() {
+    setBusy(true);
+    setError("");
+    try {
+      const snapshot = await api("/queue/status");
+      if (!snapshot.queued) {
+        setNotice("No waiting messages to clear.");
+        return;
+      }
+      if (
+        !window.confirm(
+          `Discard ${snapshot.queued.toLocaleString()} waiting messages? History is kept and unchanged events will not be queued again. In-flight requests may finish.`,
+        )
+      )
+        return;
+      const result = await api("/queue/clear", "POST", {
+        before: snapshot.as_of,
+      });
+      setNotice(
+        `${result.cleared.toLocaleString()} waiting messages discarded. History retained.`,
+      );
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
   async function toggle(entry: Entry) {
     const document = { ...entry, enabled: !entry.enabled };
@@ -609,13 +678,16 @@ export default function App() {
               <RefreshCw size={15} /> Refresh
             </button>
           </div>
-          {error && (
+          {(error || statusError) && (
             <div className="alert error" role="alert">
-              {error}
+              {error || statusError}
               <button
                 className="icon-button"
                 aria-label="Dismiss error"
-                onClick={() => setError("")}
+                onClick={() => {
+                  setError("");
+                  setStatusError("");
+                }}
               >
                 <X size={15} />
               </button>
@@ -641,6 +713,8 @@ export default function App() {
                   connectors={connectors}
                   deliveries={deliveries}
                   navigate={navigate}
+                  clearQueue={() => void clearPendingQueue()}
+                  busy={busy}
                 />
               )}
               {page === "Catalog" && (
@@ -937,6 +1011,31 @@ export default function App() {
                         )}
                         {editor === "connectors" && (
                           <>
+                            <label>
+                              Minimum seconds between messages
+                              <input
+                                type="number"
+                                min="1.1"
+                                max="3600"
+                                step="0.1"
+                                required
+                                value={connector.min_interval_seconds ?? 3.1}
+                                onChange={(e) =>
+                                  setConnector({
+                                    ...connector,
+                                    min_interval_seconds: Number(
+                                      e.target.value,
+                                    ),
+                                  })
+                                }
+                              />
+                            </label>
+                            <p className="help">
+                              Default 3.1 seconds suits Telegram groups. A
+                              private chat can use 1.1 seconds. Telegram may
+                              impose an additional cooldown; that wait is always
+                              respected.
+                            </p>
                             <label>
                               Telegram chat ID or channel username
                               <input
@@ -1267,8 +1366,33 @@ export default function App() {
                   )}
                   {page === "Connectors" && (
                     <section className="panel">
+                      <QueuePanel
+                        summary={overview.queue}
+                        busy={busy}
+                        onClear={() => void clearPendingQueue()}
+                      />
                       <div className="section-heading">
                         <h2>Delivery history</h2>
+                        <select
+                          aria-label="Filter delivery history"
+                          value={deliveryFilter}
+                          onChange={(e) => setDeliveryFilter(e.target.value)}
+                        >
+                          {[
+                            "all",
+                            "failed",
+                            "retry",
+                            "pending",
+                            "sending",
+                            "sent",
+                            "dismissed",
+                            "cancelled",
+                          ].map((state) => (
+                            <option key={state} value={state}>
+                              {state === "all" ? "All messages" : state}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           className="secondary small"
                           disabled={busy}
@@ -1303,7 +1427,8 @@ export default function App() {
                                   ? "green"
                                   : row.state === "failed"
                                     ? "red"
-                                    : row.state === "cancelled"
+                                    : row.state === "cancelled" ||
+                                        row.state === "dismissed"
                                       ? "neutral"
                                       : "amber"
                               }

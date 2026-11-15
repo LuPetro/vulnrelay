@@ -11,17 +11,28 @@ from uuid import uuid4
 
 import httpx
 from dotenv import dotenv_values
-from sqlalchemy import text
+from pydantic import ValidationError
+from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Engine
 
 from vulnrelay.pipeline import refresh_alert
+from vulnrelay.queue import provider_key
 from vulnrelay.schemas import Connector
 from vulnrelay.store import list_documents
 
 # HTTP client request logging would expose the bot token embedded in Telegram URLs.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-MAX_ATTEMPTS = 6
+MAX_FAILURES = 6
+
+
+def _interval(document: dict) -> float:
+    try:
+        return Connector.model_validate(
+            {k: v for k, v in document.items() if k != "id"}
+        ).min_interval_seconds
+    except ValidationError:
+        return 3.1
 
 
 @dataclass
@@ -30,6 +41,7 @@ class DeliveryResult:
     retryable: bool = False
     error: str = ""
     retry_after: float = 0
+    rate_limited: bool = False
 
 
 def render(payload: dict) -> str:
@@ -107,8 +119,14 @@ def send_telegram(
         if code == 429 or body.get("error_code") == 429:
             parameters = body.get("parameters")
             delay = parameters.get("retry_after", 60) if isinstance(parameters, dict) else 60
-            delay = float(delay) if isinstance(delay, (int, float)) and math.isfinite(delay) else 60
-            return DeliveryResult(False, True, "Telegram rate limit", max(1, min(delay, 86400)))
+            try:
+                delay = float(delay) if type(delay) in (int, float) else 60
+                delay = delay if math.isfinite(delay) else 60
+            except (OverflowError, ValueError):
+                delay = 60
+            return DeliveryResult(
+                False, True, "Telegram rate limit", max(1, delay), rate_limited=True
+            )
         return DeliveryResult(False, code >= 500, f"Telegram delivery rejected (HTTP {code})")
     except httpx.HTTPError:
         # Never persist exception strings: Telegram URLs contain secrets.
@@ -141,50 +159,88 @@ def deliver_one(
     engine: Engine, *, now: float | None = None, client: httpx.Client | None = None
 ) -> dict | None:
     current = time.time() if now is None else now
+    documents = list_documents(engine, "connectors")
     lease = str(uuid4())
     with engine.begin() as connection:
         connection.execute(
-            text("""UPDATE outbox SET state='failed', last_error='Delivery claim expired at attempt limit'
-            WHERE state='sending' AND lease_until<=:now AND attempts>=:maximum"""),
-            {"now": current, "maximum": MAX_ATTEMPTS},
+            text("""UPDATE outbox SET
+            state=CASE WHEN failures+1>=:maximum THEN 'failed' ELSE 'retry' END,
+            failures=failures+1, available_at=:now, lease_until=NULL, lease_token=NULL,
+            last_error='Delivery claim expired; previous request outcome is unknown'
+            WHERE state='sending' AND lease_until<=:now"""),
+            {"now": current, "maximum": MAX_FAILURES},
         )
+        provider_limits = {
+            row.id: row.available_at
+            for row in connection.execute(
+                text("SELECT id, available_at FROM connector_limits WHERE available_at>:now"),
+                {"now": current},
+            )
+        }
+        blocked = [
+            item["id"]
+            for item in documents
+            if provider_key(item.get("token_env", "TELEGRAM_BOT_TOKEN")) in provider_limits
+        ]
         row = (
             connection.execute(
                 text("""UPDATE outbox SET state='sending', attempts=attempts+1,
             lease_until=:until, lease_token=:lease WHERE id=(
-                SELECT id FROM outbox WHERE attempts<:maximum AND (
-                    (state IN ('pending','retry') AND available_at<=:now) OR
-                    (state='sending' AND lease_until<=:now))
+                SELECT id FROM outbox WHERE failures<:maximum
+                AND state IN ('pending','retry') AND available_at<=:now
+                AND connector_id NOT IN :blocked
                 AND NOT EXISTS (SELECT 1 FROM connector_limits l WHERE l.id=outbox.connector_id AND l.available_at>:now)
+                AND NOT EXISTS (SELECT 1 FROM outbox active WHERE active.connector_id=outbox.connector_id
+                    AND active.state='sending' AND active.lease_until>:now)
                 ORDER BY created_at, id LIMIT 1)
-            RETURNING *"""),
-                {"now": current, "until": current + 120, "lease": lease, "maximum": MAX_ATTEMPTS},
+            RETURNING *""").bindparams(bindparam("blocked", expanding=True)),
+                {
+                    "now": current,
+                    "until": current + 120,
+                    "lease": lease,
+                    "maximum": MAX_FAILURES,
+                    "blocked": blocked,
+                },
             )
             .mappings()
             .one_or_none()
         )
         if row is None:
             return None
-        connection.execute(
-            text("""INSERT INTO connector_limits (id, available_at) VALUES (:id,:available)
-            ON CONFLICT(id) DO UPDATE SET available_at=excluded.available_at"""),
-            {"id": row["connector_id"], "available": current + 1.1},
-        )
-    connector = next(
-        (
-            item
-            for item in list_documents(engine, "connectors")
-            if item["id"] == row["connector_id"]
-        ),
-        None,
-    )
+        connector = next((item for item in documents if item["id"] == row["connector_id"]), None)
+        siblings = [connector] if connector else []
+        if connector:
+            siblings = [
+                item
+                for item in documents
+                if item.get("enabled", True)
+                and item.get("token_env", "TELEGRAM_BOT_TOKEN")
+                == connector.get("token_env", "TELEGRAM_BOT_TOKEN")
+                and str(item.get("chat_id", "")).casefold()
+                == str(connector.get("chat_id", "")).casefold()
+            ]
+        interval = max((_interval(item) for item in siblings), default=3.1)
+        for sibling_id in {row["connector_id"], *(item["id"] for item in siblings)}:
+            connection.execute(
+                text("""INSERT INTO connector_limits (id, available_at) VALUES (:id,:available)
+                ON CONFLICT(id) DO UPDATE SET available_at=CASE
+                WHEN connector_limits.available_at>excluded.available_at THEN connector_limits.available_at
+                ELSE excluded.available_at END"""),
+                {"id": sibling_id, "available": current + interval},
+            )
     cancellation = None
-    if not connector or not connector["enabled"]:
+    attempted = False
+    if not connector or not connector.get("enabled", True):
         outcome = DeliveryResult(False, error="Connector disabled or removed")
     else:
-        config = Connector.model_validate({k: v for k, v in connector.items() if k != "id"})
+        try:
+            config = Connector.model_validate({k: v for k, v in connector.items() if k != "id"})
+        except ValidationError:
+            config = None
         payload, cancellation = refresh_alert(engine, json.loads(row["payload"]), connector["id"])
-        if cancellation:
+        if config is None:
+            outcome = DeliveryResult(False, error="Connector configuration is invalid")
+        elif cancellation:
             outcome = DeliveryResult(False, error=cancellation)
         else:
             with engine.begin() as connection:
@@ -198,36 +254,57 @@ def deliver_one(
                 )
                 if updated.rowcount != 1:
                     return None
+            attempted = True
             outcome = send_telegram(config, render(payload), client=client)
+    finished = current if now is not None else time.time()
+    failures = row["failures"] + (not outcome.success and not outcome.rate_limited)
     state = (
         "cancelled"
         if cancellation
         else "sent"
         if outcome.success
         else "retry"
-        if outcome.retryable and row["attempts"] < MAX_ATTEMPTS
+        if outcome.retryable and failures < MAX_FAILURES
         else "failed"
     )
-    delay = max(outcome.retry_after, min(3600, 2 ** row["attempts"] * 15))
+    delay = outcome.retry_after if outcome.rate_limited else min(3600, 2**failures * 15)
     with engine.begin() as connection:
+        if not attempted:
+            for sibling_id in {row["connector_id"], *(item["id"] for item in siblings)}:
+                connection.execute(
+                    text("""UPDATE connector_limits SET available_at=:now
+                    WHERE id=:id AND available_at=:reserved AND rate_limited_until<=:now"""),
+                    {"id": sibling_id, "now": finished, "reserved": current + interval},
+                )
         connection.execute(
-            text("""UPDATE outbox SET state=:state, available_at=:available,
+            text("""UPDATE outbox SET state=:state, available_at=:available, failures=:failures,
             sent_at=:sent, lease_until=NULL, lease_token=NULL, last_error=:error
             WHERE id=:id AND lease_token=:lease"""),
             {
                 "state": state,
-                "available": current + delay,
-                "sent": current if outcome.success else None,
+                "available": finished + delay,
+                "sent": finished if outcome.success else None,
+                "failures": failures,
                 "error": outcome.error or None,
                 "id": row["id"],
                 "lease": lease,
             },
         )
-        if outcome.retry_after:
-            connection.execute(
-                text("UPDATE connector_limits SET available_at=:available WHERE id=:id"),
-                {"id": row["connector_id"], "available": current + outcome.retry_after},
-            )
+        if outcome.rate_limited and connector:
+            reference = connector.get("token_env", "TELEGRAM_BOT_TOKEN")
+            targets = {provider_key(reference)} | {
+                item["id"]
+                for item in documents
+                if item.get("token_env", "TELEGRAM_BOT_TOKEN") == reference
+            }
+            for target in targets:
+                connection.execute(
+                    text("""INSERT INTO connector_limits (id,available_at,rate_limited_until)
+                    VALUES (:id,:until,:until) ON CONFLICT(id) DO UPDATE SET
+                    available_at=CASE WHEN connector_limits.available_at>:until THEN connector_limits.available_at ELSE :until END,
+                    rate_limited_until=CASE WHEN connector_limits.rate_limited_until>:until THEN connector_limits.rate_limited_until ELSE :until END"""),
+                    {"id": target, "until": finished + outcome.retry_after},
+                )
     return {
         "id": row["id"],
         "state": state,
@@ -236,14 +313,14 @@ def deliver_one(
     }
 
 
-def history(engine: Engine, limit: int = 100) -> list[dict]:
+def history(engine: Engine, limit: int = 100, state: str | None = None) -> list[dict]:
     with engine.connect() as connection:
         return [
             dict(row)
             for row in connection.execute(
                 text("""SELECT id, connector_id, state,
-            attempts, created_at, sent_at, available_at, last_error FROM outbox ORDER BY created_at DESC LIMIT :limit"""),
-                {"limit": min(1000, max(1, limit))},
+            attempts, failures, created_at, sent_at, available_at, last_error FROM outbox WHERE (:state IS NULL OR state=:state) ORDER BY created_at DESC, id DESC LIMIT :limit"""),
+                {"limit": min(1000, max(1, limit)), "state": state},
             ).mappings()
         ]
 
@@ -252,7 +329,7 @@ def retry_failed(engine: Engine, message_id: str) -> bool:
     """Explicit operator retry of a terminal failure, retaining the event identity."""
     with engine.begin() as connection:
         result = connection.execute(
-            text("""UPDATE outbox SET state='retry', attempts=0,
+            text("""UPDATE outbox SET state='retry', attempts=0, failures=0,
             available_at=:now, lease_until=NULL, lease_token=NULL, last_error=NULL
             WHERE id=:id AND state='failed'"""),
             {"id": message_id, "now": time.time()},

@@ -26,3 +26,5 @@ docker compose start monitor
 ```
 
 The paused worker does not process notifications during the manual synchronization. Keep the API container running. The source error describes the last failed sync; check its last-success time separately. Never post `.env`, API keys or raw provider responses when requesting support.
+
+For a large or stalled Telegram backlog, run `docker compose exec monitor vulnrelay queue status` and inspect **Delivery queue**. It distinguishes configured pacing, Telegram cooldowns, retry backoff and failed destinations. See [queue controls, pacing, clearing and the sent counter](delivery-queue.md). A group backlog of 1,000 individual messages cannot be drained instantly within Telegram's limits. Clear waiting messages through the application to retain duplicate protection.

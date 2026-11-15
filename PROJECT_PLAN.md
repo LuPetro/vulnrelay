@@ -27,6 +27,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Persistent outbox, selected material-change deduplication, retry/backoff, expiring claims and failure inspection/retry.
 - [x] Telegram connector, environment-only secret references, tests and bounded plain-text rendering.
 - [x] Independent delivery pump while sources synchronize.
+- [x] Configurable pacing, persisted Telegram cooldowns separate from failure retries, queue diagnostics and snapshot-based dismissals that retain deduplication.
+- [x] Live sent-count refresh, accessible compact rolling count and synchronized foreground pipeline ingress.
 - [x] Reject inconsistent CPE/inventory versions and isolate invalid legacy assets.
 - [x] Revalidate queued/retried alerts against current rules, assets and intelligence; visible cancellation and safe reconsideration after reactivation.
 - [x] Document a controlled real Telegram acceptance test before extending features.
