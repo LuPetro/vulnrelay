@@ -53,6 +53,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 ## Development automation
 
+- [x] Stop the previous development deployment and record the boundary between isolated development tests and the operator-owned long-running installation.
 - [x] Bounded development runner with simulated CLI validation and an optional timer template.
 - [ ] Schedule activation is deferred; current work focuses on the application.
 
