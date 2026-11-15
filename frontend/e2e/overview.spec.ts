@@ -12,7 +12,13 @@ test("overview shows honest state, motion controls, branding and responsive layo
     setup_required: false,
     deliveries: { sent: 12, pending: 2, failed: 0 },
     sources: [
-      { source: "nvd", last_success_at: now - 300, last_error: "" },
+      {
+        source: "nvd",
+        last_success_at: now - 300,
+        last_error: "",
+        next_attempt_at: now + 120,
+        retry_scheduled: false,
+      },
       { source: "cisa_kev", last_success_at: now - 600, last_error: "" },
       { source: "epss", last_success_at: now - 3600, last_error: "" },
     ],
@@ -150,12 +156,45 @@ test("overview shows honest state, motion controls, branding and responsive layo
       packet.evaluate((element) => getComputedStyle(element).offsetDistance),
     )
     .not.toBe(initialPosition);
+  const noHold = await packet.evaluate((element) => {
+    const animation = element.getAnimations()[0];
+    animation.pause();
+    const progress = [20, 120].map((time) => {
+      animation.currentTime = time;
+      return parseFloat(getComputedStyle(element).offsetDistance);
+    });
+    return progress;
+  });
+  expect(noHold[1]).toBeGreaterThan(noHold[0]);
+  await expect(packet).toHaveCSS("animation-duration", "4.2s");
+  // Loading indicators keep moving during ingress, before a packet reaches the core.
+  for (const selector of [
+    ".relay-core-scan",
+    ".relay-rule-scan",
+    ".relay-output-sheet",
+  ]) {
+    const frames = await page
+      .locator(`.relay-desktop ${selector}`)
+      .first()
+      .evaluate((element) => {
+        const animation = element.getAnimations()[0];
+        animation.pause();
+        return [50, 150].map((time) => {
+          animation.currentTime = time;
+          const style = getComputedStyle(element);
+          return [style.strokeDashoffset, style.scale, style.translate].join(
+            "/",
+          );
+        });
+      });
+    expect(frames[0]).not.toBe(frames[1]);
+  }
   const ingress = page.locator(".relay-desktop .packet-input");
   const centers = await ingress.evaluateAll((elements) => {
     for (const element of elements)
       for (const animation of element.getAnimations()) {
         animation.pause();
-        animation.currentTime = 2380;
+        animation.currentTime = 4200 * 0.37999;
       }
     return elements.map((element) => {
       const box = element.getBoundingClientRect();
@@ -297,6 +336,7 @@ test("overview shows honest state, motion controls, branding and responsive layo
   snapshot.engine.delivery_heartbeat = now - 600;
   snapshot.sources[0].last_error =
     "NVD request timed out; check connectivity or retry later.";
+  snapshot.sources[0].retry_scheduled = true;
   snapshot.deliveries.failed = 1;
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect(
@@ -309,8 +349,18 @@ test("overview shows honest state, motion controls, branding and responsive layo
     page.getByRole("button", { name: /1 source error/ }),
   ).toBeVisible();
   await expect(
-    page.getByText(snapshot.sources[0].last_error, { exact: true }),
+    page.getByText(`Last sync failed: ${snapshot.sources[0].last_error}`, {
+      exact: true,
+    }),
   ).toBeVisible();
+  const nvdRow = page
+    .locator(".overview-source")
+    .filter({ hasText: "CVE records & severity" });
+  await expect(
+    nvdRow.getByText("Retry scheduled", { exact: true }),
+  ).toBeVisible();
+  await expect(nvdRow.getByText(/^Last success:/)).toBeVisible();
+  await expect(nvdRow.getByText(/^Retry scheduled:/)).toBeVisible();
   await page.getByRole("button", { name: /1 failed message/ }).click();
   await expect(
     page.getByRole("heading", { name: "Connectors", exact: true }),
@@ -351,6 +401,12 @@ test("overview shows honest state, motion controls, branding and responsive layo
         .analyze()
     ).violations,
   ).toEqual([]);
+  snapshot.sources[0].last_error = "";
+  snapshot.sources[0].retry_scheduled = false;
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(nvdRow.getByText("Synced", { exact: true })).toBeVisible();
+  await expect(nvdRow.getByText(/^Last sync failed:/)).toHaveCount(0);
+  await expect(nvdRow.getByText(/^Next sync:/)).toBeVisible();
   await page.setViewportSize({ width: 1000, height: 560 });
   await page.goto("/brand/vulnrelay-brand-sheet.svg");
   await page.screenshot({ path: "test-results/vulnrelay-logo.png" });

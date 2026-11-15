@@ -2,6 +2,8 @@
 
 import json
 import logging
+import math
+import random
 import time
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -97,23 +99,35 @@ def normalize(record: dict) -> dict:
     }
 
 
-def _retry_delay(response: httpx.Response, attempt: int) -> float:
-    retry_after = response.headers.get("Retry-After")
-    if retry_after:
+def retry_after_seconds(response: httpx.Response) -> float:
+    """Read a provider deadline without shortening long cooldowns or accepting NaN/inf."""
+    value = response.headers.get("Retry-After")
+    if not value:
+        return 0.0
+    try:
+        seconds = float(value)
+    except ValueError:
         try:
-            return min(60.0, max(0.0, float(retry_after)))
-        except ValueError:
-            try:
-                return min(
-                    60.0,
-                    max(
-                        0.0,
-                        (parsedate_to_datetime(retry_after) - datetime.now(UTC)).total_seconds(),
-                    ),
-                )
-            except (ValueError, TypeError, OverflowError):
-                pass
-    return min(60.0, 2.0**attempt)
+            seconds = (parsedate_to_datetime(value) - datetime.now(UTC)).total_seconds()
+        except (ValueError, TypeError, OverflowError):
+            return 0.0
+    return max(0.0, seconds) if math.isfinite(seconds) else 0.0
+
+
+def transient_failure(error: Exception) -> bool:
+    return isinstance(error, httpx.TransportError) or (
+        isinstance(error, httpx.HTTPStatusError)
+        and (error.response.status_code == 429 or error.response.status_code >= 500)
+    )
+
+
+def _retry_delay(response: httpx.Response | None, attempt: int) -> float:
+    # Six seconds also respects unauthenticated NVD pacing. Jitter separates clients.
+    base = 6.0 * 2**attempt
+    return max(
+        retry_after_seconds(response) if response is not None else 0.0,
+        base + random.uniform(0, base / 4),
+    )
 
 
 def _get(client: httpx.Client, params: dict, headers: dict, sleeper) -> dict:
@@ -121,8 +135,11 @@ def _get(client: httpx.Client, params: dict, headers: dict, sleeper) -> dict:
         try:
             response = client.get(URL, params=params, headers=headers)
             if (response.status_code == 429 or response.status_code >= 500) and attempt < 3:
-                sleeper(_retry_delay(response, attempt))
-                continue
+                delay = _retry_delay(response, attempt)
+                # Persist long cooldowns in the monitor rather than blocking other sources.
+                if delay <= 60:
+                    sleeper(delay)
+                    continue
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
@@ -131,7 +148,7 @@ def _get(client: httpx.Client, params: dict, headers: dict, sleeper) -> dict:
         except httpx.TransportError:
             if attempt == 3:
                 raise
-            sleeper(min(60.0, 2.0**attempt))
+            sleeper(_retry_delay(None, attempt))
     raise RuntimeError("NVD request failed")
 
 
@@ -225,6 +242,10 @@ def sync(
                     ON CONFLICT(source) DO UPDATE SET checkpoint=excluded.checkpoint,
                     last_success_at=excluded.last_success_at, last_error=NULL"""),
                     {"checkpoint": _iso(end), "success": datetime.now(UTC).isoformat()},
+                )
+                connection.execute(
+                    text("""INSERT INTO engine_state (name,value) VALUES ('failures_nvd','0')
+                    ON CONFLICT(name) DO UPDATE SET value='0'""")
                 )
     except (httpx.HTTPError, ValueError, TypeError, KeyError, SQLAlchemyError) as error:
         # Keep the previous successful cursor intact and avoid persisting upstream secrets.

@@ -6,6 +6,9 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Fixed
 
+- Recover from transient NVD failures with jittered request/recovery backoff and persisted provider deadlines; show last success and next attempt alongside failure details.
+- Speed up Overview packet motion, remove endpoint holds and animate loading indicators continuously, independently of packet arrivals.
+
 - Synchronize pipeline ingress at a shared merge point, render packets above nodes/lines, align registration marks and simplify the inventory inlet.
 - Separate Telegram 429 cooldowns from bounded delivery failures, retain provider deadlines across restart/new destinations, share alias pacing and remove the blind post-send worker delay.
 

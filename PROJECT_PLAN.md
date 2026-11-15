@@ -16,6 +16,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Source health, failure isolation and original source records.
 - [x] Actionable secret-safe NVD failure diagnostics and a read-only CLI connectivity probe independent of the monitor lock.
 - [x] Optional OpenCVE public KB lookups and bounded enrichment, independent assessments, conditional requests, UI/CLI/API and provider failure tests.
+- [x] NVD recovery with jittered request/run backoff, persisted provider deadlines and last-success/next-attempt explanations.
 - [x] Persistent monitor schedule, database-specific monitor lock and graceful signal handling.
 - [ ] Broader source normalization, conditional requests and longer-term performance testing.
 
@@ -42,6 +43,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 ## Local UI
 
 - [x] Original vector branding and animated operational Overview with pause/reduced-motion controls and honest status/count semantics.
+- [x] Faster uninterrupted packet handoffs and independent continuous loading indicators, preserving pause/reduced-motion behavior.
 - [x] Isolated Overview design study with self-hosted typography, editorial grid, richer explanatory motion and mobile composition; broader design adoption waits for operator review.
 
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.

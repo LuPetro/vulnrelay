@@ -61,13 +61,21 @@ def overview(request: Request):
             table: connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
             for table in ("assets", "rules", "connectors", "vulnerabilities")
         }
+    schedule = state(engine)
+    for source in sources:
+        source_id = source["source"]
+        source["next_attempt_at"] = schedule.get(f"next_{source_id}")
+        source["last_attempt_at"] = schedule.get(f"last_attempt_{source_id}")
+        source["retry_scheduled"] = bool(
+            source["last_error"] and schedule.get(f"failures_{source_id}", 0)
+        )
     queue = queue_status(engine)
     return {
         "counts": counts,
         "sources": sources,
         "deliveries": queue["counts"],
         "queue": queue,
-        "engine": state(engine),
+        "engine": schedule,
         "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors")),
         "opencve_enabled": get_settings().opencve_enabled,
     }

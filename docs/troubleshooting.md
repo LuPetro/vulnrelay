@@ -28,3 +28,13 @@ docker compose start monitor
 The paused worker does not process notifications during the manual synchronization. Keep the API container running. The source error describes the last failed sync; check its last-success time separately. Never post `.env`, API keys or raw provider responses when requesting support.
 
 For a large or stalled Telegram backlog, run `docker compose exec monitor vulnrelay queue status` and inspect **Delivery queue**. It distinguishes configured pacing, Telegram cooldowns, retry backoff and failed destinations. See [queue controls, pacing, clearing and the sent counter](delivery-queue.md). A group backlog of 1,000 individual messages cannot be drained instantly within Telegram's limits. Clear waiting messages through the application to retain duplicate protection.
+
+## NVD recovery and last-attempt status
+
+`Last sync failed` describes the last complete synchronization, not a live availability check. Overview keeps the reason, last successful sync and next planned attempt visible together. Transient failures display an amber `Retry scheduled` state. `check-nvd` remains read-only: a successful one-record probe does not clear a failed full sync.
+
+For transport errors, HTTP 429 and HTTP 5xx, individual requests get up to four attempts, separated by approximately 6–7.5, 12–15 and 24–30 seconds. The larger of that delay and a valid `Retry-After` is used. A provider wait longer than 60 seconds ends the current run promptly; the monitor persists that deadline instead of blocking other sources for minutes or hours.
+
+After a failed run, the monitor schedules a new run after approximately 2–2.5, 4–5, 8–10, 16–20, then 30 minutes for consecutive transient failures. Provider deadlines can extend these waits. Schedules are measured from request completion and survive restart. Success (including a manual sync with zero records) clears the error and failure streak; normal monitoring resumes at the configured interval. Authentication, invalid checkpoint, malformed data and database failures keep the regular interval rather than triggering faster automatic retries.
+
+Previous CVEs, last-success time and the incremental checkpoint are retained on failure. Once the service recovers, the monitor catches up from that checkpoint. Automatic retry cannot guarantee NVD availability. If failures persist, record the specific error and last-success/next-attempt times; do not repeatedly restart or delete the database.

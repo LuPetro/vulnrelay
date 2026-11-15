@@ -10,6 +10,9 @@ export type OverviewData = {
     source: string;
     last_success_at?: string | number;
     last_error?: string;
+    next_attempt_at?: number;
+    last_attempt_at?: number;
+    retry_scheduled?: boolean;
   }[];
   deliveries: Record<string, number>;
   engine: Record<string, number>;
@@ -553,7 +556,9 @@ export default function OverviewPage({
               const source = overview.sources.find((s) => s.source === id);
               const manual = id === "opencve" && !overview.opencve_enabled;
               const state = source?.last_error
-                ? "error"
+                ? source.retry_scheduled
+                  ? "retrying"
+                  : "error"
                 : manual
                   ? "manual"
                   : source?.last_success_at
@@ -569,24 +574,37 @@ export default function OverviewPage({
                       {label}
                       <span>{detail}</span>
                     </strong>
+                    {source?.last_error && (
+                      <small>Last sync failed: {source.last_error}</small>
+                    )}
                     <small>
-                      {source?.last_error ||
-                        (source?.last_success_at
-                          ? `Last success: ${date(source.last_success_at)}`
-                          : manual
-                            ? "Optional · lookup on demand"
-                            : "Waiting for the first successful sync")}
+                      {source?.last_success_at
+                        ? `Last success: ${date(source.last_success_at)}`
+                        : manual
+                          ? "Optional · lookup on demand"
+                          : "Waiting for the first successful sync"}
                     </small>
+                    {!manual && source?.next_attempt_at && (
+                      <small>
+                        {source.retry_scheduled
+                          ? "Retry scheduled"
+                          : "Next sync"}
+                        {": "}
+                        {date(source.next_attempt_at)}
+                      </small>
+                    )}
                   </div>
                   <span className={`overview-source-state ${state}`}>
                     <span aria-hidden="true" />
-                    {state === "error"
-                      ? "Error"
-                      : state === "manual"
-                        ? "Manual"
-                        : state === "synced"
-                          ? "Synced"
-                          : "Not synced"}
+                    {state === "retrying"
+                      ? "Retry scheduled"
+                      : state === "error"
+                        ? "Last sync failed"
+                        : state === "manual"
+                          ? "Manual"
+                          : state === "synced"
+                            ? "Synced"
+                            : "Not synced"}
                   </span>
                 </li>
               );

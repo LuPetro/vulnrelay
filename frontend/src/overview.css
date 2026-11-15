@@ -319,7 +319,7 @@
   fill: var(--ov-accent);
   stroke: none;
   offset-rotate: 0deg;
-  animation: signal-transit 6.8s linear infinite;
+  animation: signal-transit 4.2s linear infinite;
 }
 .packet-3 {
   animation-name: relay-inventory-transit;
@@ -346,7 +346,7 @@
   fill: var(--ov-accent);
 }
 .relay-input > rect {
-  animation: relay-input-receive 6.8s ease-in-out infinite;
+  animation: relay-input-receive 3.2s ease-in-out infinite;
 }
 .relay-node-title {
   fill: var(--ov-ink);
@@ -372,13 +372,13 @@
 .relay-core-corner {
   transform-box: fill-box;
   transform-origin: center;
-  animation: relay-core-process 6.8s ease-in-out infinite;
+  animation: relay-core-process 2.8s ease-in-out infinite;
 }
 .relay-core-scan {
   stroke: var(--ov-accent);
   stroke-width: 2;
   stroke-dasharray: 24 76;
-  animation: relay-core-progress 6.8s linear infinite;
+  animation: relay-core-progress 2.4s linear infinite;
 }
 .relay-filter-baseline {
   stroke: var(--ov-line);
@@ -389,20 +389,20 @@
   stroke-width: 3;
   transform-box: fill-box;
   transform-origin: left;
-  animation: relay-rule-evaluate 6.8s ease-in-out infinite;
+  animation: relay-rule-evaluate 1.8s ease-in-out infinite;
 }
 .relay-rule-1 {
-  animation-delay: 0.2s;
+  animation-delay: -0.6s;
 }
 .relay-rule-2 {
-  animation-delay: 0.4s;
+  animation-delay: -1.2s;
 }
 .relay-output > rect {
   fill: var(--ov-tint);
 }
 .relay-output-sheet {
   transform-box: fill-box;
-  animation: relay-notification 6.8s ease-in-out infinite;
+  animation: relay-notification 2.4s ease-in-out infinite;
 }
 .relay-output-sheet > rect {
   fill: var(--ov-surface);
@@ -626,6 +626,7 @@
 .overview-failed {
   color: var(--ov-error);
 }
+.overview-source-state.retrying,
 .overview-source-state.pending {
   color: var(--ov-amber);
 }
@@ -799,18 +800,17 @@
 .overview-page[data-motion="paused"] .signal-packet {
   opacity: 0;
 }
+/* Packets hand off without endpoint holds. Indicators have independent continuous cycles. */
 @keyframes signal-transit {
-  0%,
-  4% {
+  0% {
     offset-distance: 0%;
     opacity: 1;
   }
-  32%,
-  36% {
+  37.999% {
     offset-distance: 100%;
     opacity: 1;
   }
-  37%,
+  38%,
   100% {
     offset-distance: 100%;
     opacity: 0;
@@ -818,35 +818,34 @@
 }
 @keyframes relay-merge-transit {
   0%,
-  35% {
+  37.999% {
     offset-distance: 0%;
     opacity: 0;
   }
-  36% {
+  38% {
     offset-distance: 0%;
     opacity: 1;
   }
-  44% {
+  45.999% {
     offset-distance: 100%;
     opacity: 1;
   }
-  45%,
+  46%,
   100% {
     offset-distance: 100%;
     opacity: 0;
   }
 }
 @keyframes relay-inventory-transit {
-  0%,
-  4% {
+  0% {
     offset-distance: 0%;
     opacity: 1;
   }
-  44% {
+  45.999% {
     offset-distance: 100%;
     opacity: 1;
   }
-  45%,
+  46%,
   100% {
     offset-distance: 100%;
     opacity: 0;
@@ -854,19 +853,19 @@
 }
 @keyframes relay-filter-transit {
   0%,
-  52% {
+  45.999% {
     offset-distance: 0%;
     opacity: 0;
   }
-  53% {
+  46% {
     offset-distance: 0%;
     opacity: 1;
   }
-  66% {
+  67.999% {
     offset-distance: 100%;
     opacity: 1;
   }
-  67%,
+  68%,
   100% {
     offset-distance: 100%;
     opacity: 0;
@@ -874,42 +873,33 @@
 }
 @keyframes relay-notify-transit {
   0%,
-  75% {
+  67.999% {
     offset-distance: 0%;
     opacity: 0;
   }
-  76% {
+  68% {
     offset-distance: 0%;
     opacity: 1;
   }
-  88% {
-    offset-distance: 100%;
-    opacity: 1;
-  }
-  89%,
   100% {
     offset-distance: 100%;
-    opacity: 0;
+    opacity: 1;
   }
 }
 @keyframes relay-core-progress {
-  0%,
-  44% {
+  from {
     stroke-dashoffset: 0;
   }
-  54%,
-  100% {
+  to {
     stroke-dashoffset: -100;
   }
 }
 @keyframes relay-input-receive {
   0%,
-  65%,
   100% {
     stroke: var(--ov-line-strong);
   }
-  18%,
-  38% {
+  50% {
     stroke: var(--ov-accent);
   }
 }
@@ -918,31 +908,26 @@
   100% {
     scale: 1;
   }
-  38%,
-  52% {
-    scale: 1.06;
+  50% {
+    scale: 1.04;
   }
 }
 @keyframes relay-rule-evaluate {
   0%,
-  18%,
   100% {
     scale: 0.35 1;
   }
-  60%,
-  76% {
+  50% {
     scale: 1 1;
   }
 }
 @keyframes relay-notification {
   0%,
-  52%,
   100% {
     translate: 0 0;
   }
-  86%,
-  94% {
-    translate: 0 -5px;
+  50% {
+    translate: 0 -4px;
   }
 }
 @keyframes relay-heartbeat {

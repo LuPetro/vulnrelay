@@ -82,7 +82,8 @@ def test_pagination_retry_and_deduplication(engine):
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         assert sync(engine, client=client, now=NOW, sleeper=waits.append) == 2
-        assert waits == [3.0, 6.0]
+        assert 6 <= waits[0] <= 7.5
+        assert waits[1] == 6.0
         assert sync(engine, client=client, now=NOW.replace(hour=1), sleeper=waits.append) == 2
     with engine.connect() as connection:
         rows = connection.execute(

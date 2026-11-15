@@ -2,6 +2,7 @@
 
 import json
 import logging
+import random
 import signal
 import threading
 import time
@@ -17,6 +18,7 @@ from vulnrelay.delivery import deliver_one
 from vulnrelay.epss_bulk import refresh as refresh_epss
 from vulnrelay.kev import sync as sync_kev
 from vulnrelay.logging_config import configure
+from vulnrelay.nvd import retry_after_seconds, transient_failure
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.opencve import refresh as refresh_opencve
 from vulnrelay.opencve import retry_delay as opencve_retry_delay
@@ -71,11 +73,15 @@ def state(engine: Engine) -> dict:
 
 
 def set_state(engine: Engine, name: str, value):
+    set_states(engine, {name: value})
+
+
+def set_states(engine: Engine, values: dict):
     with engine.begin() as connection:
         connection.execute(
             text("""INSERT INTO engine_state (name,value) VALUES (:name,:value)
             ON CONFLICT(name) DO UPDATE SET value=excluded.value"""),
-            {"name": name, "value": json.dumps(value)},
+            [{"name": name, "value": json.dumps(value)} for name, value in values.items()],
         )
 
 
@@ -102,21 +108,35 @@ def cycle(
     for source, action in sources:
         if sync_sources and current >= schedule.get(f"next_{source}", 0):
             deferred_until = 0
+            nvd_failures = 0
+            nvd_retry_delay = 0.0
             try:
                 outcomes[source] = {"ok": True, "records": action()}
             except Exception as exc:  # noqa: BLE001 - isolate untrusted upstream adapters
                 outcomes[source] = {"ok": False}
                 logger.warning("Source synchronization failed", extra={"source": source})
+                if source == "nvd" and transient_failure(exc):
+                    nvd_failures = schedule.get("failures_nvd", 0) + 1
+                    base = min(1800, 120 * 2 ** min(nvd_failures - 1, 4))
+                    nvd_retry_delay = min(1800, base + random.uniform(0, base / 4))
+                    if isinstance(exc, httpx.HTTPStatusError):
+                        nvd_retry_delay = max(nvd_retry_delay, retry_after_seconds(exc.response))
                 if source == "opencve" and isinstance(exc, httpx.HTTPStatusError):
                     deferred_until = time.time() + opencve_retry_delay(exc.response)
-            set_state(
-                engine,
-                f"next_{source}",
-                max(
-                    deferred_until,
-                    current + (86400 if source == "epss" else settings.sync_interval_minutes * 60),
+            finished = time.time() if now is None else current
+            next_attempt = max(
+                deferred_until,
+                finished
+                + (
+                    nvd_retry_delay
+                    or (86400 if source == "epss" else settings.sync_interval_minutes * 60)
                 ),
             )
+            updates = {f"next_{source}": next_attempt}
+            if source == "nvd":
+                # Persist one consistent schedule, independently of the unchanged CVE cursor.
+                updates.update(failures_nvd=nvd_failures, last_attempt_nvd=finished)
+            set_states(engine, updates)
     result = correlate(engine, enqueue=True, limit=0)
     deliveries = []
     for _ in range(50 if process_deliveries else 0):
