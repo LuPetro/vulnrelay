@@ -89,6 +89,8 @@ See [Telegram setup](docs/telegram.md), [rules and assets](docs/configuration.md
 
 For easier inventory setup, open **Catalog**, choose individual technologies or an environment pack, remove components you do not run, then review and add your selection. See [catalog, duplicate handling, freshness and update instructions](docs/catalog.md). Existing rules may apply to new assets; product matches still require installed-version verification.
 
+The Overview shows your engine heartbeat, source status, message history and asset groups. Its illustrative animation can be paused and respects reduced-motion preferences. See [Overview behavior and SVG logo files](docs/brand.md).
+
 For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE details**, or run `vulnrelay lookup-opencve CVE-2021-44228`. Background enrichment is opt-in with `VULNRELAY_OPENCVE_ENABLED=true`. Existing NVD scores remain primary; OpenCVE assessments are stored separately. The integration reads OpenCVE's public KB and requires no account.
 
 ## Delivery guarantees and remaining work
