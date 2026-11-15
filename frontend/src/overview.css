@@ -761,11 +761,9 @@
 }
 @keyframes overview-enter {
   from {
-    opacity: 0;
     translate: 0 8px;
   }
   to {
-    opacity: 1;
     translate: 0 0;
   }
 }
@@ -896,11 +894,15 @@
     font-size: 8px;
   }
   .overview-status {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
     padding: 14px;
     gap: 10px;
   }
   .overview-status-pill {
-    margin-left: 46px;
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
   }
   .overview-status p {
     font-size: 11px;
@@ -975,6 +977,9 @@
   }
   .overview-group-empty {
     padding: 0 18px 20px;
+  }
+  .topbar .local-pill {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
