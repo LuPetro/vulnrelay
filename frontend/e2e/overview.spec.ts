@@ -68,6 +68,21 @@ test("overview shows honest state, motion controls, branding and responsive layo
   );
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto("/");
+  await expect(page.locator("#main-content")).toHaveClass("overview-workspace");
+  await page.evaluate(async () => {
+    await document.fonts.load('500 14px "VulnRelay Sans"');
+    await document.fonts.load('400 12px "VulnRelay Mono"');
+  });
+  expect(
+    await page.evaluate(() =>
+      document.fonts.check('500 14px "VulnRelay Sans"'),
+    ),
+  ).toBeTruthy();
+  expect(
+    await page.evaluate(() =>
+      document.fonts.check('400 12px "VulnRelay Mono"'),
+    ),
+  ).toBeTruthy();
   await expect(
     page.getByText("Recent heartbeat", { exact: true }),
   ).toBeVisible();
@@ -90,10 +105,22 @@ test("overview shows honest state, motion controls, branding and responsive layo
     "animation-name",
     "signal-transit",
   );
+  await expect(page.locator(".signal-packet").first()).toHaveCSS(
+    "animation-name",
+    "relay-packet-travel",
+  );
   await page
     .getByRole("button", { name: "Pause overview animation", exact: true })
     .click();
   await expect(page.locator(".signal-flow").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await expect(page.locator(".relay-rule-scan").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await expect(page.locator(".relay-output-sheet").first()).toHaveCSS(
     "animation-name",
     "none",
   );
@@ -139,6 +166,29 @@ test("overview shows honest state, motion controls, branding and responsive layo
     "animation-name",
     "signal-transit",
   );
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator(".overview-page")).toHaveAttribute(
+    "data-motion",
+    "paused",
+  );
+  await expect(page.locator(".signal-packet").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await page.evaluate(() => {
+    Reflect.deleteProperty(document, "hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator(".overview-page")).toHaveAttribute(
+    "data-motion",
+    "running",
+  );
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(
     page.getByRole("button", { name: "Motion reduced by system preference" }),
@@ -169,11 +219,16 @@ test("overview shows honest state, motion controls, branding and responsive layo
   await expect(
     page.getByRole("heading", { name: "Connectors", exact: true }),
   ).toBeVisible();
+  await expect(page.locator("#main-content")).not.toHaveClass(
+    "overview-workspace",
+  );
   await page
     .getByRole("navigation")
     .getByRole("button", { name: "Overview", exact: true })
     .click();
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".relay-mobile")).toBeVisible();
+  await expect(page.locator(".relay-desktop")).not.toBeVisible();
   await expect(
     page.getByText("Stale heartbeat", { exact: true }),
   ).toBeVisible();

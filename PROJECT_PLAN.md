@@ -40,6 +40,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 ## Local UI
 
 - [x] Original vector branding and animated operational Overview with pause/reduced-motion controls and honest status/count semantics.
+- [x] Isolated Overview design study with self-hosted typography, editorial grid, richer explanatory motion and mobile composition; broader design adoption waits for operator review.
 
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.
 - [x] Redesigned shell/overview, catalog browser with category/search filters, import review, asset search and responsive dark/light design.

@@ -12,6 +12,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Overview-only editorial design study: locally served IBM Plex typography, ruled coverage/source/inventory layouts, restrained colors and coordinated packet/matching/filter/delivery motion with a separately composed mobile diagram. Other application pages retain their design.
 - Read-only `vulnrelay check-nvd [--json]` connectivity probe that works while monitoring, reports key presence without revealing it and does not change synchronization state.
 - Original SVG logo/wordmarks and favicon; redesigned Overview with motion controls, a source-to-delivery illustration, actionable counts, source/queue attention states and responsive asset-group cards. Motion respects reduced-motion preferences and hidden tabs.
 

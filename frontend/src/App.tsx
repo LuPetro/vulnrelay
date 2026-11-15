@@ -573,14 +573,21 @@ export default function App() {
             <span className="separator">/</span> Your workspace
           </div>
         </header>
-        <main id="main-content">
+        <main
+          id="main-content"
+          className={page === "Overview" ? "overview-workspace" : undefined}
+        >
           <div className="page-heading">
             <div>
-              <div className="eyebrow">KNOW WHAT MATTERS. GET NOTIFIED.</div>
+              <div className="eyebrow">
+                {page === "Overview"
+                  ? "VULNRELAY / LOCAL OPERATIONS"
+                  : "KNOW WHAT MATTERS. GET NOTIFIED."}
+              </div>
               <h1>{page === "Overview" ? "Your security, on watch." : page}</h1>
               <p>
                 {page === "Overview"
-                  ? "Connect your assets to the intelligence that matters."
+                  ? "Sources, coverage and delivery. One operating view."
                   : page === "Assets"
                     ? "Your technology inventory, organized around the way you work."
                     : page === "Catalog"

@@ -163,3 +163,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1)
+
+The Overview bundles the unmodified IBM Plex Sans Regular, Medium and SemiBold and IBM Plex Mono Regular WOFF2 fonts. Other application pages retain their existing typography.
+
+Source: https://github.com/IBM/plex/tree/bc6a7e4b37634eb79785d59781893db63ee3edcb
+
+Copyright © 2017 IBM Corp. with Reserved Font Name "Plex".
+
+Full license: `frontend/public/fonts/plex/LICENSE.txt` (served at `/fonts/plex/LICENSE.txt`). These font files are distributed under the SIL Open Font License 1.1, separately from the application Apache-2.0 license. Font families are named locally in CSS; original font binaries are unchanged. No third-party font service is contacted at runtime.

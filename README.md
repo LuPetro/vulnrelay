@@ -92,6 +92,8 @@ For easier inventory setup, open **Catalog**, choose individual technologies or 
 
 The Overview shows your engine heartbeat, source status, message history and asset groups. Its illustrative animation can be paused and respects reduced-motion preferences. See [Overview behavior and SVG logo files](docs/brand.md).
 
+The current [Overview design study](docs/overview-design.md) uses locally served IBM Plex typography, a ruled operating layout and explanatory signal-path motion. It is scoped to this page for review before changing the rest of the interface.
+
 For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE details**, or run `vulnrelay lookup-opencve CVE-2021-44228`. Background enrichment is opt-in with `VULNRELAY_OPENCVE_ENABLED=true`. Existing NVD scores remain primary; OpenCVE assessments are stored separately. The integration reads OpenCVE's public KB and requires no account.
 
 ## Delivery guarantees and remaining work
