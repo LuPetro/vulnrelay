@@ -61,3 +61,9 @@ Verified implementation commit ecde7981426495473378ae7fc5f28681b6d87fc2 in GitHu
 The UI uses a new navy/blue visual system, illustrated notification flow, dedicated catalog view, selectable product/pack cards, persistent review panel and responsive dark/light layouts. It retains existing configuration/notification functionality. docs/catalog.md documents behavior, freshness limits, safe updates and acceptance steps.
 
 The small shared VPS encountered severe memory pressure during local Chromium testing; the operator rebooted it. Working-tree changes survived. Do not repeat local browser or image-build tests on this VPS; use GitHub CI and its browser screenshot/report artifacts. No operator configuration or unrelated service was changed. The old development deployment remains off.
+
+## Overview and brand increment (2026-11-15)
+
+Replaced the introductory Overview with a separate typed component and scoped stylesheet. Added a custom SVG V/relay mark, light/dark wordmarks, brand sheet and favicon. The Overview now has an illustrative animated source-to-rule-to-channel flow, actionable inventory/rule/connector/message counts, engine/source/queue attention states, recent destination history and asset-group cards. Enabled assets exclude disabled entries; sent-message totals explicitly include connector tests. Motion can be paused persistently and is disabled by system reduced-motion preference or a hidden tab. No new dependencies, API changes, migrations or external services. See docs/brand.md.
+
+Added browser coverage for branding assets, enabled counts, normal/stale/error states, navigation, persistent motion pause, reduced motion and light/dark/mobile accessibility/screenshots. Verification is pending on the pushed implementation commit; do not infer success from source inspection. Operator deployment and unrelated applications remain untouched.

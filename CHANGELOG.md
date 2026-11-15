@@ -11,6 +11,8 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Original SVG logo/wordmarks and favicon; redesigned Overview with motion controls, a source-to-delivery illustration, actionable counts, source/queue attention states and responsive asset-group cards. Motion respects reduced-motion preferences and hidden tabs.
+
 - Searchable bundled catalog with 50 technologies, ten editable starter-pack selections, context selection, read-only preview and atomic/idempotent imports through UI, API and CLI.
 - Redesigned application shell and overview, dedicated catalog workspace, asset search, responsive light/dark layouts and browser coverage for catalog onboarding.
 - Optional OpenCVE public Knowledge Base adapter, cached manual UI/CLI/API lookups, bounded opt-in background enrichment, separate assessments and source attribution without an account.

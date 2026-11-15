@@ -1,13 +1,11 @@
 import { version as appVersion } from "../package.json";
 import React, { useCallback, useEffect, useState } from "react";
 import Catalog from "./Catalog";
+import OverviewPage, { type OverviewData } from "./Overview";
 import {
   Activity,
   Boxes,
-  Database,
-  Server,
   ArrowRight,
-  Bell,
   Check,
   ChevronRight,
   CircleHelp,
@@ -30,14 +28,6 @@ type Entry = Record<string, any> & {
   id: string;
   name: string;
   enabled: boolean;
-};
-type Overview = {
-  counts: Record<string, number>;
-  sources: any[];
-  deliveries: Record<string, number>;
-  engine: Record<string, number>;
-  setup_required: boolean;
-  opencve_enabled?: boolean;
 };
 type Expression = {
   kind: string;
@@ -96,7 +86,7 @@ const initialRule = {
   format: "compact",
   renotify_changes: true,
 };
-const emptyOverview: Overview = {
+const emptyOverview: OverviewData = {
   counts: {},
   sources: [],
   deliveries: {},
@@ -321,7 +311,7 @@ function ConditionEditor({
 export default function App() {
   const [page, setPage] = useState("Overview");
   const [assetQuery, setAssetQuery] = useState("");
-  const [overview, setOverview] = useState<Overview>(emptyOverview);
+  const [overview, setOverview] = useState<OverviewData>(emptyOverview);
   const [assets, setAssets] = useState<Entry[]>([]),
     [rules, setRules] = useState<Entry[]>([]),
     [connectors, setConnectors] = useState<Entry[]>([]);
@@ -495,10 +485,6 @@ export default function App() {
     delete (document as any).id;
     await action(() => api(`/config/rules/${entry.id}`, "PUT", document));
   }
-  const activeRules = rules.filter((row) => row.enabled).length;
-  const monitorSeen =
-    overview.engine.delivery_heartbeat || overview.engine.last_cycle;
-  const monitorRecent = monitorSeen && Date.now() / 1000 - monitorSeen < 120;
   const visibleAssets = assets.filter((entry) =>
     `${entry.name} ${entry.group} ${entry.environment} ${entry.vendor} ${entry.product}`
       .toLowerCase()
@@ -518,9 +504,13 @@ export default function App() {
             navigate("Overview");
           }}
         >
-          <span className="brand-mark">
-            <Radio size={25} />
-          </span>
+          <img
+            className="brand-symbol"
+            src="/brand/vulnrelay-mark.svg"
+            width="40"
+            height="40"
+            alt=""
+          />
           <span>
             VulnRelay<small>VULNERABILITY NOTIFICATIONS</small>
           </span>
@@ -637,312 +627,14 @@ export default function App() {
           ) : (
             <>
               {page === "Overview" && (
-                <>
-                  <section className="watch-hero">
-                    <div className="watch-copy">
-                      <span className="hero-kicker">
-                        <span /> INTELLIGENCE THAT FINDS YOU
-                      </span>
-                      <h2>
-                        Less noise.
-                        <br />
-                        <em>More signal.</em>
-                      </h2>
-                      <p>
-                        Your technologies, connected to the vulnerabilities that
-                        matter. Build your watchlist and let the alerts come to
-                        you.
-                      </p>
-                      <button
-                        className="hero-button"
-                        onClick={() => navigate("Catalog")}
-                      >
-                        Explore the catalog <ArrowRight size={17} />
-                      </button>
-                      <span className="hero-note">
-                        Your infrastructure. Your rules.
-                      </span>
-                    </div>
-                    <div className="relay-visual" aria-hidden="true">
-                      <div className="orbit orbit-one" />
-                      <div className="orbit orbit-two" />
-                      <span className="relay-node node-server">
-                        <Server size={24} />
-                        <small>Infrastructure</small>
-                      </span>
-                      <span className="relay-node node-data">
-                        <Database size={24} />
-                        <small>Applications</small>
-                      </span>
-                      <div className="relay-core">
-                        <Radio size={38} />
-                        <span>VulnRelay</span>
-                      </div>
-                      <span className="relay-node node-alert">
-                        <Bell size={23} />
-                        <small>Your alerts</small>
-                      </span>
-                      <span className="visual-caption">
-                        ASSETS → INTELLIGENCE → NOTIFICATIONS
-                      </span>
-                    </div>
-                  </section>
-                  <section className="engine-banner">
-                    <div className="engine-icon">
-                      <Activity size={24} />
-                    </div>
-                    <div>
-                      <h2>
-                        {monitorRecent
-                          ? "Monitoring heartbeat received"
-                          : monitorSeen
-                            ? "Monitoring heartbeat is stale"
-                            : "Ready when you are"}
-                      </h2>
-                      <p>
-                        {monitorSeen
-                          ? `Last worker heartbeat: ${date(monitorSeen)}`
-                          : "Configure an asset, connect Telegram, then start the monitor."}
-                      </p>
-                    </div>
-                    <Badge tone={monitorRecent ? "green" : "amber"}>
-                      {monitorRecent
-                        ? "Recent heartbeat"
-                        : "Waiting for monitor"}
-                    </Badge>
-                  </section>
-                  <div className="metrics">
-                    {[
-                      [
-                        Layers3,
-                        assets.length,
-                        "Monitored assets",
-                        `${new Set(assets.map((a) => a.group)).size} asset groups`,
-                      ],
-                      [
-                        Radio,
-                        connectors.filter((c) => c.enabled).length,
-                        "Enabled connectors",
-                        "Telegram destinations",
-                      ],
-                      [
-                        ListFilter,
-                        activeRules,
-                        "Active rules",
-                        "Deterministic & explainable",
-                      ],
-                      [
-                        Bell,
-                        overview.deliveries.sent || 0,
-                        "Delivered alerts",
-                        `${(overview.deliveries.pending || 0) + (overview.deliveries.retry || 0)} waiting in queue`,
-                      ],
-                    ].map(([Icon, count, label, sub]: any) => (
-                      <div className="metric" key={label}>
-                        <div>
-                          <span>{label}</span>
-                          <Icon size={18} />
-                        </div>
-                        <strong>{count}</strong>
-                        <small>{sub}</small>
-                      </div>
-                    ))}
-                  </div>
-                  {overview.setup_required && (
-                    <section className="panel setup">
-                      <div className="section-heading">
-                        <div>
-                          <span className="eyebrow">GET CONNECTED</span>
-                          <h2>A few steps to your first alert</h2>
-                        </div>
-                        <Badge>First-run setup</Badge>
-                      </div>
-                      <div className="setup-steps">
-                        {[
-                          {
-                            label: "Add your assets",
-                            done: assets.length > 0,
-                            target: "Assets",
-                            text: "Choose from the catalog or add a custom asset.",
-                          },
-                          {
-                            label: "Connect Telegram",
-                            done: connectors.length > 0,
-                            target: "Connectors",
-                            text: "Reference a bot token from your environment.",
-                          },
-                          {
-                            label: "Create a rule",
-                            done: rules.length > 0,
-                            target: "Notification rules",
-                            text: "Choose metrics and destinations.",
-                          },
-                        ].map((step, i) => (
-                          <button
-                            key={step.label}
-                            onClick={() => navigate(step.target)}
-                          >
-                            <span
-                              className={
-                                step.done
-                                  ? "step-number complete"
-                                  : "step-number"
-                              }
-                            >
-                              {step.done ? <Check size={16} /> : i + 1}
-                            </span>
-                            <strong>{step.label}</strong>
-                            <p>{step.text}</p>
-                            <ArrowRight size={17} />
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-                  <div className="two-columns">
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Intelligence sources</h2>
-                        <span className="muted">Saved checkpoints</span>
-                      </div>
-                      {["nvd", "cisa_kev", "epss", "opencve"].map((name) => {
-                        const source = overview.sources.find(
-                          (row) => row.source === name,
-                        );
-                        return (
-                          <div className="source-row" key={name}>
-                            <div className="source-monogram">
-                              {name === "nvd"
-                                ? "N"
-                                : name === "epss"
-                                  ? "E"
-                                  : name === "opencve"
-                                    ? "O"
-                                    : "C"}
-                            </div>
-                            <div>
-                              <strong>
-                                {name === "nvd"
-                                  ? "National Vulnerability Database"
-                                  : name === "epss"
-                                    ? "FIRST EPSS · daily scores"
-                                    : name === "opencve"
-                                      ? "OpenCVE Knowledge Base"
-                                      : "CISA Known Exploited Vulnerabilities"}
-                              </strong>
-                              <small>
-                                {source?.last_error ||
-                                  `Last success: ${date(source?.last_success_at)}`}
-                              </small>
-                            </div>
-                            <Badge
-                              tone={
-                                source?.last_error
-                                  ? "amber"
-                                  : source?.last_success_at
-                                    ? "green"
-                                    : "neutral"
-                              }
-                            >
-                              {source?.last_error
-                                ? "Error"
-                                : name === "opencve" &&
-                                    !overview.opencve_enabled
-                                  ? "Manual"
-                                  : source?.last_success_at
-                                    ? "Synced"
-                                    : "Not synced"}
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                      <div className="panel-footer">
-                        CVSS measures severity. EPSS estimates exploitation
-                        probability. KEV records known exploitation.
-                      </div>
-                    </section>
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Recent deliveries</h2>
-                        <button
-                          className="text-button"
-                          onClick={() => navigate("Connectors")}
-                        >
-                          View history <ArrowRight size={14} />
-                        </button>
-                      </div>
-                      {deliveries.length === 0 ? (
-                        <Empty title="Your channel is quiet">
-                          Relevant alerts appear here after a matching CVE is
-                          queued and delivered.
-                        </Empty>
-                      ) : (
-                        deliveries.slice(0, 5).map((row) => (
-                          <div className="delivery-row" key={row.id}>
-                            <Send size={16} />
-                            <div>
-                              <strong>{row.id.slice(0, 8)}</strong>
-                              <small>{date(row.created_at)}</small>
-                            </div>
-                            <Badge
-                              tone={
-                                row.state === "sent"
-                                  ? "green"
-                                  : row.state === "failed"
-                                    ? "red"
-                                    : row.state === "cancelled"
-                                      ? "neutral"
-                                      : "amber"
-                              }
-                            >
-                              {row.state}
-                            </Badge>
-                          </div>
-                        ))
-                      )}
-                    </section>
-                  </div>
-                  <section className="panel groups">
-                    <div className="section-heading">
-                      <h2>Asset groups</h2>
-                      <button
-                        className="text-button"
-                        onClick={() => navigate("Assets")}
-                      >
-                        Manage assets <ArrowRight size={14} />
-                      </button>
-                    </div>
-                    {assets.length === 0 ? (
-                      <div className="inline-empty">
-                        Your first asset group will appear here when you add an
-                        asset.
-                      </div>
-                    ) : (
-                      Array.from(new Set(assets.map((a) => a.group))).map(
-                        (group) => (
-                          <div className="group-row" key={group}>
-                            <div className="group-icon">
-                              <Layers3 size={20} />
-                            </div>
-                            <div>
-                              <strong>{group}</strong>
-                              <small>
-                                {assets
-                                  .filter((a) => a.group === group)
-                                  .map((a) => a.name)
-                                  .join(" · ")}
-                              </small>
-                            </div>
-                            <Badge>
-                              {assets.filter((a) => a.group === group).length}{" "}
-                              assets
-                            </Badge>
-                          </div>
-                        ),
-                      )
-                    )}
-                  </section>
-                </>
+                <OverviewPage
+                  overview={overview}
+                  assets={assets}
+                  rules={rules}
+                  connectors={connectors}
+                  deliveries={deliveries}
+                  navigate={navigate}
+                />
               )}
               {page === "Catalog" && (
                 <Catalog

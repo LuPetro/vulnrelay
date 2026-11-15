@@ -38,6 +38,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 ## Local UI
 
+- [x] Original vector branding and animated operational Overview with pause/reduced-motion controls and honest status/count semantics.
+
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.
 - [x] Redesigned shell/overview, catalog browser with category/search filters, import review, asset search and responsive dark/light design.
 - [x] Source health, delivery history, local CVE search/details, dark/light theme and responsive styling.

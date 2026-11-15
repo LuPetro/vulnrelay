@@ -1521,163 +1521,6 @@ footer {
   color: var(--muted);
 }
 
-/* The relay illustration explains the flow; it never represents measured risk. */
-.watch-hero {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  min-height: 280px;
-  border-radius: 18px;
-  background: #142a53;
-  color: white;
-  overflow: hidden;
-  position: relative;
-}
-.watch-copy {
-  padding: 30px 34px;
-  z-index: 1;
-}
-.hero-kicker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: #c0d1f1;
-}
-.hero-kicker > span {
-  width: 7px;
-  height: 7px;
-  background: #bdf587;
-  border-radius: 50%;
-}
-.watch-copy h2 {
-  font-size: clamp(32px, 3.1vw, 46px);
-  line-height: 1.04;
-  letter-spacing: -1.6px;
-  margin: 18px 0 13px;
-  font-weight: 720;
-}
-.watch-copy h2 em {
-  font-style: normal;
-  color: #bdf587;
-}
-.watch-copy p {
-  color: #c4d2eb;
-  font-size: 12px;
-  line-height: 1.7;
-  max-width: 340px;
-  margin: 0 0 20px;
-}
-.hero-button {
-  background: #fff;
-  border: 0;
-  border-radius: 8px;
-  padding: 11px 15px;
-  font-size: 12px;
-  font-weight: 650;
-  color: #18345d;
-}
-.hero-button:hover {
-  background: #dbe9ff;
-  transform: translateY(-1px);
-}
-.hero-note {
-  display: block;
-  margin-top: 14px;
-  color: #c4d2eb;
-  font-size: 10px;
-}
-.relay-visual {
-  position: relative;
-  min-height: 300px;
-  background-image: radial-gradient(#6884b135 1px, transparent 1px);
-  background-size: 21px 21px;
-}
-.orbit {
-  position: absolute;
-  border: 1px solid #7298d650;
-  width: 230px;
-  height: 230px;
-  border-radius: 50%;
-  left: 50%;
-  top: 46%;
-  transform: translate(-50%, -50%);
-}
-.orbit-two {
-  width: 310px;
-  height: 310px;
-  border-style: dashed;
-  border-color: #7298d62d;
-}
-.relay-core {
-  position: absolute;
-  left: 50%;
-  top: 47%;
-  transform: translate(-50%, -50%) rotate(-9deg);
-  border: 1px solid #8db6ff;
-  border-radius: 22px;
-  width: 116px;
-  height: 116px;
-  background: #386dea;
-  box-shadow:
-    0 16px 40px #091d4999,
-    inset 0 0 0 6px #ffffff12;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-}
-.relay-core span {
-  font-size: 12px;
-  font-weight: 700;
-}
-.relay-node {
-  position: absolute;
-  padding: 12px;
-  width: 106px;
-  border: 1px solid #7298d666;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  background: #1a355e;
-  box-shadow: 0 8px 20px #06132d40;
-}
-.relay-node small {
-  color: #d5e3ff;
-  font-size: 10px;
-}
-.node-server {
-  top: 22px;
-  left: 13%;
-  transform: rotate(-5deg);
-}
-.node-data {
-  bottom: 38px;
-  left: 12%;
-  transform: rotate(5deg);
-}
-.node-alert {
-  top: 42%;
-  right: 6%;
-  background: #d0f9b2;
-  color: #294b1e;
-  transform: rotate(7deg);
-  border-color: #d0f9b2;
-}
-.node-alert small {
-  color: #294b1e;
-}
-.visual-caption {
-  position: absolute;
-  bottom: 18px;
-  width: 100%;
-  text-align: center;
-  font-size: 8px;
-  letter-spacing: 1.1px;
-  color: #c0d1f1;
-}
 .inventory-discovery {
   display: flex;
   align-items: center;
@@ -2226,15 +2069,6 @@ footer {
   .pack-grid {
     grid-template-columns: 1fr;
   }
-  .node-server {
-    left: 2%;
-  }
-  .node-data {
-    left: 3%;
-  }
-  .node-alert {
-    right: 2%;
-  }
   .inventory-discovery {
     flex-wrap: wrap;
   }
@@ -2264,15 +2098,6 @@ footer {
   }
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .watch-hero {
-    grid-template-columns: 1fr;
-  }
-  .relay-visual {
-    display: none;
-  }
-  .watch-copy {
-    padding: 28px;
   }
   .catalog-total {
     display: none;
@@ -2318,21 +2143,6 @@ footer {
   }
   .page-heading p {
     font-size: 12px;
-  }
-  .watch-hero {
-    grid-template-columns: 1fr;
-  }
-  .watch-copy {
-    padding: 26px;
-  }
-  .watch-copy h2 {
-    font-size: 40px;
-  }
-  .watch-copy p {
-    font-size: 13px;
-  }
-  .relay-visual {
-    display: none;
   }
   .engine-banner {
     padding: 14px;
