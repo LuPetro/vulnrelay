@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import text
 
+from vulnrelay.catalog import CatalogSelection, catalog, import_selection
 from vulnrelay.config import get_settings
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
 from vulnrelay.monitor import state
@@ -17,6 +18,20 @@ from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.get("/catalog")
+def get_catalog(q: str = Query("", max_length=200)):
+    return catalog(q)
+
+
+@router.post("/catalog/{operation}")
+def apply_catalog(operation: Literal["preview", "import"], document: dict, request: Request):
+    try:
+        selection = CatalogSelection.model_validate(document)
+        return import_selection(request.app.state.engine, selection, preview=operation == "preview")
+    except ValueError:
+        raise HTTPException(422, "Choose known catalog products and valid asset context") from None
 
 
 def _configuration_error(error: ValueError) -> str:

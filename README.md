@@ -4,7 +4,7 @@
 
 VulnRelay is an Apache-2.0, self-hosted vulnerability notification engine. Declare the products you run, connect Telegram, and choose rules based on CVSS, EPSS, known exploitation and asset context. The optional local React interface configures the engine; a separate worker keeps monitoring after you close the browser. No cloud account or AI is required.
 
-**Current status: alpha.** The core path is implemented and tested with mocked Telegram delivery: public intelligence → explicit asset matching → explainable rules → persistent delivery queue. A real Telegram end-to-end installation still needs operator credentials and validation. This is not yet a v1 or production release.
+**Current status: alpha.** The core path is implemented and tested with mocked Telegram delivery: public intelligence → explicit asset matching → explainable rules → persistent delivery queue. An operator has confirmed a real Telegram test message; controlled CVE-alert, duplicate-prevention and restart acceptance remain separate checks. This is not yet a v1 or production release.
 
 ## Start with Docker
 
@@ -27,6 +27,7 @@ The first source synchronization can take several minutes, especially without an
 - Daily EPSS CSV enrichment of locally stored CVEs, plus individual FIRST API lookups.
 - Optional OpenCVE Knowledge Base enrichment, manual UI/CLI lookups, conditional caching and separate source assessments.
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
+- Searchable offline catalog of 50 technologies and ten customizable environment packs, with preview, atomic import and duplicate protection. Manual asset entry remains available.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
 - Telegram destinations, compact/detailed plain-text messages, queued test notifications and delivery history.
 - Durable queue, expiring delivery claims, bounded retries, deduplication and re-notification on selected material changes.
@@ -63,6 +64,8 @@ The GUI is optional. Build it with Node 22+: `cd frontend && npm ci && npm run b
 
 ```sh
 vulnrelay doctor
+vulnrelay catalog list --query postgres
+vulnrelay catalog pack linux-server --group servers --environment production --preview
 vulnrelay status --json
 vulnrelay sync --days 7
 vulnrelay sync-kev
@@ -83,6 +86,8 @@ vulnrelay monitor --once --no-sync
 ```
 
 See [Telegram setup](docs/telegram.md), [rules and assets](docs/configuration.md), [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md), [security](SECURITY.md), and [contributing](CONTRIBUTING.md). Local API documentation is at `/docs`; mutations require `X-VulnRelay-Request: 1` and the bearer token if configured.
+
+For easier inventory setup, open **Catalog**, choose individual technologies or an environment pack, remove components you do not run, then review and add your selection. See [catalog, duplicate handling, freshness and update instructions](docs/catalog.md). Existing rules may apply to new assets; product matches still require installed-version verification.
 
 For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE details**, or run `vulnrelay lookup-opencve CVE-2021-44228`. Background enrichment is opt-in with `VULNRELAY_OPENCVE_ENABLED=true`. Existing NVD scores remain primary; OpenCVE assessments are stored separately. The integration reads OpenCVE's public KB and requires no account.
 

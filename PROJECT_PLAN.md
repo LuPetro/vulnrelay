@@ -30,13 +30,16 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Revalidate queued/retried alerts against current rules, assets and intelligence; visible cancellation and safe reconsideration after reactivation.
 - [x] Document a controlled real Telegram acceptance test before extending features.
 - [x] Document a fresh private-repository server installation with separate Compose project, image, port and data volume.
-- [ ] Real operator-owned Telegram end-to-end validation (no credentials supplied yet).
+- [x] Operator confirmed a real Telegram connector test message (2026-11-15).
+- [ ] Real operator-owned CVE-alert, duplicate protection and restart acceptance.
+- [x] Offline technology catalog, editable environment-pack selection, CLI/API preview and atomic duplicate-safe import with preserved manual asset entry.
 - [ ] Generic version applicability, packages/PURLs and OSV matching.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.
 
 ## Local UI
 
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.
+- [x] Redesigned shell/overview, catalog browser with category/search filters, import review, asset search and responsive dark/light design.
 - [x] Source health, delivery history, local CVE search/details, dark/light theme and responsive styling.
 - [x] Optional bearer token, Host checking and cross-origin mutation guard.
 - [x] Browser E2E for setup, rule matching, failure/retry and a mobile viewport; automated accessibility checks on selected views.

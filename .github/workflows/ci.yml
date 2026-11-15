@@ -80,9 +80,9 @@ jobs:
       - run: npm ci && npm run build && npx playwright install --with-deps chromium && npm run test:e2e
         working-directory: frontend
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: failure()
+        if: always()
         with:
-          name: browser-failure-report
+          name: browser-report
           path: |
             frontend/playwright-report/
             frontend/test-results/

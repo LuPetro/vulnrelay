@@ -7,6 +7,7 @@ import typer
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from vulnrelay.catalog import PACKS, CatalogSelection, catalog, import_selection
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
 from vulnrelay.delivery import deliver_one, enqueue_test, history
@@ -15,6 +16,45 @@ from vulnrelay.pipeline import correlate
 from vulnrelay.store import delete_document, list_documents, save_document
 
 app = typer.Typer(no_args_is_help=True)
+catalog_app = typer.Typer(
+    no_args_is_help=True, help="Browse technologies and import starter packs."
+)
+app.add_typer(catalog_app, name="catalog")
+
+
+@catalog_app.command("list")
+def catalog_list(query: str = ""):
+    """Search the bundled offline catalog; includes pack definitions."""
+    typer.echo(json.dumps(catalog(query), ensure_ascii=False, indent=2))
+
+
+@catalog_app.command("add")
+def catalog_add(file: Path, preview: bool = False):
+    """Import a JSON selection of product IDs and context, or preview without writing."""
+    _execute(
+        lambda engine: import_selection(
+            engine, CatalogSelection.model_validate_json(file.read_text()), preview=preview
+        )
+    )
+
+
+@catalog_app.command("pack")
+def catalog_pack(
+    pack_id: str, group: str = "production", environment: str = "production", preview: bool = False
+):
+    """Import a starter pack. Repeated imports reuse existing assets in the same context."""
+
+    def action(engine):
+        pack = next((p for p in PACKS if p["id"] == pack_id), None)
+        if pack is None:
+            raise ValueError("Unknown catalog pack")
+        return import_selection(
+            engine,
+            CatalogSelection(products=pack["products"], group=group, environment=environment),
+            preview=preview,
+        )
+
+    _execute(action)
 
 
 def _engine():

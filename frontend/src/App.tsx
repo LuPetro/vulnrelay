@@ -1,7 +1,11 @@
 import { version as appVersion } from "../package.json";
 import React, { useCallback, useEffect, useState } from "react";
+import Catalog from "./Catalog";
 import {
   Activity,
+  Boxes,
+  Database,
+  Server,
   ArrowRight,
   Bell,
   Check,
@@ -45,12 +49,21 @@ type Expression = {
 const pages = [
   "Overview",
   "Assets",
+  "Catalog",
   "Notification rules",
   "Connectors",
   "Vulnerabilities",
   "Settings",
 ];
-const icons = [Activity, Layers3, ListFilter, Radio, ShieldCheck, Settings];
+const icons = [
+  Activity,
+  Layers3,
+  Boxes,
+  ListFilter,
+  Radio,
+  ShieldCheck,
+  Settings,
+];
 const initialAsset = {
   name: "",
   kind: "vendor_product",
@@ -307,6 +320,7 @@ function ConditionEditor({
 
 export default function App() {
   const [page, setPage] = useState("Overview");
+  const [assetQuery, setAssetQuery] = useState("");
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [assets, setAssets] = useState<Entry[]>([]),
     [rules, setRules] = useState<Entry[]>([]),
@@ -487,6 +501,9 @@ export default function App() {
   const monitorRecent = monitorSeen && Date.now() / 1000 - monitorSeen < 120;
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <a
           className="brand"
@@ -518,6 +535,7 @@ export default function App() {
               <button
                 key={item}
                 className={page === item ? "selected" : ""}
+                aria-current={page === item ? "page" : undefined}
                 onClick={() => navigate(item)}
               >
                 <Icon size={19} />
@@ -556,11 +574,11 @@ export default function App() {
             <span>{page}</span>
           </div>
           <div className="local-pill">
-            <span className="dot" /> localhost{" "}
-            <span className="separator">/</span> local instance
+            <ShieldCheck size={14} /> Self-hosted
+            <span className="separator">/</span> Your workspace
           </div>
         </header>
-        <main>
+        <main id="main-content">
           <div className="page-heading">
             <div>
               <div className="eyebrow">KNOW WHAT MATTERS. GET NOTIFIED.</div>
@@ -569,14 +587,16 @@ export default function App() {
                 {page === "Overview"
                   ? "Connect your assets to the intelligence that matters."
                   : page === "Assets"
-                    ? "Tell VulnRelay which technologies belong to your environment."
-                    : page === "Notification rules"
-                      ? "Decide what matters, and where it should go."
-                      : page === "Connectors"
-                        ? "Bring relevant vulnerability alerts to your team."
-                        : page === "Vulnerabilities"
-                          ? "Inspect locally synchronized intelligence and matching evidence."
-                          : "Configure access and understand your local instance."}
+                    ? "Your technology inventory, organized around the way you work."
+                    : page === "Catalog"
+                      ? "Find your technologies. Assemble your environment. Stay informed."
+                      : page === "Notification rules"
+                        ? "Decide what matters, and where it should go."
+                        : page === "Connectors"
+                          ? "Bring relevant vulnerability alerts to your team."
+                          : page === "Vulnerabilities"
+                            ? "Inspect locally synchronized intelligence and matching evidence."
+                            : "Configure access and understand your local instance."}
               </p>
             </div>
             <button
@@ -613,6 +633,55 @@ export default function App() {
             <>
               {page === "Overview" && (
                 <>
+                  <section className="watch-hero">
+                    <div className="watch-copy">
+                      <span className="hero-kicker">
+                        <span /> INTELLIGENCE THAT FINDS YOU
+                      </span>
+                      <h2>
+                        Less noise.
+                        <br />
+                        <em>More signal.</em>
+                      </h2>
+                      <p>
+                        Your technologies, connected to the vulnerabilities that
+                        matter. Build your watchlist and let the alerts come to
+                        you.
+                      </p>
+                      <button
+                        className="hero-button"
+                        onClick={() => navigate("Catalog")}
+                      >
+                        Explore the catalog <ArrowRight size={17} />
+                      </button>
+                      <span className="hero-note">
+                        Your infrastructure. Your rules.
+                      </span>
+                    </div>
+                    <div className="relay-visual" aria-hidden="true">
+                      <div className="orbit orbit-one" />
+                      <div className="orbit orbit-two" />
+                      <span className="relay-node node-server">
+                        <Server size={24} />
+                        <small>Infrastructure</small>
+                      </span>
+                      <span className="relay-node node-data">
+                        <Database size={24} />
+                        <small>Applications</small>
+                      </span>
+                      <div className="relay-core">
+                        <Radio size={38} />
+                        <span>VulnRelay</span>
+                      </div>
+                      <span className="relay-node node-alert">
+                        <Bell size={23} />
+                        <small>Your alerts</small>
+                      </span>
+                      <span className="visual-caption">
+                        ASSETS → INTELLIGENCE → NOTIFICATIONS
+                      </span>
+                    </div>
+                  </section>
                   <section className="engine-banner">
                     <div className="engine-icon">
                       <Activity size={24} />
@@ -689,7 +758,7 @@ export default function App() {
                             label: "Add your assets",
                             done: assets.length > 0,
                             target: "Assets",
-                            text: "Products, vendors, CPEs or keywords.",
+                            text: "Choose from the catalog or add a custom asset.",
                           },
                           {
                             label: "Connect Telegram",
@@ -870,10 +939,53 @@ export default function App() {
                   </section>
                 </>
               )}
+              {page === "Catalog" && (
+                <Catalog
+                  api={api}
+                  onImported={load}
+                  onInventory={() => navigate("Assets")}
+                  onManual={() => {
+                    navigate("Assets");
+                    openEditor("assets");
+                  }}
+                />
+              )}
+              {page === "Assets" && (
+                <section className="inventory-discovery">
+                  <div className="discovery-icon">
+                    <Boxes size={26} />
+                  </div>
+                  <div>
+                    <span className="eyebrow">MEET YOUR NEXT SHORTCUT</span>
+                    <h2>A whole environment. Without all the typing.</h2>
+                    <p>
+                      Browse technologies, customize a starter pack, and add
+                      your selection in one go.
+                    </p>
+                  </div>
+                  <button
+                    className="primary"
+                    onClick={() => navigate("Catalog")}
+                  >
+                    Browse catalog <ArrowRight size={16} />
+                  </button>
+                </section>
+              )}
               {(page === "Assets" ||
                 page === "Notification rules" ||
                 page === "Connectors") && (
                 <>
+                  {page === "Assets" && (
+                    <label className="search-box">
+                      <Search size={17} />
+                      <input
+                        aria-label="Search assets"
+                        placeholder="Search assets, groups or environments…"
+                        value={assetQuery}
+                        onChange={(e) => setAssetQuery(e.target.value)}
+                      />
+                    </label>
+                  )}
                   <div className="collection-toolbar">
                     <div>
                       {page === "Assets"
@@ -1305,107 +1417,115 @@ export default function App() {
                         : page === "Connectors"
                           ? connectors
                           : rules
-                      ).map((entry) => (
-                        <div className="entry-row" key={entry.id}>
-                          <div className="entry-icon">
-                            {page === "Assets" ? (
-                              <Layers3 size={21} />
-                            ) : page === "Connectors" ? (
-                              <Radio size={21} />
-                            ) : (
-                              <ListFilter size={21} />
-                            )}
-                          </div>
-                          <div className="entry-main">
-                            <strong>{entry.name}</strong>
-                            <small>
-                              {page === "Assets"
-                                ? `${entry.group} · ${entry.kind.replace("_", " + ")} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
-                                : page === "Connectors"
-                                  ? `${entry.chat_id} · token: $${entry.token_env}`
-                                  : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
-                            </small>
-                          </div>
-                          <Badge tone={entry.enabled ? "green" : "neutral"}>
-                            {entry.enabled ? "Enabled" : "Disabled"}
-                          </Badge>
-                          <div className="row-actions">
-                            {page === "Notification rules" && (
-                              <>
+                      )
+                        .filter(
+                          (entry) =>
+                            page !== "Assets" ||
+                            `${entry.name} ${entry.group} ${entry.environment} ${entry.vendor} ${entry.product}`
+                              .toLowerCase()
+                              .includes(assetQuery.toLowerCase()),
+                        )
+                        .map((entry) => (
+                          <div className="entry-row" key={entry.id}>
+                            <div className="entry-icon">
+                              {page === "Assets" ? (
+                                <Layers3 size={21} />
+                              ) : page === "Connectors" ? (
+                                <Radio size={21} />
+                              ) : (
+                                <ListFilter size={21} />
+                              )}
+                            </div>
+                            <div className="entry-main">
+                              <strong>{entry.name}</strong>
+                              <small>
+                                {page === "Assets"
+                                  ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
+                                  : page === "Connectors"
+                                    ? `${entry.chat_id} · token: $${entry.token_env}`
+                                    : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
+                              </small>
+                            </div>
+                            <Badge tone={entry.enabled ? "green" : "neutral"}>
+                              {entry.enabled ? "Enabled" : "Disabled"}
+                            </Badge>
+                            <div className="row-actions">
+                              {page === "Notification rules" && (
+                                <>
+                                  <button
+                                    className="secondary small"
+                                    onClick={() =>
+                                      void action(async () => {
+                                        const result = await api(
+                                          "/evaluate?rule_id=" + entry.id,
+                                        );
+                                        setReport(result);
+                                        return result;
+                                      }, "Rule evaluated against stored intelligence.")
+                                    }
+                                  >
+                                    Test rule
+                                  </button>
+                                  <button
+                                    className="text-button"
+                                    onClick={() => void toggle(entry)}
+                                  >
+                                    {entry.enabled ? "Disable" : "Enable"}
+                                  </button>
+                                </>
+                              )}
+                              {page === "Connectors" && (
                                 <button
                                   className="secondary small"
+                                  disabled={busy}
                                   onClick={() =>
-                                    void action(async () => {
-                                      const result = await api(
-                                        "/evaluate?rule_id=" + entry.id,
-                                      );
-                                      setReport(result);
-                                      return result;
-                                    }, "Rule evaluated against stored intelligence.")
+                                    void action(
+                                      () =>
+                                        api(
+                                          `/connectors/${entry.id}/test`,
+                                          "POST",
+                                        ),
+                                      "Test queued. The monitoring worker sends queued messages.",
+                                    )
                                   }
                                 >
-                                  Test rule
+                                  <Send size={14} /> Test
                                 </button>
-                                <button
-                                  className="text-button"
-                                  onClick={() => void toggle(entry)}
-                                >
-                                  {entry.enabled ? "Disable" : "Enable"}
-                                </button>
-                              </>
-                            )}
-                            {page === "Connectors" && (
+                              )}
                               <button
-                                className="secondary small"
-                                disabled={busy}
+                                className="text-button"
                                 onClick={() =>
-                                  void action(
-                                    () =>
-                                      api(
-                                        `/connectors/${entry.id}/test`,
-                                        "POST",
-                                      ),
-                                    "Test queued. The monitoring worker sends queued messages.",
+                                  openEditor(
+                                    page === "Assets"
+                                      ? "assets"
+                                      : page === "Connectors"
+                                        ? "connectors"
+                                        : "rules",
+                                    entry,
                                   )
                                 }
                               >
-                                <Send size={14} /> Test
+                                Edit
                               </button>
-                            )}
-                            <button
-                              className="text-button"
-                              onClick={() =>
-                                openEditor(
-                                  page === "Assets"
-                                    ? "assets"
-                                    : page === "Connectors"
-                                      ? "connectors"
-                                      : "rules",
-                                  entry,
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="icon-button danger"
-                              aria-label={`Delete ${entry.name}`}
-                              onClick={() =>
-                                void remove(
-                                  page === "Assets"
-                                    ? "assets"
-                                    : page === "Connectors"
-                                      ? "connectors"
-                                      : "rules",
-                                  entry,
-                                )
-                              }
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                              <button
+                                className="icon-button danger"
+                                aria-label={`Delete ${entry.name}`}
+                                onClick={() =>
+                                  void remove(
+                                    page === "Assets"
+                                      ? "assets"
+                                      : page === "Connectors"
+                                        ? "connectors"
+                                        : "rules",
+                                    entry,
+                                  )
+                                }
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))
                     )}
                   </section>
                   {report && (

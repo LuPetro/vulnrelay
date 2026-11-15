@@ -1,5 +1,7 @@
 # Assets and rules
 
+Use the [technology catalog and environment packs](catalog.md) to select common products without typing their matching identities. The catalog shares the same asset model and leaves manual creation/editing available.
+
 The UI and CLI use the same validated configuration. `vulnrelay assets add file.json` adds an asset, `update ID file.json` replaces it, `list` prints its ID, and `delete ID` removes it. Connectors and rules offer the same CRUD commands. Examples are under `examples/`.
 
 Supported asset kinds are vendor, product, vendor_product, cpe and keyword. Asset groups are labels stored on assets. Environment, team, importance, Internet exposure and tags provide context. Version strings are retained as inventory information; they do not imply automatic version-range validation. Vendor/product matching uses explicit CPE identities or CISA identities, not description fuzziness. Case and spaces versus underscores are normalized for identities. Explicit keyword matching uses word boundaries.

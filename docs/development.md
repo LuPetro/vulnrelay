@@ -2,6 +2,8 @@
 
 Use Python 3.12 or 3.13, Node 22.12+ LTS and a recent Docker Compose. Runtime dependencies, build tools and developer tools have separate hash-locked requirement files. Frontend dependencies use npm's integrity-checked package lock. Docker base images and GitHub Actions use immutable digests/commit SHAs.
 
+On a small VPS shared with an operator deployment, use GitHub CI for container builds and browser checks. Do not run Chromium alongside production services on the project's current sub-2-GiB/no-swap host. The browser job uploads its report and synthetic screenshots on success as well as failure; these can be reviewed without a local browser process.
+
 ## Setup and checks
 
 Create/activate a venv, then `make install`. The editable package installation uses the already-locked build tools and does not resolve extra runtime dependencies. `make lint`, `make test`, `make frontend` and `make audit` reproduce the main checks. Ruff uses backend/pyproject.toml explicitly for both Python source and scripts; Prettier and TypeScript check the frontend. Coverage includes branches with a 75% minimum to detect regression, not as a substitute for meaningful assertions. Tests cover provider failures, uncertainty, delivery/restart behavior and operational safeguards.

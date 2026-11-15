@@ -11,6 +11,8 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Searchable bundled catalog with 50 technologies, ten editable starter-pack selections, context selection, read-only preview and atomic/idempotent imports through UI, API and CLI.
+- Redesigned application shell and overview, dedicated catalog workspace, asset search, responsive light/dark layouts and browser coverage for catalog onboarding.
 - Optional OpenCVE public Knowledge Base adapter, cached manual UI/CLI/API lookups, bounded opt-in background enrichment, separate assessments and source attribution without an account.
 - Incremental NVD ingestion, CISA KEV snapshots and FIRST EPSS enrichment with source provenance.
 - Explicit asset matching, nested explainable rules and persistent Telegram notification delivery.
@@ -21,6 +23,6 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Known limitations
 
-- Alpha status: real operator-owned Telegram delivery still needs validation.
+- Alpha status: an operator confirmed a real Telegram test message; controlled CVE-alert, deduplication and restart acceptance remain open.
 - Generic version ranges, package matching, additional connectors, digests and optional AI are unfinished.
 - Remote exposure and PostgreSQL require further hardening and validation.
