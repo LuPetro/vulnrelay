@@ -122,3 +122,6 @@ Local full-suite verification passed 217 backend tests with 86.38% branch covera
 
 
 First shared-design CI passed both backend Python versions (219 tests), frontend unit/type/build, security and container/IANA smoke checks. Existing three browser scenarios passed. New broader scenarios exposed two accessible-name ambiguities: the Assets nav count changed its button name and the delivery-mode label included option text. Marked the supplemental nav count aria-hidden and gave the mode select an explicit accessible name; bounded new test action waits to 20s for clearer failures. No assertions removed. Final browser/artifact review follows on the next commit.
+
+
+The second browser run passed the real API schedule workflow and the six desktop light views/accessibility checks. It exposed the footer theme control below the viewport on a short desktop window. Added vertical sidebar scrolling with nonshrinking navigation sections and restored visible overflow for the mobile masthead; the test keeps its original viewport and normal click behavior. Other existing browser scenarios and all non-browser jobs stayed green.

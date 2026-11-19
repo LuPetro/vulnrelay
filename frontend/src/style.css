@@ -137,6 +137,13 @@ svg {
   background: var(--sidebar);
   color: var(--ink);
 }
+.sidebar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.sidebar > * {
+  flex-shrink: 0;
+}
 .sidebar-masthead {
   display: flex;
   align-items: center;
@@ -1515,6 +1522,7 @@ footer > span:first-child {
   }
   .sidebar {
     position: static;
+    overflow: visible;
     width: 100%;
     min-width: 0;
     padding: 18px 18px 0;
