@@ -15,10 +15,11 @@ from pydantic import ValidationError
 from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Engine
 
+from vulnrelay.delivery_schedule import schedule_allows
 from vulnrelay.pipeline import refresh_alert
 from vulnrelay.queue import provider_key
 from vulnrelay.schemas import Connector
-from vulnrelay.store import list_documents
+from vulnrelay.store import get_document, list_documents
 
 # HTTP client request logging would expose the bot token embedded in Telegram URLs.
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -160,6 +161,14 @@ def deliver_one(
 ) -> dict | None:
     current = time.time() if now is None else now
     documents = list_documents(engine, "connectors")
+    outside_schedule = []
+    for document in documents:
+        try:
+            candidate = Connector.model_validate({k: v for k, v in document.items() if k != "id"})
+        except ValidationError:
+            continue  # Invalid/disabled destinations retain their normal cleanup behavior.
+        if candidate.enabled and not schedule_allows(candidate.delivery_schedule, current):
+            outside_schedule.append(document["id"])
     lease = str(uuid4())
     with engine.begin() as connection:
         connection.execute(
@@ -177,7 +186,7 @@ def deliver_one(
                 {"now": current},
             )
         }
-        blocked = [
+        blocked = outside_schedule + [
             item["id"]
             for item in documents
             if provider_key(item.get("token_env", "TELEGRAM_BOT_TOKEN")) in provider_limits
@@ -243,6 +252,31 @@ def deliver_one(
         elif cancellation:
             outcome = DeliveryResult(False, error=cancellation)
         else:
+            # Configuration may change while rule/asset revalidation is running. Defer
+            # changed destinations for a fresh claim; never send using an old schedule.
+            before_send = current if now is not None else time.time()
+            latest = get_document(engine, "connectors", connector["id"])
+            if latest != connector or not schedule_allows(config.delivery_schedule, before_send):
+                with engine.begin() as connection:
+                    connection.execute(
+                        text("""UPDATE outbox SET state=:state, attempts=attempts-1,
+                        lease_until=NULL, lease_token=NULL
+                        WHERE id=:id AND lease_token=:lease"""),
+                        {
+                            "state": "pending"
+                            if row["attempts"] == 1 and not row["last_error"]
+                            else "retry",
+                            "id": row["id"],
+                            "lease": lease,
+                        },
+                    )
+                    for sibling_id in {row["connector_id"], *(item["id"] for item in siblings)}:
+                        connection.execute(
+                            text("""UPDATE connector_limits SET available_at=:now
+                            WHERE id=:id AND available_at=:reserved AND rate_limited_until<=:now"""),
+                            {"id": sibling_id, "now": before_send, "reserved": current + interval},
+                        )
+                return None
             with engine.begin() as connection:
                 updated = connection.execute(
                     text("UPDATE outbox SET payload=:payload WHERE id=:id AND lease_token=:lease"),

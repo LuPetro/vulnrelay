@@ -97,7 +97,7 @@ export default function Catalog({
       (p) =>
         (category === "All technologies" || p.category === category) &&
         words.every((word) =>
-          `${p.name} ${p.id} ${p.description} ${p.vendor} ${p.product}`
+          `${p.name} ${p.id} ${p.category} ${p.description} ${p.vendor} ${p.product}`
             .toLowerCase()
             .includes(word),
         ),
@@ -152,7 +152,8 @@ export default function Catalog({
           <h2>Your stack. A few clicks away.</h2>
           <p>
             Pick familiar technologies or start with an environment pack. You
-            choose what belongs.
+            choose what belongs. Libraries use NVD product identities; package
+            manifests are not scanned.
           </p>
         </div>
         <div className="catalog-total">
@@ -287,7 +288,7 @@ export default function Catalog({
                           Potential product match. Versions need verification.
                         </p>
                         <a href={p.source_url} target="_blank" rel="noreferrer">
-                          Search NVD dictionary <ExternalLink size={12} />
+                          View NVD identity <ExternalLink size={12} />
                         </a>
                       </details>
                     </article>
@@ -464,8 +465,9 @@ export default function Catalog({
             </div>
           )}
           <p className="help">
-            Product matching does not confirm a vulnerable version. Existing
-            notification rules may apply to newly added assets.
+            Product matching does not confirm a vulnerable version or inspect
+            transitive dependencies. Existing notification rules may apply to
+            newly added assets.
           </p>
           <button
             className="primary selection-submit"

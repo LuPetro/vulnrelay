@@ -42,6 +42,19 @@ try:
     compose("up", "-d", "--wait", "vulnrelay")
     assert request("/ready")["status"] == "ready"
     assert b'<div id="root"></div>' in request("/")
+    # The pinned runtime image must provide real IANA data, including seasonal offsets.
+    compose(
+        "exec",
+        "-T",
+        "vulnrelay",
+        "python",
+        "-c",
+        "from datetime import datetime,timedelta; from zoneinfo import ZoneInfo; "
+        "zone=ZoneInfo('Europe/Vienna'); "
+        "assert datetime(2026,1,1,tzinfo=zone).utcoffset()==timedelta(hours=1); "
+        "assert datetime(2026,7,1,tzinfo=zone).utcoffset()==timedelta(hours=2); "
+        "print('Packaged IANA timezone data verified.')",
+    )
     # Prevent public source calls; this is an offline deployment test with no real destination.
     compose(
         "exec",

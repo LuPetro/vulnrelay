@@ -29,6 +29,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Telegram connector, environment-only secret references, tests and bounded plain-text rendering.
 - [x] Independent delivery pump while sources synchronize.
 - [x] Configurable pacing, persisted Telegram cooldowns separate from failure retries, queue diagnostics and snapshot-based dismissals that retain deduplication.
+- [x] Connector-specific weekly delivery windows, IANA timezones/DST, overnight schedules and off-hours queues without consumed attempts.
 - [x] Live sent-count refresh, accessible compact rolling count and synchronized foreground pipeline ingress.
 - [x] Reject inconsistent CPE/inventory versions and isolate invalid legacy assets.
 - [x] Revalidate queued/retried alerts against current rules, assets and intelligence; visible cancellation and safe reconsideration after reactivation.
@@ -37,6 +38,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Operator confirmed a real Telegram connector test message (2026-11-15).
 - [ ] Real operator-owned CVE-alert, duplicate protection and restart acceptance.
 - [x] Offline technology catalog, editable environment-pack selection, CLI/API preview and atomic duplicate-safe import with preserved manual asset entry.
+- [x] Expanded curated catalog: 87 technologies and 19 packs, with documented NVD provenance and conservative matching for libraries.
 - [ ] Generic version applicability, packages/PURLs and OSV matching.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.
 
@@ -44,8 +46,9 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 - [x] Original vector branding and animated operational Overview with pause/reduced-motion controls and honest status/count semantics.
 - [x] Faster uninterrupted packet handoffs and independent continuous loading indicators, preserving pause/reduced-motion behavior.
-- [x] Isolated Overview design study with self-hosted typography, editorial grid, richer explanatory motion and mobile composition; broader design adoption waits for operator review.
+- [x] Isolated Overview design study with self-hosted typography, editorial grid, richer explanatory motion and mobile composition; operator approved broader design adoption after testing.
 
+- [x] Shared Overview typography, paper/ink/green palette, ruled layouts and mobile/dark forms across all pages.
 - [x] Overview and guided setup steps, asset CRUD, rule builder/testing, Telegram configuration/testing.
 - [x] Redesigned shell/overview, catalog browser with category/search filters, import review, asset search and responsive dark/light design.
 - [x] Source health, delivery history, local CVE search/details, dark/light theme and responsive styling.

@@ -1,8 +1,9 @@
 """Validated, portable configuration. Secrets are environment references only."""
 
 from typing import Annotated, Any, Literal, Union
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 
@@ -142,8 +143,39 @@ class Rule(Document):
         return self
 
 
+class DeliveryWindow(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    days: list[Annotated[int, Field(strict=True, ge=0, le=6)]] = Field(min_length=1, max_length=7)
+    start: str = Field(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    end: str = Field(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.start == self.end:
+            raise ValueError("Delivery window start and end must differ")
+        if len(set(self.days)) != len(self.days):
+            raise ValueError("Delivery window days must be unique")
+        return self
+
+
+class DeliverySchedule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    timezone: str = Field(min_length=1, max_length=100)
+    windows: list[DeliveryWindow] = Field(min_length=1, max_length=14)
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Choose a valid installed IANA timezone") from None
+        return value
+
+
 class Connector(Document):
     kind: Literal["telegram"] = "telegram"
     token_env: str = Field(default="TELEGRAM_BOT_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{0,99}$")
     chat_id: str = Field(pattern=r"^(?:-?\d{1,30}|@[A-Za-z0-9_]{5,32})$")
     min_interval_seconds: float = Field(default=3.1, ge=1.1, le=3600, allow_inf_nan=False)
+    delivery_schedule: DeliverySchedule | None = None

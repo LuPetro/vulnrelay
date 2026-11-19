@@ -36,3 +36,7 @@ The sent counter includes successfully acknowledged connector tests and CVE even
 Overview/Connectors refresh status every five seconds while visible, separately from inventory/configuration loading. Versioned responses prevent older requests from overwriting newer status. Configuration keeps its normal refresh schedule. This is periodic synchronization, not an instantaneous stream.
 
 This increment includes migration 0007. Follow the [backed-up Docker update procedure](catalog.md#update-and-test-an-existing-docker-installation); Compose runs migrations before readiness. Keep `.env`, project/image names and the data volume. Existing failed records are not silently retried by upgrading. Restoring an older application after changing connector settings may require the pre-upgrade backup; do not reset or delete the database to roll back.
+
+## Connector delivery hours
+
+Each destination can optionally restrict delivery to weekly windows. Outside these hours its queue stays intact and delivery attempts are not consumed. Overview/Connectors show `Outside delivery hours`, the next eligible attempt and the delivery timezone. Rate limits or retry delays can move the next attempt into a later permitted window. Test messages follow the same hours. Legacy connectors remain unrestricted until configured. See [delivery hours and DST behavior](connector-schedules.md).

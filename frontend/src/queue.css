@@ -38,7 +38,7 @@
   gap: 8px 16px;
   padding: 14px 0;
   border-top: 1px solid var(--q-line);
-  font-size: 13px;
+  font-size: 14px;
 }
 .queue-destination strong {
   overflow-wrap: anywhere;
@@ -46,7 +46,7 @@
 .queue-destination small {
   grid-column: 1 / -1;
   color: var(--q-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
 }
 .queue-destination .queue-limited {
@@ -63,7 +63,7 @@
 }
 .queue-actions p {
   color: var(--q-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.7;
   max-width: 500px;
 }

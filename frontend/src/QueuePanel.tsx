@@ -19,9 +19,22 @@ export type QueueSummary = {
     min_interval_seconds: number | null;
     next_attempt_at: number | null;
     rate_limited_until: number | null;
+    schedule_resume_at?: number | null;
+    schedule_timezone?: string | null;
   }[];
 };
-const date = (time: number) => new Date(time * 1000).toLocaleString();
+const date = (time: number, timezone?: string | null) => {
+  const instant = new Date(time * 1000);
+  try {
+    return instant.toLocaleString(
+      undefined,
+      timezone ? { timeZone: timezone, timeZoneName: "short" } : undefined,
+    );
+  } catch {
+    // Native/CLI ZoneInfo aliases may be absent from the browser's smaller Intl catalog.
+    return `${instant.toLocaleString(undefined, { timeZone: "UTC" })} UTC`;
+  }
+};
 export default function QueuePanel({
   summary,
   busy,
@@ -38,6 +51,7 @@ export default function QueuePanel({
     rate_limited: "Telegram rate limit",
     pacing: "Configured send interval",
     retry_wait: "Retry backoff",
+    outside_schedule: "Outside delivery hours",
     disabled: "Disabled or unavailable",
     empty: "Queue empty",
     failed: "Failed deliveries",
@@ -84,9 +98,13 @@ export default function QueuePanel({
                 : ""}
               {destination.rate_limited_until
                 ? ` · Telegram cooldown until ${date(destination.rate_limited_until)}`
-                : destination.next_attempt_at
-                  ? ` · next eligible attempt: ${date(destination.next_attempt_at)}`
-                  : ""}
+                : ""}
+              {destination.next_attempt_at
+                ? ` · next eligible attempt: ${date(destination.next_attempt_at, destination.schedule_timezone)}`
+                : ""}
+              {destination.schedule_timezone
+                ? ` · delivery time zone: ${destination.schedule_timezone}`
+                : ""}
             </small>
             {destination.last_error && (
               <small className="queue-last-error">

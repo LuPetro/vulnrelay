@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./Catalog";
 import OverviewPage, { type OverviewData } from "./Overview";
 import QueuePanel from "./QueuePanel";
+import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
 import {
   Activity,
   Boxes,
@@ -118,7 +119,7 @@ function Empty({
 }) {
   return (
     <div className="empty">
-      <Layers3 size={28} />
+      <span className="empty-index">READY WHEN YOU ARE</span>
       <h3>{title}</h3>
       <p>{children}</p>
     </div>
@@ -565,25 +566,34 @@ export default function App() {
         Skip to content
       </a>
       <aside className="sidebar">
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("Overview");
-          }}
-        >
-          <img
-            className="brand-symbol"
-            src="/brand/vulnrelay-mark.svg"
-            width="40"
-            height="40"
-            alt=""
-          />
-          <span>
-            VulnRelay<small>VULNERABILITY NOTIFICATIONS</small>
-          </span>
-        </a>
+        <div className="sidebar-masthead">
+          <a
+            className="brand"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("Overview");
+            }}
+          >
+            <img
+              className="brand-symbol"
+              src="/brand/vulnrelay-mark.svg"
+              width="40"
+              height="40"
+              alt=""
+            />
+            <span>
+              VulnRelay<small>VULNERABILITY NOTIFICATIONS</small>
+            </span>
+          </a>
+          <button
+            className="icon-button mobile-theme-toggle"
+            aria-label="Toggle color theme"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+        </div>
         <div className="workspace">
           <span className="workspace-dot" />
           <div>
@@ -644,14 +654,27 @@ export default function App() {
         </header>
         <main
           id="main-content"
-          className={page === "Overview" ? "overview-workspace" : undefined}
+          className={
+            page === "Overview" ? "overview-workspace" : "workspace-page"
+          }
         >
           <div className="page-heading">
             <div>
               <div className="eyebrow">
                 {page === "Overview"
                   ? "VULNRELAY / LOCAL OPERATIONS"
-                  : "KNOW WHAT MATTERS. GET NOTIFIED."}
+                  : `VULNRELAY / ${
+                      (
+                        {
+                          Assets: "ASSET INVENTORY",
+                          Catalog: "TECHNOLOGY CATALOG",
+                          "Notification rules": "ALERT POLICY",
+                          Connectors: "DELIVERY OPERATIONS",
+                          Vulnerabilities: "INTELLIGENCE REGISTER",
+                          Settings: "INSTANCE CONFIGURATION",
+                        } as Record<string, string>
+                      )[page]
+                    }`}
               </div>
               <h1>{page === "Overview" ? "Your security, on watch." : page}</h1>
               <p>
@@ -730,15 +753,12 @@ export default function App() {
               )}
               {page === "Assets" && (
                 <section className="inventory-discovery">
-                  <div className="discovery-icon">
-                    <Boxes size={26} />
-                  </div>
                   <div>
-                    <span className="eyebrow">MEET YOUR NEXT SHORTCUT</span>
-                    <h2>A whole environment. Without all the typing.</h2>
+                    <span className="eyebrow">BUILD YOUR INVENTORY</span>
+                    <h2>Start with the stack you run.</h2>
                     <p>
-                      Browse technologies, customize a starter pack, and add
-                      your selection in one go.
+                      Choose familiar technologies or an environment pack.
+                      Review the selection, then add it to your inventory.
                     </p>
                   </div>
                   <button
@@ -813,6 +833,13 @@ export default function App() {
                         </button>
                       </div>
                       <form onSubmit={save}>
+                        <p className="editor-intro">
+                          {editor === "assets"
+                            ? "Declare the software you run. Its identity and context determine which vulnerability records are relevant."
+                            : editor === "rules"
+                              ? "Choose destinations and conditions. Test the rule against stored intelligence before relying on it."
+                              : "Connect a Telegram destination. Credentials stay in environment variables on your server."}
+                        </p>
                         <label>
                           Name
                           <input
@@ -1011,6 +1038,15 @@ export default function App() {
                         )}
                         {editor === "connectors" && (
                           <>
+                            <ConnectorSchedule
+                              value={connector.delivery_schedule}
+                              onChange={(delivery_schedule) =>
+                                setConnector({
+                                  ...connector,
+                                  delivery_schedule,
+                                })
+                              }
+                            />
                             <label>
                               Minimum seconds between messages
                               <input
@@ -1224,17 +1260,11 @@ export default function App() {
                         : page === "Connectors"
                           ? connectors
                           : rules
-                      ).map((entry) => (
+                      ).map((entry, index) => (
                         <div className="entry-row" key={entry.id}>
-                          <div className="entry-icon">
-                            {page === "Assets" ? (
-                              <Layers3 size={21} />
-                            ) : page === "Connectors" ? (
-                              <Radio size={21} />
-                            ) : (
-                              <ListFilter size={21} />
-                            )}
-                          </div>
+                          <span className="entry-index" aria-hidden="true">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
                           <div className="entry-main">
                             <strong>{entry.name}</strong>
                             <small>
@@ -1244,6 +1274,11 @@ export default function App() {
                                   ? `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
+                            {page === "Connectors" && (
+                              <small className="connector-hours-summary">
+                                {scheduleDescription(entry.delivery_schedule)}
+                              </small>
+                            )}
                           </div>
                           <Badge tone={entry.enabled ? "green" : "neutral"}>
                             {entry.enabled ? "Enabled" : "Disabled"}

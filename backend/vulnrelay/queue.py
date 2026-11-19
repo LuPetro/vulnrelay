@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
+from vulnrelay.delivery_schedule import next_delivery_at, schedule_allows
 from vulnrelay.schemas import Connector
 from vulnrelay.store import list_documents
 
@@ -85,6 +86,12 @@ def queue_status(engine: Engine, *, now: float | None = None) -> dict:
         pacing = max(limit.get("available_at", 0), provider.get("available_at", 0))
         enabled = bool(config and config.enabled)
         next_at = max(current, row["due_at"], pacing) if row["queued"] and enabled else None
+        outside_schedule = bool(enabled and not schedule_allows(config.delivery_schedule, current))
+        schedule_resume = (
+            next_delivery_at(config.delivery_schedule, current) if outside_schedule else None
+        )
+        if next_at is not None:
+            next_at = next_delivery_at(config.delivery_schedule, next_at)
         status = (
             "sending"
             if row["sending"]
@@ -96,6 +103,8 @@ def queue_status(engine: Engine, *, now: float | None = None) -> dict:
             if not enabled
             else "rate_limited"
             if cooldown > current
+            else "outside_schedule"
+            if outside_schedule
             else "pacing"
             if pacing > current
             else "retry_wait"
@@ -116,6 +125,10 @@ def queue_status(engine: Engine, *, now: float | None = None) -> dict:
                 "rate_limited_until": cooldown if cooldown > current else None,
                 "last_sent_at": row["last_sent_at"],
                 "min_interval_seconds": config.min_interval_seconds if config else None,
+                "schedule_resume_at": schedule_resume,
+                "schedule_timezone": config.delivery_schedule.timezone
+                if config and config.delivery_schedule
+                else None,
             }
         )
     deadlines = [

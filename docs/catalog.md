@@ -1,8 +1,8 @@
 # Technology catalog and environment packs
 
-The **Catalog** page offers 50 bundled technologies and ten starter packs: Linux essentials, modern web app, Python application, container platform, homelab, observability, delivery toolchain, WordPress site, network perimeter and VMware infrastructure. It works offline and requires no external catalog account.
+The **Catalog** page offers **87 bundled technologies and 19 editable starter packs**. It works offline and requires no external catalog account. Choose infrastructure, applications, network devices, identity providers, databases or common libraries instead of typing their matching identities. Manual asset creation remains available.
 
-1. Search a technology or select a category. **Matching identity** shows the exact product/vendor used and links to the NVD CPE dictionary.
+1. Search a technology or select a category. **Matching identity** shows the exact product/vendor used and links to an NVD identity record or dictionary search. Searches also understand terms included in the descriptions, such as `npm lodash`, `PyPI fastapi` and `Composer laravel`.
 2. Alternatively open **Environment packs**. A pack shows its components before selection. Remove anything you do not run and add other technologies individually.
 3. Choose an asset group and environment. Team, importance and Internet exposure are optional context.
 4. **Review selection** shows new and already-present assets without writing anything. A context change requires a new review.
@@ -13,6 +13,28 @@ On smaller screens, **Review N selected** takes you directly to your selection a
 Packs are examples, not automatic inventory discovery or a claim that a stack is complete. No software is installed on your server. Catalog items use explicit product identities, never automatic fuzzy matching. A product match is potential; it does not confirm that an installed version is vulnerable. Add installed versions by editing the resulting assets, keeping the existing version-matching limitations in mind. CMS plugins, Java distributions and Docker Desktop need their own appropriate entries. Product-only entries intentionally cover vendor renames and disclose their broader scope.
 
 Existing enabled rules may apply to new assets immediately, particularly rules selecting all assets or an existing group. Review your rules before importing a large selection. Catalog imports do not create rules or connectors, change existing settings, or directly enqueue alerts.
+
+## What can I monitor?
+
+The original ten packs remain available with their existing IDs and components. Nine additional packs cover common operating environments:
+
+| Pack | Components to review |
+| --- | --- |
+| Identity & access | Keycloak, authentik, Authelia, Vaultwarden, PostgreSQL |
+| Home services | Home Assistant, Jellyfin, Immich, PostgreSQL, Redis |
+| Team collaboration | Nextcloud, Mattermost, Rocket.Chat, Roundcube, PostgreSQL |
+| Small network & DNS | OPNsense, pfSense CE, MikroTik RouterOS, UniFi Network, OpenVPN Community, AdGuard Home, Pi-hole Core |
+| Python APIs & libraries | Python, FastAPI, Flask, Requests, urllib3, PyYAML, PostgreSQL |
+| JavaScript application | Node.js, Express, Next.js, Vite, Axios, Lodash |
+| Java service | Oracle JDK, Spring Framework, Tomcat, Log4j, PostgreSQL |
+| Data services | PostgreSQL, MariaDB, Redis, Memcached, MinIO, RabbitMQ Server |
+| Files & backups | Samba, Syncthing, MinIO, Proxmox Backup Server |
+
+A pack is a selection shortcut: frameworks, firewalls and identity providers can be alternatives, so remove anything you do not run. Packs are editable before import. They never install software, replace an existing selection or imply that all components are required.
+
+Libraries and frameworks use the same explicit **NVD vendor/product identity** matching as other catalog entries. An npm/PyPI/Composer name in a description helps you find the item; it does not enable an OSV package query, PURL matching, lockfile analysis, SBOM scanning, automatic transitive dependency discovery or version-range validation. Only relevant records actually synchronized into VulnRelay can match, and upstream CVEs without usable product identities can be missed. Read each alert's evidence and advisory before deciding whether your installed version is affected.
+
+The 37 added identities were reviewed against linked primary NVD records; see [catalog provenance and identity limitations](catalog-sources.md). Current and legacy vendor/product names can differ. In particular, RabbitMQ Server uses `broadcom / rabbitmq_server`, UniFi Network uses `ui / unifi_network_application`, Vaultwarden uses `dani-garcia / vaultwarden`, and Requests/urllib3 use the NVD vendor `python`. Catalog import does not add undocumented aliases. Separate assets may be needed to follow legacy identities, editions, plugins or component-specific records. Existing asset identities are never rewritten by a catalog update.
 
 ## Duplicate handling
 
@@ -26,6 +48,8 @@ Use these commands inside the installed environment, or prefix them with `docker
 
 ```sh
 vulnrelay catalog list --query postgres
+vulnrelay catalog list --query "npm lodash"
+vulnrelay catalog pack python-api --group application --environment staging --preview
 vulnrelay catalog pack linux-server --group servers --environment production --preview
 vulnrelay catalog pack linux-server --group servers --environment production
 ```
@@ -42,7 +66,7 @@ The API exposes `GET /api/catalog?q=...`, `POST /api/catalog/preview` and `POST 
 
 ## Freshness and maintenance
 
-The bundled starter catalog changes with application updates; it is not a live mirror of the [NVD CPE dictionary](https://nvd.nist.gov/products/cpe). Matching data and product identities may be incomplete upstream. Catalog maintainers must review identities against NVD and preserve stable catalog IDs. CI validates every entry, pack membership, import behavior and conservative match confidence without requiring live network access.
+The bundled starter catalog changes with application updates; it is not a live mirror of the [NVD CPE dictionary](https://nvd.nist.gov/products/cpe). Matching data and product identities may be incomplete upstream. Catalog maintainers must review identities against NVD, record a supporting link in [catalog provenance](catalog-sources.md), preserve stable catalog IDs and avoid claiming that one product identity includes every alias or dependency. CI validates every entry, pack membership, import behavior and conservative match confidence without requiring live network access.
 
 CVE records continue to synchronize independently. NVD and CISA default to 30-minute polling, EPSS to daily refresh, with persistent checkpoints and visible source errors. Newer NVD records update existing CVE IDs; older responses cannot overwrite newer NVD data. This does not guarantee instant or complete upstream coverage. The initial NVD window is the last seven modified days, plus historical CISA KEV records; adding a catalog asset does not trigger a full NVD historical backfill. Optional OpenCVE enriches known CVEs and is not a full catalog discovery source.
 

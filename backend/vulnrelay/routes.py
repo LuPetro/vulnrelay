@@ -42,6 +42,16 @@ def _configuration_error(error: ValueError) -> str:
         for item in error.errors(include_input=False, include_context=False)
     ):
         return "Inventory version conflicts with the version in the CPE"
+    if isinstance(error, ValidationError):
+        schedule_errors = [
+            item
+            for item in error.errors(include_input=False, include_context=False)
+            if item["loc"] and item["loc"][0] == "delivery_schedule"
+        ]
+        if any("timezone" in item["loc"] for item in schedule_errors):
+            return "Choose a valid IANA time zone, for example Europe/Vienna"
+        if schedule_errors:
+            return "Invalid delivery hours: choose weekdays and different start/end times in HH:MM"
     return "Invalid configuration or missing asset/connector reference"
 
 

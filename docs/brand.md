@@ -14,7 +14,7 @@ Wordmarks use system sans-serif text and may vary slightly with installed fonts.
 
 ## Overview behavior
 
-The current [Overview-only design study](overview-design.md) documents typography, the ruled grid, richer processing motion and rollback boundaries. The logo itself is unchanged. IBM Plex font files have their own SIL Open Font License and are served locally with notices.
+The current [Overview design direction](overview-design.md) documents typography, the ruled grid, richer processing motion and rollback boundaries. The operator-approved [frontend design system](frontend-design.md) extends those foundations across the application. The logo itself is unchanged. IBM Plex font files have their own SIL Open Font License and are served locally with notices.
 
 The animated SVG explains the source → matching/filtering → delivery flow; it is explicitly illustrative, not live traffic or a risk measurement. All counts, source errors, delivery states and heartbeat labels come from the API. Enabled asset counts exclude disabled inventory; sent-message counts include connector tests. A recent worker heartbeat does not guarantee source freshness or destination health. The Overview reports those separately.
 

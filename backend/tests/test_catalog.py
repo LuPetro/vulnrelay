@@ -6,7 +6,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from typer.testing import CliRunner
 from vulnrelay.api import app
-from vulnrelay.catalog import PACKS, PRODUCTS, CatalogSelection, catalog, import_selection
+from vulnrelay.catalog import (
+    _PRODUCTS,
+    PACKS,
+    PRODUCTS,
+    CatalogSelection,
+    catalog,
+    import_selection,
+)
 from vulnrelay.cli import app as cli
 from vulnrelay.config import get_settings
 from vulnrelay.matching import match
@@ -17,7 +24,10 @@ HEADERS = {"x-vulnrelay-request": "1"}
 
 
 def test_catalog_identity_and_pack_integrity():
-    assert len(PRODUCTS) >= 50
+    assert len(PRODUCTS) >= 87
+    assert len(_PRODUCTS) == len(PRODUCTS)  # Stable IDs must not silently overwrite another entry.
+    assert len(PACKS) >= 19
+    assert len({(p["vendor"], p["product"]) for p in PRODUCTS.values()}) == len(PRODUCTS)
     assert len({p["id"] for p in PACKS}) == len(PACKS)
     for pack in PACKS:
         assert set(pack["products"]) <= PRODUCTS.keys()
@@ -175,3 +185,69 @@ def test_catalog_cli_preview_import_and_reimport(configured_engine, tmp_path):
         ]
         == "openssh"
     )
+
+
+@pytest.mark.parametrize(
+    "query,product",
+    [
+        ("npm lodash", "lodash"),
+        ("PyPI fastapi", "fastapi"),
+        ("Composer laravel", "laravel"),
+        ("MikroTik RouterOS", "routeros"),
+        ("Backup Proxmox", "proxmox-backup"),
+        ("Identity authentik", "authentik"),
+    ],
+)
+def test_expanded_catalog_is_searchable_by_product_ecosystem_and_category(query, product):
+    assert product in {item["id"] for item in catalog(query)["products"]}
+    assert PRODUCTS[product]["source_url"].startswith("https://nvd.nist.gov/")
+
+
+def test_new_packs_import_atomically_and_share_existing_identity_context(configured_engine):
+    pack_ids = {"python-api", "javascript-app", "files-backups", "open-network"}
+    chosen = [pack for pack in PACKS if pack["id"] in pack_ids]
+    assert len(chosen) == len(pack_ids)
+    products = [product for pack in chosen for product in pack["products"]]
+    selection = CatalogSelection(products=products, group="new-stack", environment="homelab")
+    preview = import_selection(configured_engine, selection, preview=True)
+    assert len(preview["created"]) == len(set(products))
+    assert list_documents(configured_engine, "assets") == []
+    first = import_selection(configured_engine, selection)
+    second = import_selection(configured_engine, selection)
+    assert len(first["created"]) == len(set(products))
+    assert second["created"] == []
+    assert {item["id"] for item in second["existing"]} == {item["id"] for item in first["created"]}
+    # A library is an explicit product watch, not a keyword or package/version claim.
+    requests = next(item for item in first["created"] if item["product"] == "requests")
+    assert requests["kind"] == "vendor_product" and requests["vendor"] == "python"
+    assert requests["version"] == ""
+    with configured_engine.connect() as connection:
+        assert connection.execute(text("SELECT COUNT(*) FROM outbox")).scalar() == 0
+
+
+@pytest.mark.parametrize(
+    "product,criteria",
+    [
+        ("mariadb", "cpe:2.3:a:mariadb:mariadb:*:*:*:*:*:*:*:*"),
+        ("routeros", "cpe:2.3:o:mikrotik:routeros:*:*:*:*:*:*:*:*"),
+        ("vaultwarden", "cpe:2.3:a:dani-garcia:vaultwarden:*:*:*:*:*:*:*:*"),
+        ("rabbitmq", "cpe:2.3:a:broadcom:rabbitmq_server:3.8.34:*:*:*:*:*:*:*"),
+        ("requests", "cpe:2.3:a:python:requests:1.2.0:*:*:*:*:*:*:*"),
+    ],
+)
+def test_reviewed_catalog_identities_match_conservatively(product, criteria):
+    # Representative identities from the linked NVD records in docs/catalog-sources.md.
+    # This is intentionally product-level: CPE ranges and installed packages are not verified.
+    item = PRODUCTS[product]
+    asset = Asset(
+        name=item["name"], kind=item["kind"], vendor=item["vendor"], product=item["product"]
+    )
+    record = {
+        "nvd": {"configurations": [{"cpeMatch": [{"vulnerable": True, "criteria": criteria}]}]}
+    }
+    evidence = match(asset, record)
+    assert evidence["confidence"] == "potential"
+    other_vendor = asset.model_copy(update={"vendor": "unrelated_vendor"})
+    assert match(other_vendor, record) is None
+    other_product = asset.model_copy(update={"product": item["product"] + "_plugin"})
+    assert match(other_product, record) is None

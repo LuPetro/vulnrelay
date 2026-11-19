@@ -18,6 +18,10 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Connector delivery hours with weekly/overnight windows, IANA timezones and daylight-saving support. Held alerts keep their queue state and retry budgets; queue diagnostics show the next permitted attempt.
+- Expand the offline catalog to 87 technologies and 19 packs with documented NVD identities, including libraries and homelab/network/identity stacks.
+- Apply the accepted Overview visual identity across the workspace, with shared typography, light/dark colors, ruled layouts and responsive forms.
+
 - Configurable Telegram send intervals, queue diagnostics/clear controls in Overview and Connectors plus CLI/API. Discarded events retain their deduplication keys.
 - Independently refreshed sent totals and an accessible rolling counter with k notation above 1,000.
 
