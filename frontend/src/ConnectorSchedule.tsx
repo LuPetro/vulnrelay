@@ -199,6 +199,7 @@ export default function ConnectorSchedule({
       <label>
         Send alerts
         <select
+          aria-label="Send alerts"
           value={value ? "scheduled" : "always"}
           onChange={(event) =>
             onChange(event.target.value === "always" ? null : draft)

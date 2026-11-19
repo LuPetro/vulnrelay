@@ -614,7 +614,9 @@ export default function App() {
               >
                 <Icon size={19} />
                 {item}
-                {item === "Assets" && <span>{assets.length}</span>}
+                {item === "Assets" && (
+                  <span aria-hidden="true">{assets.length}</span>
+                )}
               </button>
             );
           })}

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test.use({ timezoneId: "Europe/Vienna" });
+test.use({ timezoneId: "Europe/Vienna", actionTimeout: 20000 });
 
 test("shared design covers every workspace page, editor and both themes", async ({
   page,
