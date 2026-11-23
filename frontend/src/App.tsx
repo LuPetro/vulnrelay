@@ -1146,6 +1146,7 @@ export default function App() {
                                 <option value="telegram">Telegram</option>
                                 <option value="discord">Discord webhook</option>
                                 <option value="slack">Slack webhook</option>
+                                <option value="smtp">Email via SMTP</option>
                               </select>
                             </label>
                             <ConnectorSchedule
@@ -1215,6 +1216,114 @@ export default function App() {
                                   Telegram group or channel and grant permission
                                   to send messages. The actual token is never
                                   stored in this form.
+                                </p>
+                              </>
+                            ) : connector.kind === "smtp" ? (
+                              <>
+                                <div className="form-grid">
+                                  <label>
+                                    Sender email address
+                                    <input
+                                      type="email"
+                                      required
+                                      value={connector.smtp_from || ""}
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_from: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    Recipient email address
+                                    <input
+                                      type="email"
+                                      required
+                                      value={connector.smtp_to || ""}
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_to: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    SMTP host environment variable
+                                    <input
+                                      required
+                                      pattern="VULNRELAY_SMTP_HOST[A-Z0-9_]*"
+                                      value={
+                                        connector.smtp_host_env ||
+                                        "VULNRELAY_SMTP_HOST"
+                                      }
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_host_env: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    SMTP port environment variable
+                                    <input
+                                      required
+                                      pattern="VULNRELAY_SMTP_PORT[A-Z0-9_]*"
+                                      value={
+                                        connector.smtp_port_env ||
+                                        "VULNRELAY_SMTP_PORT"
+                                      }
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_port_env: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    SMTP user environment variable
+                                    <input
+                                      required
+                                      pattern="VULNRELAY_SMTP_USER[A-Z0-9_]*"
+                                      value={
+                                        connector.smtp_user_env ||
+                                        "VULNRELAY_SMTP_USER"
+                                      }
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_user_env: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    SMTP password environment variable
+                                    <input
+                                      required
+                                      pattern="VULNRELAY_SMTP_PASSWORD[A-Z0-9_]*"
+                                      value={
+                                        connector.smtp_password_env ||
+                                        "VULNRELAY_SMTP_PASSWORD"
+                                      }
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          smtp_password_env: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                                <p className="help">
+                                  Set the SMTP server and credentials in these
+                                  server environment variables. Passwords are
+                                  never entered here. STARTTLS and a valid
+                                  server certificate are required; recreate both
+                                  containers after changing .env.
                                 </p>
                               </>
                             ) : (
@@ -1411,10 +1520,12 @@ export default function App() {
                               {page === "Assets"
                                 ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.kind === "package" ? `${entry.ecosystem} ${entry.package} ${entry.version}` : entry.product || entry.vendor || entry.keyword || entry.cpe}`
                                 : page === "Connectors"
-                                  ? entry.kind === "discord" ||
-                                    entry.kind === "slack"
-                                    ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
-                                    : `${entry.chat_id} · token: $${entry.token_env}`
+                                  ? entry.kind === "smtp"
+                                    ? `Email · ${entry.smtp_to}`
+                                    : entry.kind === "discord" ||
+                                        entry.kind === "slack"
+                                      ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
+                                      : `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
                             {page === "Assets" && entry.kind === "package" && (

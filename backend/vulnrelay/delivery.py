@@ -5,9 +5,15 @@ import logging
 import math
 import os
 import re
+import smtplib
+import socket
+import ssl
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from email.message import EmailMessage
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
@@ -246,6 +252,92 @@ def send_webhook(
             client.close()
 
 
+class _PinnedSMTP(smtplib.SMTP):
+    """Connect to a resolved IP while STARTTLS authenticates the original hostname."""
+
+    def __init__(self, host: str, address: str, port: int):
+        self._pinned_address = address
+        super().__init__(host=host, port=port, timeout=15, local_hostname="localhost")
+
+    def _get_socket(self, host, port, timeout):
+        return socket.create_connection((self._pinned_address, port), timeout)
+
+
+def send_smtp(connector: Connector, message: str, *, message_id: str) -> DeliveryResult:
+    """Send one plain-text email over certificate-verified STARTTLS."""
+    from vulnrelay.ai import AIError, _pin_endpoint
+    from vulnrelay.config import get_settings
+
+    host = _secret(connector.smtp_host_env).strip()
+    port_text = _secret(connector.smtp_port_env) or "587"
+    username, password = _secret(connector.smtp_user_env), _secret(connector.smtp_password_env)
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,251}", host):
+        return DeliveryResult(False, error="SMTP host environment variable is missing or invalid")
+    if not re.fullmatch(r"[0-9]{1,5}", port_text) or not 1 <= int(port_text) <= 65535:
+        return DeliveryResult(False, error="SMTP port environment variable is invalid")
+    if bool(username) != bool(password) or any(
+        len(value) > 4096 or not value.isascii() or "\r" in value or "\n" in value
+        for value in (username, password)
+    ):
+        return DeliveryResult(
+            False, error="SMTP authentication environment variables are incomplete or invalid"
+        )
+    port = int(port_text)
+    try:
+        pinned_url, _, original_host = _pin_endpoint(
+            f"https://{host}:{port}/", get_settings().smtp_allow_private_hosts
+        )
+        address = urlsplit(pinned_url).hostname
+        if not address:
+            raise AIError("Invalid address")
+    except AIError:
+        return DeliveryResult(False, error="SMTP host could not be resolved or is not permitted")
+    email = EmailMessage()
+    email["From"] = connector.smtp_from
+    email["To"] = connector.smtp_to
+    email["Subject"] = "VulnRelay security notification"
+    email["Message-ID"] = f"<{message_id}@vulnrelay.local>"
+    email.set_content(message)
+    smtp = None
+    try:
+        smtp = _PinnedSMTP(original_host, address, port)
+        smtp.ehlo_or_helo_if_needed()
+        smtp.starttls(context=ssl.create_default_context())
+        if username:
+            smtp.login(username, password)
+        refused = smtp.send_message(email)
+        if refused:
+            codes = [item[0] for item in refused.values() if isinstance(item, tuple) and item]
+            retryable = bool(
+                codes and all(isinstance(code, int) and 400 <= code < 500 for code in codes)
+            )
+            return DeliveryResult(False, retryable, "SMTP recipient rejected the message")
+        # The message was already accepted; do not invent a failure on QUIT.
+        with suppress(smtplib.SMTPException, OSError):
+            smtp.quit()
+        return DeliveryResult(True)
+    except ssl.SSLCertVerificationError:
+        return DeliveryResult(False, error="SMTP TLS certificate verification failed")
+    except smtplib.SMTPNotSupportedError:
+        return DeliveryResult(False, error="SMTP server does not support required STARTTLS")
+    except smtplib.SMTPRecipientsRefused as error:
+        codes = [item[0] for item in error.recipients.values() if isinstance(item, tuple) and item]
+        retryable = bool(
+            codes and all(isinstance(code, int) and 400 <= code < 500 for code in codes)
+        )
+        return DeliveryResult(False, retryable, "SMTP recipient rejected the message")
+    except smtplib.SMTPResponseException as error:
+        return DeliveryResult(
+            False, 400 <= error.smtp_code < 500, f"SMTP delivery rejected (code {error.smtp_code})"
+        )
+    except (smtplib.SMTPException, OSError):
+        return DeliveryResult(False, True, "SMTP connection failed")
+    finally:
+        if smtp:
+            with suppress(smtplib.SMTPException, OSError):
+                smtp.close()
+
+
 def enqueue_test(engine: Engine, connector_id: str) -> str:
     if connector_id not in {row["id"] for row in list_documents(engine, "connectors")}:
         raise ValueError("Connector not found")
@@ -402,13 +494,18 @@ def deliver_one(
                 if updated.rowcount != 1:
                     return None
             attempted = True
-            outcome = (
-                send_telegram(config, render(payload, ai_summary=ai_summary), client=client)
-                if config.kind == "telegram"
-                else send_webhook(
+            if config.kind == "telegram":
+                outcome = send_telegram(
+                    config, render(payload, ai_summary=ai_summary), client=client
+                )
+            elif config.kind == "smtp":
+                outcome = send_smtp(
+                    config, render(payload, ai_summary=ai_summary), message_id=row["id"]
+                )
+            else:
+                outcome = send_webhook(
                     config, render(payload, max_bytes=3600, ai_summary=ai_summary), client=client
                 )
-            )
     finished = current if now is not None else time.time()
     failures = row["failures"] + (not outcome.success and not outcome.rate_limited)
     state = (

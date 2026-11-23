@@ -1,7 +1,7 @@
 # Scheduled CVE reports
 
-Reports send a daily or weekly overview through your existing Telegram, Discord
-or Slack connectors. The monitoring worker schedules them and the persistent
+Reports send a daily or weekly overview through your existing Telegram, Discord,
+Slack or SMTP connectors. The monitoring worker schedules them and the persistent
 delivery queue handles spacing, connector delivery hours, retries and history.
 They are separate from immediate alert rules: enabling a report does not disable
 your existing immediate alerts.
@@ -55,5 +55,5 @@ vulnrelay reports delete REPORT_ID
 ```
 
 No external service is contacted by the preview command. To send on schedule,
-keep the monitor running. Real Telegram/Discord/Slack delivery should be checked
+keep the monitor running. Real Telegram/Discord/Slack/SMTP delivery should be checked
 by the operator; tests use synthetic data and mocked providers.

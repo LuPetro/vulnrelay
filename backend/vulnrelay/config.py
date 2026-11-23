@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ai_base_url: str = ""
     ai_allow_private_hosts: bool = False
     osv_enabled: bool = False
+    smtp_allow_private_hosts: bool = False
 
 
 @lru_cache

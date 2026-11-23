@@ -190,10 +190,24 @@ class DeliverySchedule(BaseModel):
 
 
 class Connector(Document):
-    kind: Literal["telegram", "discord", "slack"] = "telegram"
+    kind: Literal["telegram", "discord", "slack", "smtp"] = "telegram"
     token_env: str = Field(default="TELEGRAM_BOT_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{0,99}$")
     chat_id: str = Field(default="", max_length=33)
     webhook_env: str = Field(default="", max_length=100)
+    smtp_host_env: str = Field(
+        default="VULNRELAY_SMTP_HOST", pattern=r"^VULNRELAY_SMTP_HOST[A-Z0-9_]{0,70}$"
+    )
+    smtp_port_env: str = Field(
+        default="VULNRELAY_SMTP_PORT", pattern=r"^VULNRELAY_SMTP_PORT[A-Z0-9_]{0,70}$"
+    )
+    smtp_user_env: str = Field(
+        default="VULNRELAY_SMTP_USER", pattern=r"^VULNRELAY_SMTP_USER[A-Z0-9_]{0,70}$"
+    )
+    smtp_password_env: str = Field(
+        default="VULNRELAY_SMTP_PASSWORD", pattern=r"^VULNRELAY_SMTP_PASSWORD[A-Z0-9_]{0,70}$"
+    )
+    smtp_from: str = Field(default="", max_length=254)
+    smtp_to: str = Field(default="", max_length=254)
     min_interval_seconds: float = Field(default=3.1, ge=1.1, le=3600, allow_inf_nan=False)
     delivery_schedule: DeliverySchedule | None = None
 
@@ -209,4 +223,9 @@ class Connector(Document):
             r"[A-Z][A-Z0-9_]{0,99}", self.webhook_env
         ):
             raise ValueError("A webhook environment variable name is required")
+        if self.kind == "smtp":
+            address = r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?"
+            for value in (self.smtp_from, self.smtp_to):
+                if not re.fullmatch(address, value) or ".." in value:
+                    raise ValueError("SMTP requires one valid sender and recipient address")
         return self

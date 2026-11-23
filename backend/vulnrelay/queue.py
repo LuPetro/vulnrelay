@@ -25,7 +25,9 @@ def connector_provider_key(document: dict) -> str:
     """Keep existing Telegram cooldown keys and isolate webhook providers."""
     kind = document.get("kind", "telegram")
     reference = document.get("token_env", "TELEGRAM_BOT_TOKEN")
-    if kind != "telegram":
+    if kind == "smtp":
+        reference = f"smtp:{document.get('smtp_host_env', 'VULNRELAY_SMTP_HOST')}:{document.get('smtp_port_env', 'VULNRELAY_SMTP_PORT')}"
+    elif kind != "telegram":
         reference = f"{kind}:{document.get('webhook_env', '')}"
     return provider_key(reference)
 
@@ -34,6 +36,14 @@ def same_destination(first: dict, second: dict) -> bool:
     kind = first.get("kind", "telegram")
     if kind != second.get("kind", "telegram"):
         return False
+    if kind == "smtp":
+        return (
+            first.get("smtp_host_env", "VULNRELAY_SMTP_HOST")
+            == second.get("smtp_host_env", "VULNRELAY_SMTP_HOST")
+            and first.get("smtp_port_env", "VULNRELAY_SMTP_PORT")
+            == second.get("smtp_port_env", "VULNRELAY_SMTP_PORT")
+            and first.get("smtp_to", "").casefold() == second.get("smtp_to", "").casefold()
+        )
     if kind != "telegram":
         return first.get("webhook_env") == second.get("webhook_env")
     return (

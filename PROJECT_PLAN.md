@@ -62,7 +62,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 ## Beyond the MVP
 
 - [x] Add Discord and Slack webhook connectors with real delivery, tests and shared queue semantics; operator acceptance remains pending.
-- [ ] Add SMTP, generic webhooks, ntfy/Gotify, then Matrix, Teams and Mattermost where supported.
+- [x] Add SMTP email delivery with authenticated STARTTLS, source-safe error handling and shared queue/scheduling semantics; live operator acceptance remains pending.
+- [ ] Add generic webhooks, ntfy/Gotify, then Matrix, Teams and Mattermost where supported.
 - [x] Add scheduled personal and global daily/weekly reports with coverage disclosure and persistent queue identities; live operator acceptance remains pending.
 - [ ] Add digest grouping, historical missed-period catch-up options and alternative data-source coverage.
 - [x] Add an opt-in AI settings tab with OpenAI, Anthropic and compatible APIs, model/language selection, connection tests, daily request limits, caching and labeled source-grounded alert summaries with safe fallback. One active configuration; live provider acceptance remains pending.

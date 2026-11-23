@@ -41,7 +41,11 @@ OSV local verification: full backend suite passed 274 tests with 86.00% branch c
 
 The first OSV CI passed backend on both Python versions, frontend build/tests, container and security. Browser tests passed except an existing Overview assertion that expected exactly one "Manual" source, while both OpenCVE and OSV now display that status. The assertion now checks each source explicitly; re-run CI after this correction.
 
-Continue with non-CVE OSV advisories, package URLs and inventory imports, then additional connectors and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+The corrected OSV commit passed all GitHub CI and security jobs. SMTP email delivery has now been added with required certificate-verified STARTTLS, environment-only credential references, per-recipient connectors, source explanations, the existing durable queue and destination hours, retry classification, DNS pinning and optional private-server access. Automated tests use fake SMTP servers and no real credentials. An additional isolated local protocol test generated an ephemeral certificate, negotiated actual STARTTLS, and delivered a synthetic message to a temporary local SMTP server; no operator deployment or mail account was touched. Implicit TLS port 465, OAuth and SMTPUTF8 are not supported. See docs/email.md. Full suite and GitHub checks follow.
+
+SMTP increment local full suite: 290 backend tests passed with 86.65% branch coverage; targeted SMTP tests were re-run after strengthening credential validation. Final tracked-source secret scan and GitHub frontend/browser/container/security checks follow.
+
+Continue with non-CVE OSV advisories, package URLs and inventory imports, then generic webhooks, ntfy/Gotify and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 
