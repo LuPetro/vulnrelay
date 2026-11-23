@@ -47,7 +47,11 @@ SMTP increment local full suite: 290 backend tests passed with 86.65% branch cov
 
 The SMTP GitHub run passed Python 3.12, frontend, browser, container and security. Python 3.13 exposed a test double that replaced SMTP.connect without setting the hostname, unlike its real 3.13 implementation. The test now exercises the real connect path with only socket/reply mocked, verifying pinned IP and certificate hostname on both versions. Re-run CI on the correction.
 
-Continue with non-CVE OSV advisories, package URLs and inventory imports, then generic webhooks, ntfy/Gotify and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+The corrected SMTP commit passed GitHub CI (both Python versions, browser, frontend and container) and security. The following increment adds a generic versioned JSON webhook with optional HMAC-SHA256, stable event/idempotency keys, source and matching data, report events, TLS hostname verification, pinned DNS, private-host opt-in, rate-limit handling and the existing queue/scheduling semantics. Credentials and target URL are server environment references. A temporary local receiver accepted a synthetic message and verified its actual HMAC; no user service was contacted. Mocked retry, SSRF, redaction, API and UI tests accompany docs/generic-webhook.md. Final full suite and GitHub checks remain to be run.
+
+Webhook increment local verification: 297 backend tests passed with 86.90% branch coverage, and Ruff, lock, workflow, release metadata, frontend formatting and offline secret checks passed. The German docs/update-und-test.md covers a backed-up update and safe feature testing in the operator's own test installation. GitHub CI must still verify the new commit.
+
+Continue with non-CVE OSV advisories, package URLs and inventory imports, then ntfy/Gotify and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 

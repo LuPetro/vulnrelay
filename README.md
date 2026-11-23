@@ -10,6 +10,8 @@ VulnRelay is an Apache-2.0, self-hosted vulnerability notification engine. Decla
 
 For a fresh installation alongside an existing deployment, use the [separate server test installation guide (German)](docs/server-test-installation.md). It uses its own directory, Compose project, image, port and empty database.
 
+For an existing test installation, follow the [update and feature-testing guide (German)](docs/update-und-test.md), including a database backup before migrations.
+
 ```sh
 cp .env.example .env
 # Put your Telegram bot token in .env, then:
@@ -30,7 +32,7 @@ The first source synchronization can take several minutes, especially without an
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
 - Searchable offline catalog of 87 technologies and 19 customizable environment packs, with preview, atomic import and duplicate protection. Manual asset entry remains available.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
-- Telegram, Discord, Slack and SMTP email destinations, compact/detailed plain-text messages, queued test notifications and delivery history. Credentials use server-side environment references.
+- Telegram, Discord, Slack, SMTP email and a [generic JSON webhook with optional signatures](docs/generic-webhook.md), compact/detailed messages, queued test notifications and delivery history. Credentials use server-side environment references.
 - Optional, quota-limited AI alert summaries using OpenAI, Anthropic or a compatible provider. AI is disabled by default, receives only the CVE ID and source description after matching, and never controls alert delivery or applicability.
 - Daily or weekly worldwide and asset-relevant [reports](docs/reports.md) with local-time schedules, previews, persistent delivery and explicit source-coverage limits.
 - Durable queue, expiring delivery claims, bounded retries, deduplication and re-notification on selected material changes.

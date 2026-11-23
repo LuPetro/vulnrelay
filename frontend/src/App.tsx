@@ -1139,7 +1139,9 @@ export default function App() {
                                         ? "DISCORD_WEBHOOK_URL"
                                         : e.target.value === "slack"
                                           ? "SLACK_WEBHOOK_URL"
-                                          : "",
+                                          : e.target.value === "webhook"
+                                            ? "VULNRELAY_WEBHOOK_URL"
+                                            : "",
                                   })
                                 }
                               >
@@ -1147,6 +1149,7 @@ export default function App() {
                                 <option value="discord">Discord webhook</option>
                                 <option value="slack">Slack webhook</option>
                                 <option value="smtp">Email via SMTP</option>
+                                <option value="webhook">Generic webhook</option>
                               </select>
                             </label>
                             <ConnectorSchedule
@@ -1332,7 +1335,11 @@ export default function App() {
                                   Webhook environment variable
                                   <input
                                     required
-                                    pattern="[A-Z][A-Z0-9_]{0,99}"
+                                    pattern={
+                                      connector.kind === "webhook"
+                                        ? "VULNRELAY_WEBHOOK_URL[A-Z0-9_]*"
+                                        : "[A-Z][A-Z0-9_]{0,99}"
+                                    }
                                     value={connector.webhook_env || ""}
                                     onChange={(e) =>
                                       setConnector({
@@ -1342,15 +1349,38 @@ export default function App() {
                                     }
                                   />
                                 </label>
+                                {connector.kind === "webhook" && (
+                                  <label>
+                                    Signing key environment variable
+                                    <input
+                                      required
+                                      pattern="VULNRELAY_WEBHOOK_KEY[A-Z0-9_]*"
+                                      value={
+                                        connector.webhook_signing_env ||
+                                        "VULNRELAY_WEBHOOK_KEY"
+                                      }
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          webhook_signing_env: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                )}
                                 <p className="help">
                                   Put your{" "}
                                   {connector.kind === "discord"
                                     ? "Discord"
-                                    : "Slack"}{" "}
+                                    : connector.kind === "slack"
+                                      ? "Slack"
+                                      : "generic"}{" "}
                                   webhook URL in this environment variable on
                                   the server. The URL is never saved in this
-                                  form. Recreate both containers after changing
-                                  .env.
+                                  form.{" "}
+                                  {connector.kind === "webhook" &&
+                                    "An optional signing key authenticates the JSON event. "}
+                                  Recreate both containers after changing .env.
                                 </p>
                               </>
                             )}
@@ -1522,10 +1552,12 @@ export default function App() {
                                 : page === "Connectors"
                                   ? entry.kind === "smtp"
                                     ? `Email · ${entry.smtp_to}`
-                                    : entry.kind === "discord" ||
-                                        entry.kind === "slack"
-                                      ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
-                                      : `${entry.chat_id} · token: $${entry.token_env}`
+                                    : entry.kind === "webhook"
+                                      ? `Webhook · URL: $${entry.webhook_env}`
+                                      : entry.kind === "discord" ||
+                                          entry.kind === "slack"
+                                        ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
+                                        : `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
                             {page === "Assets" && entry.kind === "package" && (

@@ -1,5 +1,7 @@
 """Persistent notification delivery with expiring claims and bounded retries."""
 
+import hashlib
+import hmac
 import json
 import logging
 import math
@@ -247,6 +249,121 @@ def send_webhook(
         )
     except httpx.HTTPError:
         return DeliveryResult(False, True, f"{name} transport failed")
+    finally:
+        if owned:
+            client.close()
+
+
+def send_generic_webhook(
+    connector: Connector,
+    payload: dict,
+    message: str,
+    *,
+    message_id: str,
+    client: httpx.Client | None = None,
+) -> DeliveryResult:
+    """Send a versioned JSON event to an explicitly configured, pinned endpoint."""
+    from vulnrelay.ai import AIError, _pin_endpoint
+    from vulnrelay.config import get_settings
+    from vulnrelay.nvd import retry_after_seconds
+
+    endpoint = _secret(connector.webhook_env).strip()
+    signing_key = _secret(connector.webhook_signing_env)
+    if signing_key and (
+        not signing_key.isascii()
+        or len(signing_key) < 16
+        or len(signing_key) > 4096
+        or "\r" in signing_key
+        or "\n" in signing_key
+    ):
+        return DeliveryResult(False, error="Webhook signing key is invalid; use at least 16 bytes")
+    try:
+        pinned_url, host, tls_host = _pin_endpoint(
+            endpoint, get_settings().webhook_allow_private_hosts
+        )
+    except AIError:
+        return DeliveryResult(False, error="Webhook URL is invalid, unavailable, or not permitted")
+    event_type = "test" if payload.get("test") else "report" if payload.get("digest") else "alert"
+    data = {
+        "schema_version": 1,
+        "event_id": message_id,
+        "event_type": event_type,
+        "message": message,
+    }
+    if event_type == "alert":
+        vulnerability = payload["vulnerability"]
+        data["vulnerability"] = {
+            key: vulnerability.get(key)
+            for key in (
+                "id",
+                "cvss",
+                "cvss_source",
+                "severity",
+                "epss",
+                "epss_date",
+                "kev",
+                "sources",
+            )
+        }
+        data["reason"] = {
+            "asset": payload["asset"],
+            "rule": payload["rule"],
+            "method": payload["match"].get("method"),
+            "confidence": payload["match"].get("confidence"),
+            "explanation": payload["match"].get("explanation"),
+        }
+    elif event_type == "report":
+        data["report"] = {
+            key: payload.get(key)
+            for key in (
+                "name",
+                "scope",
+                "period_start",
+                "period_end",
+                "entries",
+                "scanned",
+                "candidates",
+                "nvd_synced",
+            )
+        }
+    body = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8", errors="replace"
+    )
+    headers = {
+        "Host": host,
+        "Content-Type": "application/json",
+        "Idempotency-Key": message_id,
+        "X-VulnRelay-Event": event_type,
+    }
+    if signing_key:
+        headers["X-VulnRelay-Signature"] = (
+            "sha256=" + hmac.new(signing_key.encode(), body, hashlib.sha256).hexdigest()
+        )
+    owned = client is None
+    client = client or httpx.Client(
+        timeout=httpx.Timeout(15, connect=5), trust_env=False, follow_redirects=False
+    )
+    try:
+        with client.stream(
+            "POST",
+            pinned_url,
+            content=body,
+            headers=headers,
+            follow_redirects=False,
+            extensions={"sni_hostname": tls_host},
+        ) as response:
+            if 200 <= response.status_code < 300:
+                return DeliveryResult(True)
+            if response.status_code == 429:
+                delay = max(1, retry_after_seconds(response) or 60)
+                return DeliveryResult(False, True, "Webhook rate limit", delay, True)
+            return DeliveryResult(
+                False,
+                response.status_code >= 500,
+                f"Webhook delivery rejected (HTTP {response.status_code})",
+            )
+    except httpx.HTTPError:
+        return DeliveryResult(False, True, "Webhook transport failed")
     finally:
         if owned:
             client.close()
@@ -501,6 +618,14 @@ def deliver_one(
             elif config.kind == "smtp":
                 outcome = send_smtp(
                     config, render(payload, ai_summary=ai_summary), message_id=row["id"]
+                )
+            elif config.kind == "webhook":
+                outcome = send_generic_webhook(
+                    config,
+                    payload,
+                    render(payload, ai_summary=ai_summary),
+                    message_id=row["id"],
+                    client=client,
                 )
             else:
                 outcome = send_webhook(

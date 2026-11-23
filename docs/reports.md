@@ -1,7 +1,7 @@
 # Scheduled CVE reports
 
 Reports send a daily or weekly overview through your existing Telegram, Discord,
-Slack or SMTP connectors. The monitoring worker schedules them and the persistent
+Slack, SMTP or generic webhook connectors. The monitoring worker schedules them and the persistent
 delivery queue handles spacing, connector delivery hours, retries and history.
 They are separate from immediate alert rules: enabling a report does not disable
 your existing immediate alerts.

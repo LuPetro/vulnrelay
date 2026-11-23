@@ -18,6 +18,13 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Generic JSON webhook connector with optional HMAC-SHA256 signatures, stable event IDs, destination restrictions and persistent retry/queue semantics.
+- SMTP email connector with certificate-verified STARTTLS, pinned DNS, server-side credential references and delivery-hour support.
+- Opt-in OSV.dev checks for declared exact package versions in six ecosystems, CVE-alias matching, per-asset health and conservative source attribution.
+- Daily and weekly global or asset-relevant reports, timezone-aware scheduling, source-coverage disclosure and UI/CLI previews.
+- Optional AI alert summaries with a dedicated settings tab, OpenAI/Anthropic/compatible protocols, configurable model/language, daily request cap and safe fallback.
+- Discord and Slack webhook connectors sharing the existing persistent queue and delivery hours.
+
 - Connector delivery hours with weekly/overnight windows, IANA timezones and daylight-saving support. Held alerts keep their queue state and retry budgets; queue diagnostics show the next permitted attempt.
 - Expand the offline catalog to 87 technologies and 19 packs with documented NVD identities, including libraries and homelab/network/identity stacks.
 - Apply the accepted Overview visual identity across the workspace, with shared typography, light/dark colors, ruled layouts and responsive forms.
@@ -42,5 +49,5 @@ Changes are recorded here before a release is published. No stable version has b
 ### Known limitations
 
 - Alpha status: an operator confirmed a real Telegram test message; controlled CVE-alert, deduplication and restart acceptance remain open.
-- Generic version ranges, package matching, additional connectors, digests and optional AI are unfinished.
+- Generic version ranges, PURLs, OSV advisories without a CVE alias, additional connector types, richer digest options and multiple AI profiles remain unfinished. Live provider acceptance is still needed for new connectors and AI.
 - Remote exposure and PostgreSQL require further hardening and validation.

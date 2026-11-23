@@ -190,10 +190,13 @@ class DeliverySchedule(BaseModel):
 
 
 class Connector(Document):
-    kind: Literal["telegram", "discord", "slack", "smtp"] = "telegram"
+    kind: Literal["telegram", "discord", "slack", "smtp", "webhook"] = "telegram"
     token_env: str = Field(default="TELEGRAM_BOT_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{0,99}$")
     chat_id: str = Field(default="", max_length=33)
     webhook_env: str = Field(default="", max_length=100)
+    webhook_signing_env: str = Field(
+        default="VULNRELAY_WEBHOOK_KEY", pattern=r"^VULNRELAY_WEBHOOK_KEY[A-Z0-9_]{0,70}$"
+    )
     smtp_host_env: str = Field(
         default="VULNRELAY_SMTP_HOST", pattern=r"^VULNRELAY_SMTP_HOST[A-Z0-9_]{0,70}$"
     )
@@ -219,10 +222,14 @@ class Connector(Document):
             r"(?:-?\d{1,30}|@[A-Za-z0-9_]{5,32})", self.chat_id
         ):
             raise ValueError("Telegram requires a valid chat ID")
-        if self.kind in ("discord", "slack") and not re.fullmatch(
+        if self.kind in ("discord", "slack", "webhook") and not re.fullmatch(
             r"[A-Z][A-Z0-9_]{0,99}", self.webhook_env
         ):
             raise ValueError("A webhook environment variable name is required")
+        if self.kind == "webhook" and not re.fullmatch(
+            r"VULNRELAY_WEBHOOK_URL[A-Z0-9_]{0,70}", self.webhook_env
+        ):
+            raise ValueError("Generic webhook URLs must use a dedicated environment variable")
         if self.kind == "smtp":
             address = r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?"
             for value in (self.smtp_from, self.smtp_to):

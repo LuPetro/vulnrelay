@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     ai_allow_private_hosts: bool = False
     osv_enabled: bool = False
     smtp_allow_private_hosts: bool = False
+    webhook_allow_private_hosts: bool = False
 
 
 @lru_cache
