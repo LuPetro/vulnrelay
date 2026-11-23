@@ -131,7 +131,15 @@ test("overview shows honest state, motion controls, branding and responsive layo
       .getByText("2", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Sent messages", { exact: true })).toBeVisible();
-  await expect(page.getByText("Manual", { exact: true })).toBeVisible();
+  for (const provider of ["OpenCVE", "OSV"]) {
+    await expect(
+      page
+        .getByRole("region", { name: "Intelligence sources" })
+        .getByRole("listitem")
+        .filter({ hasText: provider })
+        .getByText("Manual", { exact: true }),
+    ).toBeVisible();
+  }
   await expect(
     page.getByText("How alerts flow · illustrative animation"),
   ).toBeVisible();

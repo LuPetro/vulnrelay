@@ -39,6 +39,8 @@ The report increment passed all GitHub CI and security workflows. The next incre
 
 OSV local verification: full backend suite passed 274 tests with 86.00% branch coverage; after adding conflicting-duplicate-page handling, all 19 targeted OSV tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final tracked-source secret scan and GitHub browser/build/container/security checks follow.
 
+The first OSV CI passed backend on both Python versions, frontend build/tests, container and security. Browser tests passed except an existing Overview assertion that expected exactly one "Manual" source, while both OpenCVE and OSV now display that status. The assertion now checks each source explicitly; re-run CI after this correction.
+
 Continue with non-CVE OSV advisories, package URLs and inventory imports, then additional connectors and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
