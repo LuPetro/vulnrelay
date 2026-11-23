@@ -225,13 +225,14 @@ def test_private_smtp_requires_explicit_opt_in_and_still_uses_tls(monkeypatch):
 
 
 def test_pinned_smtp_keeps_hostname_for_certificate_verification(monkeypatch):
-    monkeypatch.setattr(smtplib.SMTP, "connect", lambda *a: (220, b"ready"))
+    # Exercise the real SMTP.connect path: Python 3.13 sets _host there,
+    # while Python 3.12 sets it during initialization.
+    monkeypatch.setattr(smtplib.SMTP, "getreply", lambda self: (220, b"ready"))
     captured = []
     monkeypatch.setattr(
         socket, "create_connection", lambda address, timeout: captured.append(address)
     )
     smtp = delivery._PinnedSMTP("smtp.example.org", "8.8.8.8", 587)
-    smtp._get_socket("smtp.example.org", 587, 15)
     assert smtp._host == "smtp.example.org" and captured == [("8.8.8.8", 587)]
 
 

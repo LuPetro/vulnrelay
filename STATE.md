@@ -45,6 +45,8 @@ The corrected OSV commit passed all GitHub CI and security jobs. SMTP email deli
 
 SMTP increment local full suite: 290 backend tests passed with 86.65% branch coverage; targeted SMTP tests were re-run after strengthening credential validation. Final tracked-source secret scan and GitHub frontend/browser/container/security checks follow.
 
+The SMTP GitHub run passed Python 3.12, frontend, browser, container and security. Python 3.13 exposed a test double that replaced SMTP.connect without setting the hostname, unlike its real 3.13 implementation. The test now exercises the real connect path with only socket/reply mocked, verifying pinned IP and certificate hostname on both versions. Re-run CI on the correction.
+
 Continue with non-CVE OSV advisories, package URLs and inventory imports, then generic webhooks, ntfy/Gotify and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
