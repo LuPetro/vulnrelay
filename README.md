@@ -26,6 +26,7 @@ The first source synchronization can take several minutes, especially without an
 - CISA KEV authoritative snapshots with validation, rollback on invalid catalogs and stale-catalog rejection.
 - Daily EPSS CSV enrichment of locally stored CVEs, plus individual FIRST API lookups.
 - Optional OpenCVE Knowledge Base enrichment, manual UI/CLI lookups, conditional caching and separate source assessments.
+- Opt-in OSV.dev lookups for exact versions of npm, PyPI, Go, Maven, crates.io and NuGet packages, with per-asset health, source evidence and CVE-alias correlation.
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
 - Searchable offline catalog of 87 technologies and 19 customizable environment packs, with preview, atomic import and duplicate protection. Manual asset entry remains available.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
@@ -38,7 +39,7 @@ The first source synchronization can take several minutes, especially without an
 
 ## Matching and metrics
 
-Product and keyword matches are **potential**. An installed version with unverified applicability is **unknown**. Only a literal vulnerable CPE with an explicit version in an unconstrained OR branch is eligible for **confirmed** matching. Version ranges, environmental AND constraints and keyword-only evidence never become confirmed claims. Generic version-range evaluation, package ecosystems, OSV and PURLs remain unfinished.
+Product and keyword matches are **potential**. An installed version with unverified applicability is **unknown**. A literal vulnerable CPE with an explicit version in an unconstrained OR branch, or an OSV query matching an explicitly declared package and exact version, is eligible for **confirmed** matching against the source record. OSV cannot verify the actual installed inventory or exploitability. Version ranges, environmental AND constraints and keyword-only evidence never become confirmed claims. Generic range evaluation and PURLs remain unfinished. See [OSV setup and limitations](docs/osv.md).
 
 CVSS is severity, EPSS is an exploitation probability estimate, and KEV records known exploitation. Missing metrics stay unknown, including under NOT. EPSS dates and KEV catalog dates are shown; stale values are not silently replaced with zero. The custom rule engine does not claim an officially validated risk score.
 
@@ -105,7 +106,7 @@ For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE 
 
 Delivery is **at least once**. A crash after Telegram accepted a message and before the database recorded success can cause a repeat; Telegram does not provide an idempotency key for `sendMessage`. Non-rate delivery failures have a six-attempt retry budget with backoff. Telegram rate-limit responses use the provider cooldown without consuming that budget. Per-connector spacing defaults to 3.1 seconds and is configurable. Expiring claims and terminal failures remain visible. An unchanged alert is not queued again for the same CVE, asset, rule and destination. KEV changes, CVSS/status changes, a new ten-percentage-point EPSS band, CPE evidence changes and changed NVD patch references can create another event. Disabling change notifications keeps one event per identity. Multiple matching assets can produce separate, explicitly attributed alerts.
 
-Still planned: arbitrary version applicability and package matching, additional connector types, richer digest grouping, inventory import/export, retention and automated backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
+Still planned: arbitrary version ranges and package URLs, non-CVE OSV advisories, additional connector types, richer digest grouping, inventory import/export, retention and automated backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
 
 The optional [development agent runner](docs/agent-runner.md) is separate from CVE monitoring and is not scheduled automatically.
 

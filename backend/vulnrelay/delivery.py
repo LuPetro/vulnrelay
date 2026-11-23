@@ -104,6 +104,13 @@ def render(payload: dict, *, max_bytes: int = 7600, ai_summary: str | None = Non
         from vulnrelay.opencve import record_url
 
         footer.insert(1, record_url(vulnerability["id"]))
+    if payload["match"].get("method") == "osv_package_version":
+        from urllib.parse import quote
+
+        footer.insert(
+            1,
+            f"https://osv.dev/vulnerability/{quote(payload['match']['evidence']['osv_id'], safe='')}",
+        )
     prefix, suffix = "\n".join(lines), "\n".join(footer)
     safe_summary = (
         ai_summary.encode("utf-16-le", errors="replace")[:1200].decode("utf-16-le", errors="ignore")

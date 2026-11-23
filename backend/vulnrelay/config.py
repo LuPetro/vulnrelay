@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     opencve_batch_size: int = Field(default=25, ge=1, le=100)
     ai_base_url: str = ""
     ai_allow_private_hosts: bool = False
+    osv_enabled: bool = False
 
 
 @lru_cache

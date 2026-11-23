@@ -23,6 +23,7 @@ from vulnrelay.nvd import retry_after_seconds, transient_failure
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.opencve import refresh as refresh_opencve
 from vulnrelay.opencve import retry_delay as opencve_retry_delay
+from vulnrelay.osv import refresh as refresh_osv
 from vulnrelay.pipeline import correlate
 
 try:
@@ -106,13 +107,23 @@ def cycle(
         sources.append(
             ("opencve", lambda: refresh_opencve(engine, batch_size=settings.opencve_batch_size))
         )
+    if settings.osv_enabled:
+        sources.append(("osv", lambda: refresh_osv(engine)))
     for source, action in sources:
         if sync_sources and current >= schedule.get(f"next_{source}", 0):
             deferred_until = 0
             nvd_failures = 0
             nvd_retry_delay = 0.0
             try:
-                outcomes[source] = {"ok": True, "records": action()}
+                records = action()
+                outcomes[source] = {
+                    "ok": not (source == "osv" and records["assets_failed"]),
+                    "records": records,
+                }
+                if source == "osv" and records.get("retry_after"):
+                    deferred_until = (time.time() if now is None else current) + records[
+                        "retry_after"
+                    ]
             except Exception as exc:  # noqa: BLE001 - isolate untrusted upstream adapters
                 outcomes[source] = {"ok": False}
                 logger.warning("Source synchronization failed", extra={"source": source})

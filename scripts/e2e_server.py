@@ -14,6 +14,7 @@ with tempfile.TemporaryDirectory(prefix="vulnrelay-browser-") as directory:
     os.environ["VULNRELAY_UI_DIR"] = str(root / "frontend/dist")
     os.environ["TELEGRAM_BOT_TOKEN"] = ""  # Deliberately forbid outbound Telegram calls in tests.
     os.environ["VULNRELAY_OPENCVE_ENABLED"] = "false"
+    os.environ["VULNRELAY_OSV_ENABLED"] = "false"
 
     import httpx
     import uvicorn

@@ -19,6 +19,7 @@ from vulnrelay.nvd import failure_message as nvd_failure_message
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import refresh as refresh_opencve
+from vulnrelay.osv import refresh as refresh_osv
 
 app = typer.Typer(no_args_is_help=True, help="VulnRelay administration.")
 config_app = typer.Typer(no_args_is_help=True)
@@ -102,6 +103,23 @@ def sync(days: int = typer.Option(7, min=1, max=120)):
     finally:
         engine.dispose()
     typer.echo(f"NVD synchronization completed: {count} records processed.")
+
+
+@app.command("sync-osv")
+def sync_osv():
+    """Query OSV for declared package assets; no asset names or teams are sent."""
+    engine = create_database_engine(get_settings().database_url)
+    try:
+        with monitor_lock(engine):
+            result = refresh_osv(engine)
+        typer.echo(json.dumps(result, ensure_ascii=False))
+        if result["assets_failed"]:
+            raise typer.Exit(1)
+    except (SQLAlchemyError, ValueError, RuntimeError):
+        typer.echo("OSV synchronization failed; existing findings were preserved.", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        engine.dispose()
 
 
 @app.command("check-nvd")

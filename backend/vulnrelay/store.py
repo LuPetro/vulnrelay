@@ -44,6 +44,24 @@ def save_document(
         if set(validated.destinations) - connectors or set(validated.assets) - assets:
             raise ValueError("Rule refers to an unknown connector or asset")
     with engine.begin() as connection:
+        if table == "assets":
+            previous = connection.execute(
+                text("SELECT document FROM assets WHERE id=:id"), {"id": document_id}
+            ).scalar_one_or_none()
+            if previous:
+                old = json.loads(previous)
+                current = validated.model_dump()
+                fields = ("kind", "ecosystem", "package", "version")
+                if (old.get("kind") == "package" or current.get("kind") == "package") and any(
+                    old.get(field, "") != current.get(field, "") for field in fields
+                ):
+                    # The old version's successful check is not a check of the new one.
+                    connection.execute(
+                        text("DELETE FROM osv_findings WHERE asset_id=:id"), {"id": document_id}
+                    )
+                    connection.execute(
+                        text("DELETE FROM osv_asset_state WHERE asset_id=:id"), {"id": document_id}
+                    )
         connection.execute(
             text(f"""INSERT INTO {table} (id, document) VALUES (:id, :document)
             ON CONFLICT(id) DO UPDATE SET document=excluded.document"""),
@@ -56,6 +74,13 @@ def delete_document(engine: Engine, table: str, document_id: str) -> bool:
     if table not in MODELS:
         raise ValueError("Unknown configuration collection")
     with engine.begin() as connection:
+        if table == "assets":
+            connection.execute(
+                text("DELETE FROM osv_findings WHERE asset_id=:id"), {"id": document_id}
+            )
+            connection.execute(
+                text("DELETE FROM osv_asset_state WHERE asset_id=:id"), {"id": document_id}
+            )
         return (
             connection.execute(
                 text(f"DELETE FROM {table} WHERE id=:id"), {"id": document_id}

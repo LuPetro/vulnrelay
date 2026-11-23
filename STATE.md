@@ -35,7 +35,11 @@ Scheduled reports now offer daily/weekly worldwide NVD records or records matchi
 
 Report increment local verification: 256 backend tests passed with 86.68% branch coverage; Ruff, metadata, lock, workflow, frontend formatting and offline tracked-source secret scans passed. Browser, build and container workflows need to pass in GitHub CI on this increment.
 
-Continue with accurate package/ecosystem/version matching and OSV, then additional connectors and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+The report increment passed all GitHub CI and security workflows. The next increment adds opt-in OSV.dev lookups for exact package versions in npm, PyPI, Go, Maven, crates.io and NuGet. Migration 0010 persists per-asset snapshots and health. Query results are correlated only to CVE identifiers/aliases, matched to the declared exact version with source evidence, and never overwrite NVD assessments; no-CVE advisories, PURLs and range expressions remain unsupported. Unchanged snapshots do not re-alert. Version/identity changes clear stale findings and health; failed or paginated-incomplete lookups retain a previous complete snapshot. The monitor limits batches, stops on provider outages, honors rate-limit deadlines and remains opt-in. UI, CLI, source diagnostics, mock tests and docs/osv.md are included. An isolated public test of npm next 15.1.0 retrieved 39 OSV advisories and 34 CVE findings; it queued 34, queued zero duplicates on re-evaluation, and delivered one via mocked Telegram. No user inventory or real connector credentials were used. Browser/container and final CI outcomes must be checked separately.
+
+OSV local verification: full backend suite passed 274 tests with 86.00% branch coverage; after adding conflicting-duplicate-page handling, all 19 targeted OSV tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final tracked-source secret scan and GitHub browser/build/container/security checks follow.
+
+Continue with non-CVE OSV advisories, package URLs and inventory imports, then additional connectors and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 

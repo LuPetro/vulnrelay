@@ -28,9 +28,11 @@ def vulnerabilities(
     query = """SELECT ids.id, v.nvd_raw, v.description, v.status, v.cvss_score, v.severity,
                k.raw AS kev_raw, e.score AS epss, e.percentile, e.measured_on,
                o.normalized AS opencve_data,o.checked_at AS opencve_checked_at,o.synced_at AS opencve_synced_at,
+               (SELECT COUNT(*) FROM osv_findings f WHERE f.cve_id=ids.id) AS osv_count,
                (SELECT checkpoint FROM source_state WHERE source='cisa_kev') AS kev_catalog
                FROM (SELECT id FROM vulnerabilities UNION SELECT cve_id AS id FROM kev_entries
-                     UNION SELECT cve_id AS id FROM opencve_records WHERE normalized IS NOT NULL) ids
+                     UNION SELECT cve_id AS id FROM opencve_records WHERE normalized IS NOT NULL
+                     UNION SELECT cve_id AS id FROM osv_findings) ids
                LEFT JOIN vulnerabilities v ON v.id=ids.id
                LEFT JOIN kev_entries k ON k.cve_id=ids.id
                LEFT JOIN epss_scores e ON e.cve_id=ids.id
@@ -53,6 +55,15 @@ def vulnerabilities(
             nvd = json.loads(row["nvd_raw"]) if row["nvd_raw"] else {}
             kev = json.loads(row["kev_raw"]) if row["kev_raw"] else None
             opencve = json.loads(row["opencve_data"]) if row["opencve_data"] else None
+            osv = []
+            if row["osv_count"]:
+                for finding in connection.execute(
+                    text(
+                        "SELECT osv_id,ecosystem,package,version,record,checked_at FROM osv_findings WHERE cve_id=:id ORDER BY osv_id"
+                    ),
+                    {"id": row["id"]},
+                ).mappings():
+                    osv.append({**dict(finding), "record": json.loads(finding["record"])})
             cvss_source = (
                 "NVD"
                 if row["cvss_score"] is not None
@@ -65,14 +76,17 @@ def vulnerabilities(
                 + (["CISA KEV"] if row["kev_catalog"] or kev else [])
                 + (["FIRST EPSS"] if row["epss"] is not None else [])
                 + (["OpenCVE"] if opencve else [])
+                + (["OSV"] if osv else [])
             )
             yield {
                 "id": row["id"],
                 "nvd": nvd,
                 "kev_record": kev,
+                "osv": osv,
                 "description": row["description"]
                 or (kev or {}).get("shortDescription")
-                or (opencve or {}).get("description", ""),
+                or (opencve or {}).get("description", "")
+                or (osv[0]["record"]["description"] if osv else ""),
                 "status": row["status"] or "Unknown",
                 "cvss": row["cvss_score"] if cvss_source == "NVD" else (opencve or {}).get("cvss"),
                 "severity": row["severity"]
@@ -158,7 +172,9 @@ def _evaluate_pair(
     evidence = evidence if evidence is not None else match(asset, vulnerability)
     if not evidence:
         return None
-    vendor, product = asset.vendor, asset.product
+    vendor, product = (
+        ("", asset.package) if asset.kind == "package" else (asset.vendor, asset.product)
+    )
     if isinstance(evidence["evidence"], dict):
         details = evidence["evidence"]
         if "criteria" in details:
@@ -178,6 +194,8 @@ def _evaluate_pair(
         "confidence": evidence["confidence"],
         "vendor": vendor or None,
         "product": product or None,
+        "ecosystem": asset.ecosystem if asset.kind == "package" else None,
+        "package": asset.package if asset.kind == "package" else None,
         "keyword": vulnerability["description"],
         "tags": asset.tags,
     }
@@ -192,7 +210,9 @@ def _evaluate_pair(
         "evaluation": explanation,
         "matched": explanation["result"] is True,
         "vulnerability": {
-            k: v for k, v in vulnerability.items() if k not in ("nvd", "kev_record", "opencve")
+            k: v
+            for k, v in vulnerability.items()
+            if k not in ("nvd", "kev_record", "opencve", "osv")
         },
         "format": rule.format,
     }

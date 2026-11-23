@@ -18,6 +18,7 @@ export type OverviewData = {
   engine: Record<string, number>;
   setup_required: boolean;
   opencve_enabled?: boolean;
+  osv_enabled?: boolean;
   queue?: QueueSummary;
 };
 type Item = {
@@ -56,6 +57,7 @@ const sourceNames = [
   { id: "cisa_kev", label: "CISA KEV", detail: "Known exploitation" },
   { id: "epss", label: "FIRST EPSS", detail: "Exploitation probability" },
   { id: "opencve", label: "OpenCVE", detail: "Additional assessments" },
+  { id: "osv", label: "OSV", detail: "Package version advisories" },
 ];
 
 function PacketLayer({ paths }: { paths: string[] }) {
@@ -554,7 +556,9 @@ export default function OverviewPage({
           <ul className="overview-source-list">
             {sourceNames.map(({ id, label, detail }, i) => {
               const source = overview.sources.find((s) => s.source === id);
-              const manual = id === "opencve" && !overview.opencve_enabled;
+              const manual =
+                (id === "opencve" && !overview.opencve_enabled) ||
+                (id === "osv" && !overview.osv_enabled);
               const state = source?.last_error
                 ? source.retry_scheduled
                   ? "retrying"

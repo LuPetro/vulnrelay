@@ -14,12 +14,14 @@ class Document(BaseModel):
 
 
 class Asset(Document):
-    kind: Literal["vendor", "product", "vendor_product", "cpe", "keyword"]
+    kind: Literal["vendor", "product", "vendor_product", "cpe", "keyword", "package"]
     vendor: str = Field(default="", max_length=200)
     product: str = Field(default="", max_length=200)
     version: str = Field(default="", max_length=100)
     cpe: str = Field(default="", max_length=1000)
     keyword: str = Field(default="", max_length=200)
+    package: str = Field(default="", max_length=200)
+    ecosystem: str = Field(default="", max_length=80)
     group: str = Field(default="default", min_length=1, max_length=100)
     environment: str = Field(default="", max_length=100)
     team: str = Field(default="", max_length=100)
@@ -35,6 +37,7 @@ class Asset(Document):
             "vendor_product": (self.vendor, self.product),
             "cpe": (self.cpe,),
             "keyword": (self.keyword,),
+            "package": (self.package, self.ecosystem, self.version),
         }[self.kind]
         if not all(item.strip() for item in required):
             raise ValueError("The selected asset type needs its identity fields")
@@ -46,6 +49,17 @@ class Asset(Document):
                     "cpe_version_conflict",
                     "Inventory version conflicts with the version in the CPE",
                 )
+        if self.kind == "package":
+            import re
+
+            if self.ecosystem not in ("npm", "PyPI", "Go", "Maven", "crates.io", "NuGet"):
+                raise ValueError("Unsupported package ecosystem")
+            if not re.fullmatch(r"[A-Za-z0-9@_./:+-]{1,200}", self.package):
+                raise ValueError("Invalid package name")
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+!~-]{0,99}", self.version):
+                raise ValueError("Enter one exact installed version, not a range")
+            if re.search(r"(?:^|\.)[xX](?:\.|$)", self.version):
+                raise ValueError("Enter one exact installed version, not a range")
         if any(len(tag) > 100 for tag in self.tags):
             raise ValueError("Tags must not exceed 100 characters")
         return self
@@ -66,6 +80,8 @@ class Condition(BaseModel):
         "confidence",
         "vendor",
         "product",
+        "ecosystem",
+        "package",
         "keyword",
         "tags",
     ]

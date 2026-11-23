@@ -72,6 +72,8 @@ const initialAsset = {
   version: "",
   cpe: "",
   keyword: "",
+  package: "",
+  ecosystem: "",
   group: "production",
   environment: "",
   team: "",
@@ -155,6 +157,8 @@ function ConditionEditor({
     "confidence",
     "vendor",
     "product",
+    "ecosystem",
+    "package",
     "keyword",
     "tags",
   ];
@@ -328,6 +332,7 @@ export default function App() {
     [connectors, setConnectors] = useState<Entry[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]),
     [cves, setCves] = useState<any[]>([]);
+  const [osvStatus, setOsvStatus] = useState<any[]>([]);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
@@ -412,16 +417,18 @@ export default function App() {
   const load = useCallback(async () => {
     const sequence = ++configSequence.current;
     try {
-      const [, a, r, c] = await Promise.all([
+      const [, a, r, c, osv] = await Promise.all([
         loadStatus(),
         api("/config/assets"),
         api("/config/rules"),
         api("/config/connectors"),
+        api("/sources/osv/status"),
       ]);
       if (sequence !== configSequence.current) return;
       setAssets(a);
       setRules(r);
       setConnectors(c);
+      setOsvStatus(osv);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -896,7 +903,14 @@ export default function App() {
                                 <select
                                   value={asset.kind}
                                   onChange={(e) =>
-                                    setAsset({ ...asset, kind: e.target.value })
+                                    setAsset({
+                                      ...asset,
+                                      kind: e.target.value,
+                                      ecosystem:
+                                        e.target.value === "package"
+                                          ? asset.ecosystem || "npm"
+                                          : asset.ecosystem,
+                                    })
                                   }
                                 >
                                   {[
@@ -905,6 +919,7 @@ export default function App() {
                                     "vendor",
                                     "cpe",
                                     "keyword",
+                                    "package",
                                   ].map((kind) => (
                                     <option key={kind} value={kind}>
                                       {kind.replace("_", " + ")}
@@ -992,9 +1007,56 @@ export default function App() {
                                   />
                                 </label>
                               )}
+                              {asset.kind === "package" && (
+                                <>
+                                  <label>
+                                    Package ecosystem
+                                    <select
+                                      aria-label="Package ecosystem"
+                                      value={asset.ecosystem}
+                                      onChange={(e) =>
+                                        setAsset({
+                                          ...asset,
+                                          ecosystem: e.target.value,
+                                        })
+                                      }
+                                    >
+                                      {[
+                                        "npm",
+                                        "PyPI",
+                                        "Go",
+                                        "Maven",
+                                        "crates.io",
+                                        "NuGet",
+                                      ].map((name) => (
+                                        <option key={name} value={name}>
+                                          {name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label>
+                                    Package name
+                                    <input
+                                      required
+                                      value={asset.package}
+                                      onChange={(e) =>
+                                        setAsset({
+                                          ...asset,
+                                          package: e.target.value,
+                                        })
+                                      }
+                                      placeholder="e.g. next or django"
+                                    />
+                                  </label>
+                                </>
+                              )}
                               <label>
-                                Installed version (optional)
+                                {asset.kind === "package"
+                                  ? "Exact installed version"
+                                  : "Installed version (optional)"}
                                 <input
+                                  required={asset.kind === "package"}
                                   value={asset.version}
                                   onChange={(e) =>
                                     setAsset({
@@ -1054,9 +1116,9 @@ export default function App() {
                               Internet exposed
                             </label>
                             <p className="help">
-                              Product and keyword matches are potential matches.
-                              Version applicability is shown explicitly in the
-                              matching evidence.
+                              {asset.kind === "package"
+                                ? "OSV checks one exact declared package version. Enable OSV monitoring on the server; package identity and version are sent to OSV.dev."
+                                : "Product and keyword matches are potential matches. Version applicability is shown explicitly in the matching evidence."}
                             </p>
                           </>
                         )}
@@ -1347,7 +1409,7 @@ export default function App() {
                             <strong>{entry.name}</strong>
                             <small>
                               {page === "Assets"
-                                ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
+                                ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.kind === "package" ? `${entry.ecosystem} ${entry.package} ${entry.version}` : entry.product || entry.vendor || entry.keyword || entry.cpe}`
                                 : page === "Connectors"
                                   ? entry.kind === "discord" ||
                                     entry.kind === "slack"
@@ -1355,6 +1417,22 @@ export default function App() {
                                     : `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
+                            {page === "Assets" && entry.kind === "package" && (
+                              <small>
+                                {(() => {
+                                  const status = osvStatus.find(
+                                    (item) => item.asset_id === entry.id,
+                                  );
+                                  if (status?.last_error)
+                                    return `OSV: ${status.last_error}${status.last_success ? ` · last success ${date(status.last_success)}` : ""}`;
+                                  return status?.last_success
+                                    ? `OSV last checked ${date(status.last_success)}`
+                                    : overview.osv_enabled
+                                      ? "OSV: waiting for first check"
+                                      : "OSV background monitoring is disabled";
+                                })()}
+                              </small>
+                            )}
                             {page === "Connectors" && (
                               <small className="connector-hours-summary">
                                 {scheduleDescription(entry.delivery_schedule)}

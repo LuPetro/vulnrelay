@@ -15,6 +15,7 @@ from vulnrelay.digests import delete_digest, list_digests, preview_digest, save_
 from vulnrelay.monitor import state
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import validate_id
+from vulnrelay.osv import asset_status as osv_asset_status
 from vulnrelay.pipeline import correlate, vulnerabilities
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.store import delete_document, list_documents, save_document
@@ -102,6 +103,11 @@ def get_catalog(q: str = Query("", max_length=200)):
     return catalog(q)
 
 
+@router.get("/sources/osv/status")
+def get_osv_asset_status(request: Request):
+    return osv_asset_status(request.app.state.engine)
+
+
 @router.post("/catalog/{operation}")
 def apply_catalog(operation: Literal["preview", "import"], document: dict, request: Request):
     try:
@@ -164,6 +170,7 @@ def overview(request: Request):
         "engine": schedule,
         "setup_required": not all(counts[key] for key in ("assets", "rules", "connectors")),
         "opencve_enabled": get_settings().opencve_enabled,
+        "osv_enabled": get_settings().osv_enabled,
     }
 
 
@@ -250,7 +257,9 @@ def list_vulnerabilities(
     for entry in vulnerabilities(request.app.state.engine):
         if q and q.casefold() not in (entry["id"] + " " + entry["description"]).casefold():
             continue
-        result.append({k: v for k, v in entry.items() if k not in ("nvd", "kev_record", "opencve")})
+        result.append(
+            {k: v for k, v in entry.items() if k not in ("nvd", "kev_record", "opencve", "osv")}
+        )
         if len(result) >= limit:
             break
     return result

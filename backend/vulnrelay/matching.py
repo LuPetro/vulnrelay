@@ -38,6 +38,24 @@ def _leaves(nodes, constrained=False):
 def match(asset: Asset, vulnerability: dict) -> dict | None:
     if not asset.enabled or vulnerability.get("status", "").casefold() == "rejected":
         return None
+    if asset.kind == "package":
+        from vulnrelay.osv import identity
+
+        for item in vulnerability.get("osv", []):
+            if (item["ecosystem"], item["package"], item["version"]) == identity(asset):
+                return {
+                    "method": "osv_package_version",
+                    "confidence": "confirmed",
+                    "evidence": {
+                        "osv_id": item["osv_id"],
+                        "ecosystem": asset.ecosystem,
+                        "package": asset.package,
+                        "version": asset.version,
+                        "modified": item["record"].get("modified"),
+                    },
+                    "explanation": "OSV reports that the declared package and exact version are affected; verify the installed inventory.",
+                }
+        return None
     if asset.kind == "cpe" and not cpe_version_consistent(asset.cpe, asset.version):
         # Also protect callers holding an old/unchecked model after an upgrade.
         return None
