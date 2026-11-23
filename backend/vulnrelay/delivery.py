@@ -7,6 +7,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import httpx
@@ -48,6 +49,37 @@ class DeliveryResult:
 def render(payload: dict, *, max_bytes: int = 7600, ai_summary: str | None = None) -> str:
     if payload.get("test"):
         return "VulnRelay test notification. Your notification connector is working."
+    if payload.get("digest"):
+
+        def instant(value):
+            return datetime.fromtimestamp(value, UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+        heading = [
+            f"VulnRelay report · {payload['name']}",
+            f"{'Your matching assets' if payload['scope'] == 'relevant' else 'Worldwide CVEs'} · {instant(payload['period_start'])} to {instant(payload['period_end'])}",
+        ]
+        footer = [
+            f"Screened {payload['scanned']} of {payload['candidates']} locally stored candidates.",
+            f"NVD last successful sync: {payload['nvd_synced'] or 'unknown'}.",
+            "Only locally synchronized NVD records with a publication date; coverage can be incomplete.",
+        ]
+        entries = []
+        for item in payload["entries"]:
+            epss = "unknown" if item["epss"] is None else f"{item['epss']:.1%}"
+            line = (
+                f"{item['id']} · {item['severity'] or 'unknown'} · CVSS {item['cvss'] if item['cvss'] is not None else 'unknown'} · EPSS {epss} · KEV {item['kev'] if item['kev'] is not None else 'unknown'}\n"
+                f"https://nvd.nist.gov/vuln/detail/{item['id']}"
+            )
+            if item.get("match"):
+                reason = item["match"]
+                line += f"\nWhy: {reason['asset']} · {reason['rule']} · {reason['confidence']} match. {reason['explanation']}"
+            candidate = "\n".join(
+                [*heading, f"Showing {len(entries) + 1} entries:", *entries, line, *footer]
+            )
+            if len(candidate.encode("utf-16-le")) > max_bytes:
+                break
+            entries.append(line)
+        return "\n".join([*heading, f"Showing {len(entries)} entries:", *entries, *footer])
     vulnerability = payload["vulnerability"]
 
     def metric(value):
@@ -317,7 +349,7 @@ def deliver_one(
             outcome = DeliveryResult(False, error=cancellation)
         else:
             ai_summary = None
-            if not payload.get("test"):
+            if not payload.get("test") and not payload.get("digest"):
                 try:
                     from vulnrelay.ai import summarize
 

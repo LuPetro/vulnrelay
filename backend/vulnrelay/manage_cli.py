@@ -11,6 +11,7 @@ from vulnrelay.catalog import PACKS, CatalogSelection, catalog, import_selection
 from vulnrelay.config import get_settings
 from vulnrelay.db import create_database_engine
 from vulnrelay.delivery import deliver_one, enqueue_test, history
+from vulnrelay.digests import delete_digest, list_digests, preview_digest, save_digest
 from vulnrelay.monitor import cycle, monitor_lock, run
 from vulnrelay.pipeline import correlate
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
@@ -23,6 +24,44 @@ catalog_app = typer.Typer(
 app.add_typer(catalog_app, name="catalog")
 queue_app = typer.Typer(no_args_is_help=True, help="Inspect or discard waiting notifications.")
 app.add_typer(queue_app, name="queue")
+reports_app = typer.Typer(no_args_is_help=True, help="Configure scheduled CVE reports.")
+app.add_typer(reports_app, name="reports")
+
+
+@reports_app.command("list")
+def reports_list():
+    """List report configuration and next occurrences as JSON."""
+    _execute(list_digests)
+
+
+@reports_app.command("add")
+def reports_add(file: Path):
+    """Add one report from a JSON file."""
+    _execute(lambda engine: save_digest(engine, json.loads(file.read_text())))
+
+
+@reports_app.command("update")
+def reports_update(report_id: str, file: Path):
+    """Replace an existing report configuration from JSON."""
+
+    def action(engine):
+        if report_id not in {item["id"] for item in list_digests(engine)}:
+            raise ValueError("Report not found")
+        return save_digest(engine, json.loads(file.read_text()), report_id)
+
+    _execute(action)
+
+
+@reports_app.command("delete")
+def reports_delete(report_id: str):
+    """Remove a report; pending entries are cancelled before sending."""
+    _execute(lambda engine: {"deleted": delete_digest(engine, report_id)})
+
+
+@reports_app.command("preview")
+def reports_preview(report_id: str):
+    """Preview the last day/week from local data without sending a message."""
+    _execute(lambda engine: preview_digest(engine, report_id))
 
 
 @queue_app.command("status")

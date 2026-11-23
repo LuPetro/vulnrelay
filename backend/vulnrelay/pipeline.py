@@ -206,6 +206,10 @@ def refresh_alert(
         return None, "Invalid queued alert"
     if payload.get("test") is True:
         return payload, None
+    if payload.get("digest") is True:
+        from vulnrelay.digests import refresh_digest
+
+        return refresh_digest(engine, payload, destination)
     if not all(isinstance(payload.get(key), str) for key in ("rule_id", "asset_id", "cve_id")):
         return None, "Queued alert is missing its configuration identity"
     rule_row = get_document(engine, "rules", payload["rule_id"])

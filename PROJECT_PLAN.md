@@ -62,7 +62,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 - [x] Add Discord and Slack webhook connectors with real delivery, tests and shared queue semantics; operator acceptance remains pending.
 - [ ] Add SMTP, generic webhooks, ntfy/Gotify, then Matrix, Teams and Mattermost where supported.
-- [ ] Add scheduled personal and global daily/weekly digests, coverage disclosure and reliable deduplication.
+- [x] Add scheduled personal and global daily/weekly reports with coverage disclosure and persistent queue identities; live operator acceptance remains pending.
+- [ ] Add digest grouping, historical missed-period catch-up options and alternative data-source coverage.
 - [x] Add an opt-in AI settings tab with OpenAI, Anthropic and compatible APIs, model/language selection, connection tests, daily request limits, caching and labeled source-grounded alert summaries with safe fallback. One active configuration; live provider acceptance remains pending.
 - [ ] Expand AI to multiple selectable profiles, additional native protocols, token/cost accounting and digest summaries after provider acceptance.
 - [ ] Add OSV package/ecosystem/version matching; consider lockfile/SBOM import after accurate matching works.

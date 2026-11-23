@@ -15,6 +15,7 @@ from sqlalchemy.engine import Engine, make_url
 
 from vulnrelay.config import Settings
 from vulnrelay.delivery import deliver_one
+from vulnrelay.digests import schedule_due
 from vulnrelay.epss_bulk import refresh as refresh_epss
 from vulnrelay.kev import sync as sync_kev
 from vulnrelay.logging_config import configure
@@ -138,6 +139,7 @@ def cycle(
                 updates.update(failures_nvd=nvd_failures, last_attempt_nvd=finished)
             set_states(engine, updates)
     result = correlate(engine, enqueue=True, limit=0)
+    reports_queued = schedule_due(engine, now=current)
     deliveries = []
     for _ in range(50 if process_deliveries else 0):
         delivery = deliver_one(engine)
@@ -149,6 +151,7 @@ def cycle(
         "sources": outcomes,
         "evaluations": result["evaluations"],
         "queued": result["queued"],
+        "reports_queued": reports_queued,
         "deliveries": deliveries,
     }
 

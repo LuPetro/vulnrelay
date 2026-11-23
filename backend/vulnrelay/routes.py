@@ -11,6 +11,7 @@ from vulnrelay import ai
 from vulnrelay.catalog import CatalogSelection, catalog, import_selection
 from vulnrelay.config import get_settings
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
+from vulnrelay.digests import delete_digest, list_digests, preview_digest, save_digest
 from vulnrelay.monitor import state
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import validate_id
@@ -20,6 +21,44 @@ from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.get("/digests")
+def get_digests(request: Request):
+    return list_digests(request.app.state.engine)
+
+
+@router.post("/digests", status_code=201)
+def create_digest(document: dict, request: Request):
+    try:
+        return save_digest(request.app.state.engine, document)
+    except ValueError:
+        raise HTTPException(422, "Invalid report settings or destination") from None
+
+
+@router.put("/digests/{digest_id}")
+def update_digest(digest_id: str, document: dict, request: Request):
+    if digest_id not in {item["id"] for item in list_digests(request.app.state.engine)}:
+        raise HTTPException(404, "Report not found")
+    try:
+        return save_digest(request.app.state.engine, document, digest_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid report settings or destination") from None
+
+
+@router.delete("/digests/{digest_id}")
+def remove_digest(digest_id: str, request: Request):
+    if not delete_digest(request.app.state.engine, digest_id):
+        raise HTTPException(404, "Report not found")
+    return {"deleted": True}
+
+
+@router.post("/digests/{digest_id}/preview")
+def get_digest_preview(digest_id: str, request: Request):
+    try:
+        return preview_digest(request.app.state.engine, digest_id)
+    except ValueError:
+        raise HTTPException(409, "Report is disabled, invalid, or missing") from None
 
 
 @router.get("/ai/settings")

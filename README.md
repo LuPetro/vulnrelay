@@ -31,6 +31,7 @@ The first source synchronization can take several minutes, especially without an
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
 - Telegram, Discord and Slack destinations, compact/detailed plain-text messages, queued test notifications and delivery history. Discord and Slack use server-side webhook secret references.
 - Optional, quota-limited AI alert summaries using OpenAI, Anthropic or a compatible provider. AI is disabled by default, receives only the CVE ID and source description after matching, and never controls alert delivery or applicability.
+- Daily or weekly worldwide and asset-relevant [reports](docs/reports.md) with local-time schedules, previews, persistent delivery and explicit source-coverage limits.
 - Durable queue, expiring delivery claims, bounded retries, deduplication and re-notification on selected material changes.
 - Local configuration UI with dark/light themes, rule builder, rule tests and searchable CVE history.
 - Headless CLI, SQLite WAL, packaged database migrations, optional PostgreSQL plumbing, CI tests and Docker deployment.
@@ -104,7 +105,7 @@ For [OpenCVE enrichment](docs/opencve.md), open a CVE and choose **Load OpenCVE 
 
 Delivery is **at least once**. A crash after Telegram accepted a message and before the database recorded success can cause a repeat; Telegram does not provide an idempotency key for `sendMessage`. Non-rate delivery failures have a six-attempt retry budget with backoff. Telegram rate-limit responses use the provider cooldown without consuming that budget. Per-connector spacing defaults to 3.1 seconds and is configurable. Expiring claims and terminal failures remain visible. An unchanged alert is not queued again for the same CVE, asset, rule and destination. KEV changes, CVSS/status changes, a new ten-percentage-point EPSS band, CPE evidence changes and changed NVD patch references can create another event. Disabling change notifications keeps one event per identity. Multiple matching assets can produce separate, explicitly attributed alerts.
 
-Still planned: arbitrary version applicability and package matching, additional connector types, digests, inventory import/export, retention and automated backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
+Still planned: arbitrary version applicability and package matching, additional connector types, richer digest grouping, inventory import/export, retention and automated backup management, remote-access security and broader release validation. PostgreSQL code paths have not been validated end to end. Windows native monitoring is unsupported because the monitor uses Unix file locking. See [PROJECT_PLAN.md](PROJECT_PLAN.md) and [STATE.md](STATE.md).
 
 The optional [development agent runner](docs/agent-runner.md) is separate from CVE monitoring and is not scheduled automatically.
 

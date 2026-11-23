@@ -29,7 +29,13 @@ AI increment local verification: 246 backend tests passed with 86.99% branch cov
 
 The AI commit passed GitHub backend on Python 3.12/3.13, frontend, browser and container jobs. Its security job flagged two deliberately fictional test credentials. They were changed to dynamically constructed test values without disabling or weakening the scan; the offline tracked-source scan and AI tests now pass locally. Re-run GitHub security on the correction commit.
 
-Continue with persisted scheduled personal and worldwide digests, then accurate package/ecosystem/version matching and additional connectors. AI multi-profile management, native protocols and monetary/token accounting remain future work.
+The corrected AI increment passed all GitHub CI and security checks. No live AI provider was contacted.
+
+Scheduled reports now offer daily/weekly worldwide NVD records or records matching enabled asset rules, configurable local time/timezone, CVSS threshold, destination, entry limit, UI/CLI preview and one asset/rule/confidence explanation for personal results. Migration 0009 persists schedules; due reports use the existing outbox, retry, destination hours, deduplication and revalidation. Missed periods coalesce to the most recent; source coverage and the 1,000-candidate scan limit are explicit. Reports do not replace immediate alerts or invoke AI. DST, source gaps, safe message length, restart/dedup, cancellation, CLI/API and migration have targeted tests. No operator service or live connector was used. See docs/reports.md.
+
+Report increment local verification: 256 backend tests passed with 86.68% branch coverage; Ruff, metadata, lock, workflow, frontend formatting and offline tracked-source secret scans passed. Browser, build and container workflows need to pass in GitHub CI on this increment.
+
+Continue with accurate package/ecosystem/version matching and OSV, then additional connectors and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 

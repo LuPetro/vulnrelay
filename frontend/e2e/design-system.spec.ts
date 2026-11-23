@@ -57,6 +57,7 @@ test("shared design covers every workspace page, editor and both themes", async 
     "Notification rules",
     "Connectors",
     "Vulnerabilities",
+    "Reports",
     "AI",
     "Settings",
   ]) {

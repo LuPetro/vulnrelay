@@ -5,12 +5,14 @@ import OverviewPage, { type OverviewData } from "./Overview";
 import QueuePanel from "./QueuePanel";
 import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
 import AISettings from "./AISettings";
+import Reports from "./Reports";
 import {
   Activity,
   Boxes,
   ArrowRight,
   Check,
   Cpu,
+  FileClock,
   ChevronRight,
   CircleHelp,
   Layers3,
@@ -47,6 +49,7 @@ const pages = [
   "Notification rules",
   "Connectors",
   "Vulnerabilities",
+  "Reports",
   "AI",
   "Settings",
 ];
@@ -57,6 +60,7 @@ const icons = [
   ListFilter,
   Radio,
   ShieldCheck,
+  FileClock,
   Cpu,
   Settings,
 ];
@@ -677,6 +681,7 @@ export default function App() {
                           "Notification rules": "ALERT POLICY",
                           Connectors: "DELIVERY OPERATIONS",
                           Vulnerabilities: "INTELLIGENCE REGISTER",
+                          Reports: "SCHEDULED REPORTS",
                           AI: "OPTIONAL INTELLIGENCE",
                           Settings: "INSTANCE CONFIGURATION",
                         } as Record<string, string>
@@ -697,9 +702,11 @@ export default function App() {
                           ? "Bring relevant vulnerability alerts to your team."
                           : page === "Vulnerabilities"
                             ? "Inspect locally synchronized intelligence and matching evidence."
-                            : page === "AI"
-                              ? "Connect your chosen model to add optional alert summaries."
-                              : "Configure access and understand your local instance."}
+                            : page === "Reports"
+                              ? "Receive a recurring view of global or asset-relevant CVEs."
+                              : page === "AI"
+                                ? "Connect your chosen model to add optional alert summaries."
+                                : "Configure access and understand your local instance."}
               </p>
             </div>
             <button
@@ -761,6 +768,13 @@ export default function App() {
                 />
               )}
               {page === "AI" && <AISettings api={api} />}
+              {page === "Reports" && (
+                <Reports
+                  api={api}
+                  connectors={connectors}
+                  onConnectors={() => navigate("Connectors")}
+                />
+              )}
               {page === "Assets" && (
                 <section className="inventory-discovery">
                   <div>
