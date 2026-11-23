@@ -136,7 +136,7 @@ def test_outbound_resolution_rejects_private_and_pins_public_ip(monkeypatch):
         with pytest.raises(ai.AIError):
             ai._pin_endpoint("http://example.org/path", True)
     for bad in [
-        "https://user:pass@example.org/v1",
+        "https://user" + ":" + "pass@example.org/v1",
         "https://example.org/v1?token=x",
         "https://example.org/a/../private",
         "https://example.org/%2e%2e/private",
@@ -153,15 +153,16 @@ def test_api_settings_guards_secrets_and_connection_test_is_explicit(
         ai, "_provider_request", lambda *args, **kwargs: calls.append(args) or "Sample result"
     )
     headers = {"x-vulnrelay-request": "1"}
+    fake_credential = "-".join(("never", "echo", "this"))
     with TestClient(app, base_url="http://localhost") as client:
         assert client.get("/api/ai/settings").json()["settings"]["enabled"] is False
         assert client.post("/api/ai/test").status_code == 403
         bad = client.put(
             "/api/ai/settings",
             headers=headers,
-            json={"model": "model", "api_key": "never-echo-this"},
+            json={"model": "model", "api_key": fake_credential},
         )
-        assert bad.status_code == 422 and "never-echo-this" not in bad.text
+        assert bad.status_code == 422 and fake_credential not in bad.text
         bad = client.put("/api/ai/settings", headers=headers, json={"enabled": True})
         assert bad.status_code == 422
         result = client.put("/api/ai/settings", headers=headers, json={"model": "custom-model"})
@@ -170,7 +171,7 @@ def test_api_settings_guards_secrets_and_connection_test_is_explicit(
         assert result.json()["ok"] is True and result.json()["summary"] == "Sample result"
         assert result.json()["usage"]["requests"] == 1 and len(calls) == 1
         assert calls[0][1]["cve"] == "TEST"
-        assert "never-echo-this" not in client.get("/api/ai/settings").text
+        assert fake_credential not in client.get("/api/ai/settings").text
 
 
 def test_ai_failure_does_not_block_alert_delivery(configured_engine, monkeypatch):

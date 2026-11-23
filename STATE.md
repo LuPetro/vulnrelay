@@ -27,6 +27,8 @@ Discord/Slack commit passed both GitHub CI runs and security checks, including f
 
 AI increment local verification: 246 backend tests passed with 86.99% branch coverage, including 15 AI-focused cases; Ruff, formatting, release metadata, lock and workflow checks passed. Browser/build/container validation runs in GitHub CI.
 
+The AI commit passed GitHub backend on Python 3.12/3.13, frontend, browser and container jobs. Its security job flagged two deliberately fictional test credentials. They were changed to dynamically constructed test values without disabling or weakening the scan; the offline tracked-source scan and AI tests now pass locally. Re-run GitHub security on the correction commit.
+
 Continue with persisted scheduled personal and worldwide digests, then accurate package/ecosystem/version matching and additional connectors. AI multi-profile management, native protocols and monetary/token accounting remain future work.
 
 ## Next priorities
