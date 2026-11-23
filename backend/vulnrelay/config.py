@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ui_dir: str = "./frontend/dist"
     opencve_enabled: bool = False
     opencve_batch_size: int = Field(default=25, ge=1, le=100)
+    ai_base_url: str = ""
+    ai_allow_private_hosts: bool = False
 
 
 @lru_cache

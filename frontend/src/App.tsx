@@ -4,11 +4,13 @@ import Catalog from "./Catalog";
 import OverviewPage, { type OverviewData } from "./Overview";
 import QueuePanel from "./QueuePanel";
 import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
+import AISettings from "./AISettings";
 import {
   Activity,
   Boxes,
   ArrowRight,
   Check,
+  Cpu,
   ChevronRight,
   CircleHelp,
   Layers3,
@@ -45,6 +47,7 @@ const pages = [
   "Notification rules",
   "Connectors",
   "Vulnerabilities",
+  "AI",
   "Settings",
 ];
 const icons = [
@@ -54,6 +57,7 @@ const icons = [
   ListFilter,
   Radio,
   ShieldCheck,
+  Cpu,
   Settings,
 ];
 const initialAsset = {
@@ -673,6 +677,7 @@ export default function App() {
                           "Notification rules": "ALERT POLICY",
                           Connectors: "DELIVERY OPERATIONS",
                           Vulnerabilities: "INTELLIGENCE REGISTER",
+                          AI: "OPTIONAL INTELLIGENCE",
                           Settings: "INSTANCE CONFIGURATION",
                         } as Record<string, string>
                       )[page]
@@ -692,7 +697,9 @@ export default function App() {
                           ? "Bring relevant vulnerability alerts to your team."
                           : page === "Vulnerabilities"
                             ? "Inspect locally synchronized intelligence and matching evidence."
-                            : "Configure access and understand your local instance."}
+                            : page === "AI"
+                              ? "Connect your chosen model to add optional alert summaries."
+                              : "Configure access and understand your local instance."}
               </p>
             </div>
             <button
@@ -753,6 +760,7 @@ export default function App() {
                   }}
                 />
               )}
+              {page === "AI" && <AISettings api={api} />}
               {page === "Assets" && (
                 <section className="inventory-discovery">
                   <div>

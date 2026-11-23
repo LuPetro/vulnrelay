@@ -45,7 +45,7 @@ class DeliveryResult:
     rate_limited: bool = False
 
 
-def render(payload: dict, *, max_bytes: int = 7600) -> str:
+def render(payload: dict, *, max_bytes: int = 7600, ai_summary: str | None = None) -> str:
     if payload.get("test"):
         return "VulnRelay test notification. Your notification connector is working."
     vulnerability = payload["vulnerability"]
@@ -73,11 +73,21 @@ def render(payload: dict, *, max_bytes: int = 7600) -> str:
 
         footer.insert(1, record_url(vulnerability["id"]))
     prefix, suffix = "\n".join(lines), "\n".join(footer)
+    safe_summary = (
+        ai_summary.encode("utf-16-le", errors="replace")[:1200].decode("utf-16-le", errors="ignore")
+        if ai_summary
+        else ""
+    )
+    generated = f"AI-generated summary (unverified):\n{safe_summary}" if safe_summary else ""
     middle = ""
     if payload["format"] == "detailed":
         recommendation = "Verify the installed version and review official vendor guidance before deciding remediation."
         # Reserve room for attribution and the canonical source link, even with emoji.
-        reserved = len((prefix + "\n\n" + recommendation + "\n" + suffix).encode("utf-16-le"))
+        reserved = len(
+            (prefix + "\n\n" + recommendation + "\n" + generated + "\n" + suffix).encode(
+                "utf-16-le"
+            )
+        )
         budget = max(0, max_bytes - reserved)
         description = (
             (vulnerability.get("description") or "")
@@ -85,7 +95,7 @@ def render(payload: dict, *, max_bytes: int = 7600) -> str:
             .decode("utf-16-le", errors="ignore")
         )
         middle = description + "\n" + recommendation
-    return "\n".join(part for part in (prefix, middle, suffix) if part)
+    return "\n".join(part for part in (prefix, middle, generated, suffix) if part)
 
 
 def _secret(reference: str) -> str:
@@ -306,6 +316,16 @@ def deliver_one(
         elif cancellation:
             outcome = DeliveryResult(False, error=cancellation)
         else:
+            ai_summary = None
+            if not payload.get("test"):
+                try:
+                    from vulnrelay.ai import summarize
+
+                    ai_summary = summarize(engine, payload["vulnerability"])
+                except Exception:  # noqa: BLE001 - AI must never prevent a verified alert
+                    logging.getLogger(__name__).warning(
+                        "AI summary unavailable; sending source alert"
+                    )
             # Configuration may change while rule/asset revalidation is running. Defer
             # changed destinations for a fresh claim; never send using an old schedule.
             before_send = current if now is not None else time.time()
@@ -344,9 +364,11 @@ def deliver_one(
                     return None
             attempted = True
             outcome = (
-                send_telegram(config, render(payload), client=client)
+                send_telegram(config, render(payload, ai_summary=ai_summary), client=client)
                 if config.kind == "telegram"
-                else send_webhook(config, render(payload, max_bytes=3600), client=client)
+                else send_webhook(
+                    config, render(payload, max_bytes=3600, ai_summary=ai_summary), client=client
+                )
             )
     finished = current if now is not None else time.time()
     failures = row["failures"] + (not outcome.success and not outcome.rate_limited)

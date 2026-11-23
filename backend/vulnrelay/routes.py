@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import text
 
+from vulnrelay import ai
 from vulnrelay.catalog import CatalogSelection, catalog, import_selection
 from vulnrelay.config import get_settings
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
@@ -19,6 +20,42 @@ from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.get("/ai/settings")
+def get_ai_settings(request: Request):
+    return {
+        "settings": ai.settings(request.app.state.engine).model_dump(),
+        "usage": ai.usage(request.app.state.engine),
+        "custom_endpoint_configured": bool(get_settings().ai_base_url),
+        "private_hosts_allowed": get_settings().ai_allow_private_hosts,
+    }
+
+
+@router.put("/ai/settings")
+def put_ai_settings(document: dict, request: Request):
+    try:
+        config = ai.AISettings.model_validate(document)
+    except ValidationError:
+        raise HTTPException(422, "Invalid AI settings; check model, provider, and limits") from None
+    ai.save_settings(request.app.state.engine, config)
+    return {"settings": config.model_dump(), "usage": ai.usage(request.app.state.engine)}
+
+
+@router.post("/ai/test")
+def test_ai_connection(request: Request):
+    try:
+        answer = ai.summarize(
+            request.app.state.engine,
+            {
+                "id": "TEST",
+                "description": "Example software has a fictional input validation issue.",
+            },
+            test=True,
+        )
+        return {"ok": True, "summary": answer, "usage": ai.usage(request.app.state.engine)}
+    except ai.AIError as error:
+        return {"ok": False, "message": str(error), "usage": ai.usage(request.app.state.engine)}
 
 
 @router.get("/catalog")
