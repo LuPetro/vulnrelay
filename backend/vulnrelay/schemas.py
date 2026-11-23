@@ -174,8 +174,23 @@ class DeliverySchedule(BaseModel):
 
 
 class Connector(Document):
-    kind: Literal["telegram"] = "telegram"
+    kind: Literal["telegram", "discord", "slack"] = "telegram"
     token_env: str = Field(default="TELEGRAM_BOT_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{0,99}$")
-    chat_id: str = Field(pattern=r"^(?:-?\d{1,30}|@[A-Za-z0-9_]{5,32})$")
+    chat_id: str = Field(default="", max_length=33)
+    webhook_env: str = Field(default="", max_length=100)
     min_interval_seconds: float = Field(default=3.1, ge=1.1, le=3600, allow_inf_nan=False)
     delivery_schedule: DeliverySchedule | None = None
+
+    @model_validator(mode="after")
+    def validate_destination(self):
+        import re
+
+        if self.kind == "telegram" and not re.fullmatch(
+            r"(?:-?\d{1,30}|@[A-Za-z0-9_]{5,32})", self.chat_id
+        ):
+            raise ValueError("Telegram requires a valid chat ID")
+        if self.kind in ("discord", "slack") and not re.fullmatch(
+            r"[A-Z][A-Z0-9_]{0,99}", self.webhook_env
+        ):
+            raise ValueError("A webhook environment variable name is required")
+        return self

@@ -1,4 +1,4 @@
-"""Persistent Telegram delivery with expiring claims and bounded retries (at least once)."""
+"""Persistent notification delivery with expiring claims and bounded retries."""
 
 import json
 import logging
@@ -17,7 +17,7 @@ from sqlalchemy.engine import Engine
 
 from vulnrelay.delivery_schedule import schedule_allows
 from vulnrelay.pipeline import refresh_alert
-from vulnrelay.queue import provider_key
+from vulnrelay.queue import connector_provider_key, same_destination
 from vulnrelay.schemas import Connector
 from vulnrelay.store import get_document, list_documents
 
@@ -45,9 +45,9 @@ class DeliveryResult:
     rate_limited: bool = False
 
 
-def render(payload: dict) -> str:
+def render(payload: dict, *, max_bytes: int = 7600) -> str:
     if payload.get("test"):
-        return "VulnRelay test notification. Your Telegram connector is working."
+        return "VulnRelay test notification. Your notification connector is working."
     vulnerability = payload["vulnerability"]
 
     def metric(value):
@@ -78,7 +78,7 @@ def render(payload: dict) -> str:
         recommendation = "Verify the installed version and review official vendor guidance before deciding remediation."
         # Reserve room for attribution and the canonical source link, even with emoji.
         reserved = len((prefix + "\n\n" + recommendation + "\n" + suffix).encode("utf-16-le"))
-        budget = max(0, 7600 - reserved)
+        budget = max(0, max_bytes - reserved)
         description = (
             (vulnerability.get("description") or "")
             .encode("utf-16-le")[:budget]
@@ -88,12 +88,14 @@ def render(payload: dict) -> str:
     return "\n".join(part for part in (prefix, middle, suffix) if part)
 
 
+def _secret(reference: str) -> str:
+    return os.environ.get(reference, dotenv_values(".env").get(reference) or "")
+
+
 def send_telegram(
     connector: Connector, message: str, *, client: httpx.Client | None = None
 ) -> DeliveryResult:
-    token = os.environ.get(
-        connector.token_env, dotenv_values(".env").get(connector.token_env) or ""
-    )
+    token = _secret(connector.token_env)
     if not re.fullmatch(r"\d{5,20}:[A-Za-z0-9_-]{20,200}", token):
         return DeliveryResult(
             False, error="Telegram token environment variable is missing or invalid"
@@ -132,6 +134,64 @@ def send_telegram(
     except httpx.HTTPError:
         # Never persist exception strings: Telegram URLs contain secrets.
         return DeliveryResult(False, True, "Telegram transport failed")
+    finally:
+        if owned:
+            client.close()
+
+
+def send_webhook(
+    connector: Connector, message: str, *, client: httpx.Client | None = None
+) -> DeliveryResult:
+    """Use only official webhook hosts and never log the secret-bearing URL."""
+    kind = connector.kind
+    name = "Discord" if kind == "discord" else "Slack"
+    url = _secret(connector.webhook_env)
+    patterns = {
+        "discord": r"https://discord\.com/api/webhooks/[0-9]{10,30}/[A-Za-z0-9_.-]{20,200}",
+        "slack": r"https://hooks\.slack\.com/services/[A-Za-z0-9]+/[A-Za-z0-9]+/[A-Za-z0-9]+",
+    }
+    if kind not in patterns or not re.fullmatch(patterns[kind], url):
+        return DeliveryResult(
+            False, error=f"{name} webhook environment variable is missing or invalid"
+        )
+    owned = client is None
+    client = client or httpx.Client(timeout=20, follow_redirects=False, trust_env=False)
+    payload = (
+        {"content": message, "allowed_mentions": {"parse": []}}
+        if kind == "discord"
+        else {"text": message, "mrkdwn": False}
+    )
+    try:
+        response = client.post(url, json=payload, follow_redirects=False)
+        if (kind == "discord" and response.status_code in (200, 204)) or (
+            kind == "slack" and response.status_code == 200 and response.text.strip() == "ok"
+        ):
+            return DeliveryResult(True)
+        if kind == "slack" and response.status_code == 200:
+            return DeliveryResult(False, error="Slack did not acknowledge delivery (HTTP 200)")
+        if response.status_code == 429:
+            raw_delay = response.headers.get("Retry-After", "")
+            if kind == "discord":
+                try:
+                    body = response.json()
+                    raw_delay = (
+                        body.get("retry_after", raw_delay) if isinstance(body, dict) else raw_delay
+                    )
+                except ValueError:
+                    pass
+            try:
+                delay = float(raw_delay)
+                delay = delay if math.isfinite(delay) else 60
+            except (ValueError, TypeError, OverflowError):
+                delay = 60
+            return DeliveryResult(False, True, f"{name} rate limit", max(1, delay), True)
+        return DeliveryResult(
+            False,
+            response.status_code >= 500,
+            f"{name} delivery rejected (HTTP {response.status_code})",
+        )
+    except httpx.HTTPError:
+        return DeliveryResult(False, True, f"{name} transport failed")
     finally:
         if owned:
             client.close()
@@ -187,9 +247,7 @@ def deliver_one(
             )
         }
         blocked = outside_schedule + [
-            item["id"]
-            for item in documents
-            if provider_key(item.get("token_env", "TELEGRAM_BOT_TOKEN")) in provider_limits
+            item["id"] for item in documents if connector_provider_key(item) in provider_limits
         ]
         row = (
             connection.execute(
@@ -222,11 +280,7 @@ def deliver_one(
             siblings = [
                 item
                 for item in documents
-                if item.get("enabled", True)
-                and item.get("token_env", "TELEGRAM_BOT_TOKEN")
-                == connector.get("token_env", "TELEGRAM_BOT_TOKEN")
-                and str(item.get("chat_id", "")).casefold()
-                == str(connector.get("chat_id", "")).casefold()
+                if item.get("enabled", True) and same_destination(item, connector)
             ]
         interval = max((_interval(item) for item in siblings), default=3.1)
         for sibling_id in {row["connector_id"], *(item["id"] for item in siblings)}:
@@ -289,7 +343,11 @@ def deliver_one(
                 if updated.rowcount != 1:
                     return None
             attempted = True
-            outcome = send_telegram(config, render(payload), client=client)
+            outcome = (
+                send_telegram(config, render(payload), client=client)
+                if config.kind == "telegram"
+                else send_webhook(config, render(payload, max_bytes=3600), client=client)
+            )
     finished = current if now is not None else time.time()
     failures = row["failures"] + (not outcome.success and not outcome.rate_limited)
     state = (
@@ -325,11 +383,9 @@ def deliver_one(
             },
         )
         if outcome.rate_limited and connector:
-            reference = connector.get("token_env", "TELEGRAM_BOT_TOKEN")
-            targets = {provider_key(reference)} | {
-                item["id"]
-                for item in documents
-                if item.get("token_env", "TELEGRAM_BOT_TOKEN") == reference
+            reference = connector_provider_key(connector)
+            targets = {reference} | {
+                item["id"] for item in documents if connector_provider_key(item) == reference
             }
             for target in targets:
                 connection.execute(

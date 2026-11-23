@@ -60,9 +60,13 @@ The first release must deliver real asset-relevant alerts and recover after rest
 
 ## Beyond the MVP
 
-- [ ] Discord, SMTP and generic webhook connectors; connector development protocol.
-- [ ] Daily digests, CVE.org and expanded lifecycle/priority configuration.
-- [ ] Optional AI providers, budgets, summaries, translation and evidence-based safe fallback.
+- [x] Add Discord and Slack webhook connectors with real delivery, tests and shared queue semantics; operator acceptance remains pending.
+- [ ] Add SMTP, generic webhooks, ntfy/Gotify, then Matrix, Teams and Mattermost where supported.
+- [ ] Add scheduled personal and global daily/weekly digests, coverage disclosure and reliable deduplication.
+- [ ] Add an AI settings tab with configurable API providers, models, connection tests and budgets; deliver optional evidence-grounded summaries with safe fallback.
+- [ ] Add OSV package/ecosystem/version matching; consider lockfile/SBOM import after accurate matching works.
+- [ ] Add lifecycle grouping, expiring suppression, optional critical out-of-hours escalation and clearer source health.
+- [ ] Add CVE.org and expanded lifecycle/priority configuration.
 - [ ] PostgreSQL integration validation, release artifacts and security review.
 
 ## Development automation

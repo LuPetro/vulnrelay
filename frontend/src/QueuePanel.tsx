@@ -11,6 +11,7 @@ export type QueueSummary = {
   destinations: {
     id: string;
     name: string;
+    kind?: string | null;
     status: string;
     queued: number;
     sending: number;
@@ -48,7 +49,7 @@ export default function QueuePanel({
   const labels: Record<string, string> = {
     sending: "Sending",
     ready: "Ready",
-    rate_limited: "Telegram rate limit",
+    rate_limited: "Provider rate limit",
     pacing: "Configured send interval",
     retry_wait: "Retry backoff",
     outside_schedule: "Outside delivery hours",
@@ -86,7 +87,9 @@ export default function QueuePanel({
                 destination.status === "rate_limited" ? "queue-limited" : ""
               }
             >
-              {labels[destination.status] || destination.status}
+              {destination.status === "rate_limited"
+                ? `${destination.kind === "telegram" ? "Telegram" : destination.kind === "discord" ? "Discord" : destination.kind === "slack" ? "Slack" : "Provider"} rate limit`
+                : labels[destination.status] || destination.status}
             </span>
             <small>
               {destination.queued.toLocaleString()} waiting
@@ -97,7 +100,7 @@ export default function QueuePanel({
                 ? ` · minimum ${destination.min_interval_seconds}s between messages`
                 : ""}
               {destination.rate_limited_until
-                ? ` · Telegram cooldown until ${date(destination.rate_limited_until)}`
+                ? ` · provider cooldown until ${date(destination.rate_limited_until)}`
                 : ""}
               {destination.next_attempt_at
                 ? ` · next eligible attempt: ${date(destination.next_attempt_at, destination.schedule_timezone)}`

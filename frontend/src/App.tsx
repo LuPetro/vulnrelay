@@ -824,7 +824,7 @@ export default function App() {
                             ? "asset"
                             : editor === "rules"
                               ? "notification rule"
-                              : "Telegram connector"}
+                              : "notification connector"}
                         </h2>
                         <button
                           className="icon-button"
@@ -840,7 +840,7 @@ export default function App() {
                             ? "Declare the software you run. Its identity and context determine which vulnerability records are relevant."
                             : editor === "rules"
                               ? "Choose destinations and conditions. Test the rule against stored intelligence before relying on it."
-                              : "Connect a Telegram destination. Credentials stay in environment variables on your server."}
+                              : "Connect a destination. Credentials stay in environment variables on your server."}
                         </p>
                         <label>
                           Name
@@ -1040,6 +1040,30 @@ export default function App() {
                         )}
                         {editor === "connectors" && (
                           <>
+                            <label>
+                              Connector type
+                              <select
+                                aria-label="Connector type"
+                                value={connector.kind || "telegram"}
+                                disabled={Boolean(editId)}
+                                onChange={(e) =>
+                                  setConnector({
+                                    ...connector,
+                                    kind: e.target.value,
+                                    webhook_env:
+                                      e.target.value === "discord"
+                                        ? "DISCORD_WEBHOOK_URL"
+                                        : e.target.value === "slack"
+                                          ? "SLACK_WEBHOOK_URL"
+                                          : "",
+                                  })
+                                }
+                              >
+                                <option value="telegram">Telegram</option>
+                                <option value="discord">Discord webhook</option>
+                                <option value="slack">Slack webhook</option>
+                              </select>
+                            </label>
                             <ConnectorSchedule
                               value={connector.delivery_schedule}
                               onChange={(delivery_schedule) =>
@@ -1069,44 +1093,74 @@ export default function App() {
                               />
                             </label>
                             <p className="help">
-                              Default 3.1 seconds suits Telegram groups. A
-                              private chat can use 1.1 seconds. Telegram may
-                              impose an additional cooldown; that wait is always
-                              respected.
+                              Default 3.1 seconds suits Telegram groups.
+                              Providers may impose an additional cooldown.
                             </p>
-                            <label>
-                              Telegram chat ID or channel username
-                              <input
-                                required
-                                placeholder="-1001234567890 or @security_channel"
-                                value={connector.chat_id}
-                                onChange={(e) =>
-                                  setConnector({
-                                    ...connector,
-                                    chat_id: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              Token environment variable
-                              <input
-                                required
-                                value={connector.token_env}
-                                onChange={(e) =>
-                                  setConnector({
-                                    ...connector,
-                                    token_env: e.target.value,
-                                  })
-                                }
-                              />
-                            </label>
-                            <p className="help">
-                              Put your bot token in this environment variable on
-                              the server. Add the bot to your Telegram group or
-                              channel and grant permission to send messages. The
-                              actual token is never stored in this form.
-                            </p>
+                            {(connector.kind || "telegram") === "telegram" ? (
+                              <>
+                                <label>
+                                  Telegram chat ID or channel username
+                                  <input
+                                    required
+                                    placeholder="-1001234567890 or @security_channel"
+                                    value={connector.chat_id}
+                                    onChange={(e) =>
+                                      setConnector({
+                                        ...connector,
+                                        chat_id: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  Token environment variable
+                                  <input
+                                    required
+                                    value={connector.token_env}
+                                    onChange={(e) =>
+                                      setConnector({
+                                        ...connector,
+                                        token_env: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <p className="help">
+                                  Put your bot token in this environment
+                                  variable on the server. Add the bot to your
+                                  Telegram group or channel and grant permission
+                                  to send messages. The actual token is never
+                                  stored in this form.
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <label>
+                                  Webhook environment variable
+                                  <input
+                                    required
+                                    pattern="[A-Z][A-Z0-9_]{0,99}"
+                                    value={connector.webhook_env || ""}
+                                    onChange={(e) =>
+                                      setConnector({
+                                        ...connector,
+                                        webhook_env: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <p className="help">
+                                  Put your{" "}
+                                  {connector.kind === "discord"
+                                    ? "Discord"
+                                    : "Slack"}{" "}
+                                  webhook URL in this environment variable on
+                                  the server. The URL is never saved in this
+                                  form. Recreate both containers after changing
+                                  .env.
+                                </p>
+                              </>
+                            )}
                           </>
                         )}
                         {editor === "rules" && (
@@ -1249,7 +1303,7 @@ export default function App() {
                         {page === "Assets"
                           ? "Add technologies you run, with optional groups, versions and exposure."
                           : page === "Connectors"
-                            ? "Connect a Telegram bot to your group, channel or direct chat."
+                            ? "Connect Telegram, Discord or Slack to receive your alerts."
                             : "Start with CVSS ≥ 9 or known exploitation, then refine your filters."}
                       </Empty>
                     ) : page === "Assets" && visibleAssets.length === 0 ? (
@@ -1273,7 +1327,10 @@ export default function App() {
                               {page === "Assets"
                                 ? `${entry.group}${entry.environment ? ` · ${entry.environment}` : ""} · ${entry.product || entry.vendor || entry.keyword || entry.cpe}`
                                 : page === "Connectors"
-                                  ? `${entry.chat_id} · token: $${entry.token_env}`
+                                  ? entry.kind === "discord" ||
+                                    entry.kind === "slack"
+                                    ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
+                                    : `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
                             {page === "Connectors" && (

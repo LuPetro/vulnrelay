@@ -328,7 +328,7 @@ export default function OverviewPage({
       target: "Assets",
     },
     {
-      label: "Connect Telegram",
+      label: "Connect a destination",
       text: "Give your alerts a destination.",
       done: connectors.length > 0,
       target: "Connectors",
@@ -356,7 +356,7 @@ export default function OverviewPage({
     {
       label: "Enabled connectors",
       value: activeConnectors,
-      note: "Telegram destinations",
+      note: "Notification destinations",
       target: "Connectors",
     },
     {

@@ -21,6 +21,28 @@ def provider_key(reference: str) -> str:
     )
 
 
+def connector_provider_key(document: dict) -> str:
+    """Keep existing Telegram cooldown keys and isolate webhook providers."""
+    kind = document.get("kind", "telegram")
+    reference = document.get("token_env", "TELEGRAM_BOT_TOKEN")
+    if kind != "telegram":
+        reference = f"{kind}:{document.get('webhook_env', '')}"
+    return provider_key(reference)
+
+
+def same_destination(first: dict, second: dict) -> bool:
+    kind = first.get("kind", "telegram")
+    if kind != second.get("kind", "telegram"):
+        return False
+    if kind != "telegram":
+        return first.get("webhook_env") == second.get("webhook_env")
+    return (
+        first.get("token_env", "TELEGRAM_BOT_TOKEN")
+        == second.get("token_env", "TELEGRAM_BOT_TOKEN")
+        and str(first.get("chat_id", "")).casefold() == str(second.get("chat_id", "")).casefold()
+    )
+
+
 class ClearQueue(BaseModel):
     model_config = ConfigDict(extra="forbid")
     before: float = Field(gt=0, allow_inf_nan=False)
@@ -81,7 +103,7 @@ def queue_status(engine: Engine, *, now: float | None = None) -> dict:
         except ValidationError:
             config = None
         limit = limits.get(row["connector_id"], {})
-        provider = limits.get(provider_key(config.token_env), {}) if config else {}
+        provider = limits.get(connector_provider_key(document), {}) if config else {}
         cooldown = max(limit.get("rate_limited_until", 0), provider.get("rate_limited_until", 0))
         pacing = max(limit.get("available_at", 0), provider.get("available_at", 0))
         enabled = bool(config and config.enabled)
@@ -115,6 +137,7 @@ def queue_status(engine: Engine, *, now: float | None = None) -> dict:
             {
                 "id": row["connector_id"],
                 "name": document["name"] if document else "Removed destination",
+                "kind": config.kind if config else None,
                 "status": status,
                 "queued": row["queued"],
                 "sending": row["sending"],

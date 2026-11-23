@@ -35,6 +35,7 @@ test("overview shows honest state, motion controls, branding and responsive layo
       {
         id: "telegram",
         name: "Security channel",
+        kind: "telegram",
         status: "rate_limited",
         queued: 2,
         sending: 0,
