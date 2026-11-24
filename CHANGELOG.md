@@ -18,6 +18,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Import supported unqualified package URLs with exact versions into OSV asset identities via GUI, API or CLI.
 - ntfy and Gotify push connectors with environment-only token references, private-server opt-in and shared queue, scheduling and rate-limit handling.
 - Generic JSON webhook connector with optional HMAC-SHA256 signatures, stable event IDs, destination restrictions and persistent retry/queue semantics.
 - SMTP email connector with certificate-verified STARTTLS, pinned DNS, server-side credential references and delivery-hour support.
@@ -50,5 +51,5 @@ Changes are recorded here before a release is published. No stable version has b
 ### Known limitations
 
 - Alpha status: an operator confirmed a real Telegram test message; controlled CVE-alert, deduplication and restart acceptance remain open.
-- Generic version ranges, PURLs, OSV advisories without a CVE alias, additional connector types, richer digest options and multiple AI profiles remain unfinished. Live provider acceptance is still needed for new connectors and AI.
+- Generic version ranges, qualified PURLs, OSV advisories without a CVE alias, additional connector types, richer digest options and multiple AI profiles remain unfinished. Live provider acceptance is still needed for new connectors and AI.
 - Remote exposure and PostgreSQL require further hardening and validation.

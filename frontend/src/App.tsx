@@ -357,6 +357,7 @@ export default function App() {
       enabled: true,
       kind: "telegram",
     });
+  const [packageUrl, setPackageUrl] = useState("");
   const [theme, setTheme] = useState(
     () => localStorage.getItem("vulnrelay-theme") || "light",
   );
@@ -492,8 +493,10 @@ export default function App() {
   function openEditor(kind: string, entry?: Entry) {
     setEditId(entry?.id || null);
     setEditor(kind);
-    if (kind === "assets")
+    if (kind === "assets") {
+      setPackageUrl("");
       setAsset(entry ? { ...entry } : structuredClone(initialAsset));
+    }
     if (kind === "rules")
       setRule(entry ? { ...entry } : structuredClone(initialRule));
     if (kind === "connectors")
@@ -509,6 +512,24 @@ export default function App() {
               kind: "telegram",
             },
       );
+  }
+  async function applyPackageUrl() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const identity = await api("/assets/parse-purl", "POST", {
+        purl: packageUrl,
+      });
+      setAsset((current: any) =>
+        current.kind === "package" ? { ...current, ...identity } : current,
+      );
+      setNotice("Package identity filled. Review the fields before saving.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -1067,6 +1088,35 @@ export default function App() {
                                 />
                               </label>
                             </div>
+                            {asset.kind === "package" && (
+                              <div>
+                                <label>
+                                  Package URL (optional)
+                                  <input
+                                    value={packageUrl}
+                                    maxLength={1000}
+                                    onChange={(e) =>
+                                      setPackageUrl(e.target.value)
+                                    }
+                                    placeholder="pkg:npm/next@15.1.0"
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className="text-button"
+                                  disabled={busy || !packageUrl}
+                                  onClick={applyPackageUrl}
+                                >
+                                  Use package URL
+                                </button>
+                                <p className="help">
+                                  Fill the package fields from an exact-version
+                                  PURL. Qualifiers and subpaths are not
+                                  supported. Nothing is monitored until you save
+                                  the asset.
+                                </p>
+                              </div>
+                            )}
                             <div className="form-grid">
                               <label>
                                 Importance

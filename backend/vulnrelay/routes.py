@@ -18,6 +18,7 @@ from vulnrelay.opencve import validate_id
 from vulnrelay.osv import asset_status as osv_asset_status
 from vulnrelay.pipeline import correlate, vulnerabilities
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
+from vulnrelay.schemas import Asset
 from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
@@ -106,6 +107,20 @@ def get_catalog(q: str = Query("", max_length=200)):
 @router.get("/sources/osv/status")
 def get_osv_asset_status(request: Request):
     return osv_asset_status(request.app.state.engine)
+
+
+@router.post("/assets/parse-purl")
+def parse_package_url(document: dict):
+    try:
+        if set(document) != {"purl"}:
+            raise ValueError("Invalid package URL request")
+        asset = Asset.model_validate({"name": "Preview", "kind": "package", **document})
+        return {"ecosystem": asset.ecosystem, "package": asset.package, "version": asset.version}
+    except ValueError:
+        raise HTTPException(
+            422,
+            "Unsupported package URL: use npm, PyPI, Go, Maven, Cargo or NuGet with an exact version and no qualifiers or subpath",
+        ) from None
 
 
 @router.post("/catalog/{operation}")

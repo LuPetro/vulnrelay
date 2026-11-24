@@ -40,7 +40,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Offline technology catalog, editable environment-pack selection, CLI/API preview and atomic duplicate-safe import with preserved manual asset entry.
 - [x] Expanded curated catalog: 87 technologies and 19 packs, with documented NVD provenance and conservative matching for libraries.
 - [x] Opt-in OSV exact package/version queries and CVE-alias matching with persistent per-asset snapshots, source health and alert explanations.
-- [ ] Generic version ranges, package URLs, non-CVE OSV advisories and inventory integration.
+- [x] Import supported unqualified package URLs with exact versions into OSV asset identities, with validation and UI preview.
+- [ ] Generic version ranges, qualified package URLs, non-CVE OSV advisories and inventory integration.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.
 
 ## Local UI
@@ -70,7 +71,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [ ] Add digest grouping, historical missed-period catch-up options and alternative data-source coverage.
 - [x] Add an opt-in AI settings tab with OpenAI, Anthropic and compatible APIs, model/language selection, connection tests, daily request limits, caching and labeled source-grounded alert summaries with safe fallback. One active configuration; live provider acceptance remains pending.
 - [ ] Expand AI to multiple selectable profiles, additional native protocols, token/cost accounting and digest summaries after provider acceptance.
-- [ ] Expand OSV to non-CVE records and package URLs; consider lockfile/SBOM import after accurate matching works.
+- [ ] Expand OSV to non-CVE records and qualified package URLs; consider lockfile/SBOM import after accurate matching works.
 - [ ] Add lifecycle grouping, expiring suppression, optional critical out-of-hours escalation and clearer source health.
 - [ ] Add CVE.org and expanded lifecycle/priority configuration.
 - [ ] PostgreSQL integration validation, release artifacts and security review.

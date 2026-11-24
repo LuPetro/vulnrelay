@@ -63,6 +63,13 @@ Paketname, Ökosystem und Version; dein Assetname, deine Gruppe und deine
 Zugangsdaten werden nicht gesendet. Der letzte Check oder ein Fehler wird beim
 Asset angezeigt.
 
+Alternativ kannst du bei einem Paket eine Paket-URL wie `pkg:npm/next@15.1.0`
+einfügen und **Use package URL** wählen. Prüfe die ausgefüllten Felder und
+speichere anschließend das Asset. Unterstützt werden Paket-URLs der sechs
+OSV-Ökosysteme ohne Qualifikatoren oder Unterpfad und mit konkreter Version;
+ein bloßes `latest` reicht nicht. Eine Go-Kennung muss den tatsächlichen
+Modulpfad bezeichnen. Die Vorschau allein startet keine Überwachung.
+
 Erstelle zum Prüfen eine passende Regel, etwa für die Testgruppe mit
 `confidence equals confirmed`. Eine Regel, die zwingend CVSS ≥ 9 verlangt,
 trifft einen OSV-Eintrag ohne CVSS nicht. „Confirmed“ bezieht sich auf den

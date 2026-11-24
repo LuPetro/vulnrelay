@@ -55,7 +55,11 @@ The webhook increment passed GitHub CI and security. The next increment adds ntf
 
 Push increment local verification: 310 backend tests passed with 87.11% branch coverage; after adding provider-failure classification tests, all 16 targeted push tests passed. Ruff, release metadata, dependency lock, workflow and frontend formatting checks passed. GitHub browser/build/container/security validation follows.
 
-Continue with non-CVE OSV advisories, package URLs and inventory imports, and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+The push connector increment passed all GitHub CI and security runs, including browser and container jobs. The next increment adds supported unqualified, exact-version npm, PyPI, Go, Maven, Cargo and NuGet PURL input. The GUI resolves locally and asks users to review the fields; API and CLI accept PURL as asset input. Only the resolved identity is stored. Unsupported qualifiers/subpaths, moving tags and conflicting fields are rejected. PURL-based identity changes use the existing snapshot invalidation path. Go PURLs cannot prove the declared path is a module; users must supply the right module. See docs/osv.md. Full and GitHub checks follow.
+
+PURL increment local verification: 339 backend tests passed with 87.16% branch coverage; after adding a headless CLI test, all 27 targeted PURL tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final offline secret scan and GitHub browser/build/container/security checks follow.
+
+Continue with non-CVE OSV advisories, qualified package URLs, inventory imports and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 

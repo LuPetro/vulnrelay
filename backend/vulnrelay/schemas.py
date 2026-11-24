@@ -29,6 +29,22 @@ class Asset(Document):
     exposed: bool = False
     tags: list[str] = Field(default_factory=list, max_length=30)
 
+    @model_validator(mode="before")
+    @classmethod
+    def expand_package_url(cls, value):
+        if isinstance(value, dict) and "purl" in value:
+            from vulnrelay.purl import package_identity
+
+            value = value.copy()
+            purl = value.pop("purl")
+            if value.get("kind") != "package":
+                raise ValueError("Package URLs require a package asset")
+            identity = package_identity(purl)
+            if any(value.get(key) and value[key] != item for key, item in identity.items()):
+                raise ValueError("Package URL conflicts with package identity fields")
+            value.update(identity)
+        return value
+
     @model_validator(mode="after")
     def validate_identity(self):
         required = {
