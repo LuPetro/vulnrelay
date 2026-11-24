@@ -1,5 +1,6 @@
 """Opt-in OSV package/version lookups with atomic per-asset snapshots."""
 
+import hashlib
 import json
 import re
 import time
@@ -12,12 +13,28 @@ from sqlalchemy.engine import Engine
 
 from vulnrelay.nvd import retry_after_seconds
 from vulnrelay.schemas import Asset
-from vulnrelay.store import get_document, list_documents
+from vulnrelay.store import list_documents
 
 URL = "https://api.osv.dev/v1/query"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
 MAX_PAGES = 20
 MAX_FINDINGS = 2000
+
+
+class AssetChanged(ValueError):
+    """An inventory change invalidated an in-flight OSV lookup."""
+
+
+def _timestamp(value: str) -> datetime:
+    if not isinstance(value, str) or len(value) > 80:
+        raise ValueError("Invalid OSV modification time")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError
+        return parsed
+    except ValueError:
+        raise ValueError("Invalid OSV modification time") from None
 
 
 def normalized_name(ecosystem: str, name: str) -> str:
@@ -32,6 +49,19 @@ def normalized_name(ecosystem: str, name: str) -> str:
 
 def identity(asset: Asset) -> tuple[str, str, str]:
     return asset.ecosystem, normalized_name(asset.ecosystem, asset.package), asset.version
+
+
+def _asset_unchanged(connection, asset_id: str, asset: Asset) -> bool:
+    latest = connection.execute(
+        text("SELECT document FROM assets WHERE id=:asset"), {"asset": asset_id}
+    ).scalar_one_or_none()
+    if not latest:
+        return False
+    try:
+        current = Asset.model_validate_json(latest)
+    except ValueError:
+        return False
+    return current.enabled and current.kind == "package" and identity(current) == identity(asset)
 
 
 def failure_message(error: Exception) -> str:
@@ -103,20 +133,25 @@ def _normalize(record: dict, asset: Asset) -> list[tuple[str, str, dict]]:
         r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}", osv_id
     ):
         raise ValueError("Invalid OSV identifier")
+    modified = record.get("modified")
+    _timestamp(modified)
     if record.get("withdrawn"):
         return []
     affected = record.get("affected", [])
     if not isinstance(affected, list):
         raise ValueError("Invalid OSV affected package information")
-    matching_package = any(
-        isinstance(entry, dict)
-        and isinstance(entry.get("package"), dict)
-        and entry["package"].get("ecosystem") == asset.ecosystem
-        and isinstance(entry["package"].get("name"), str)
-        and normalized_name(asset.ecosystem, entry["package"]["name"]) == identity(asset)[1]
+    matching_packages = [
+        entry
         for entry in affected
-    )
-    if not matching_package:
+        if (
+            isinstance(entry, dict)
+            and isinstance(entry.get("package"), dict)
+            and entry["package"].get("ecosystem") == asset.ecosystem
+            and isinstance(entry["package"].get("name"), str)
+            and normalized_name(asset.ecosystem, entry["package"]["name"]) == identity(asset)[1]
+        )
+    ]
+    if not matching_packages:
         raise ValueError("OSV response does not identify the requested package")
     aliases = record.get("aliases", [])
     if (
@@ -131,17 +166,52 @@ def _normalize(record: dict, asset: Asset) -> list[tuple[str, str, dict]]:
     description = record.get("details") or record.get("summary") or ""
     if not isinstance(description, str) or len(description) > 200000:
         raise ValueError("Invalid OSV description")
-    modified = record.get("modified")
-    if not isinstance(modified, str) or len(modified) > 80:
-        raise ValueError("Invalid OSV modification time")
-    try:
-        if datetime.fromisoformat(modified.replace("Z", "+00:00")).tzinfo is None:
-            raise ValueError
-    except ValueError:
-        raise ValueError("Invalid OSV modification time") from None
     # Only public source fields needed for explanation are retained. CVSS is not
     # guessed from vector strings and existing NVD assessments remain untouched.
-    normalized = {"id": osv_id, "description": description, "modified": modified}
+    # Source timestamps and unrelated metadata do not by themselves justify an
+    # alert. Track only content used for notification decisions or fix context.
+    ranges, versions = [], []
+    for entry in matching_packages:
+        selected_ranges, selected_versions = entry.get("ranges", []), entry.get("versions", [])
+        if (
+            not isinstance(selected_ranges, list)
+            or not all(isinstance(item, dict) for item in selected_ranges)
+            or not isinstance(selected_versions, list)
+            or not all(isinstance(item, str) and len(item) <= 200 for item in selected_versions)
+        ):
+            raise ValueError("Invalid OSV package ranges or versions")
+        ranges.extend(
+            json.dumps(item, sort_keys=True, ensure_ascii=True, allow_nan=False)
+            for item in selected_ranges
+        )
+        versions.extend(selected_versions)
+    references = record.get("references", [])
+    if not isinstance(references, list):
+        raise ValueError("Invalid OSV references")
+    fix_links = []
+    for ref in references:
+        if isinstance(ref, dict) and ref.get("type") == "FIX":
+            url = ref.get("url")
+            if not isinstance(url, str) or len(url) > 2048:
+                raise ValueError("Invalid OSV fix reference")
+            fix_links.append(url)
+    material = json.dumps(
+        {
+            "description": description,
+            "ranges": sorted(set(ranges)),
+            "versions": sorted(set(versions)),
+            "fix_links": sorted(set(fix_links)),
+        },
+        sort_keys=True,
+        ensure_ascii=True,
+        allow_nan=False,
+    )
+    normalized = {
+        "id": osv_id,
+        "description": description,
+        "modified": modified,
+        "material_hash": hashlib.sha256(material.encode()).hexdigest(),
+    }
     return [(cve_id, osv_id, normalized) for cve_id in ids]
 
 
@@ -189,24 +259,62 @@ def refresh(
                             continue
                         seen[record["id"]] = record
                     normalized.extend(_normalize(record, asset))
-                latest = get_document(engine, "assets", asset_id)
-                current_asset = (
-                    Asset.model_validate({k: v for k, v in latest.items() if k != "id"})
-                    if latest
-                    else None
-                )
-                if (
-                    not current_asset
-                    or not current_asset.enabled
-                    or current_asset.kind != "package"
-                    or identity(current_asset) != identity(asset)
-                ):
-                    raise ValueError("Asset changed during lookup")
-                with engine.begin() as connection:
+                with engine.connect() as connection:
+                    if engine.dialect.name == "sqlite":
+                        # Serialize the final identity check with asset edits.
+                        connection.exec_driver_sql("BEGIN IMMEDIATE")
+                    if not _asset_unchanged(connection, asset_id, asset):
+                        raise AssetChanged("Asset changed during lookup")
+                    previous_records = {
+                        (row.cve_id, row.osv_id): json.loads(row.record)
+                        for row in connection.execute(
+                            text(
+                                "SELECT cve_id,osv_id,record FROM osv_findings WHERE asset_id=:asset"
+                            ),
+                            {"asset": asset_id},
+                        )
+                    }
+                    previous_by_id = {}
+                    for (_, old_id), previous in previous_records.items():
+                        old_time = _timestamp(previous["modified"])
+                        if old_id not in previous_by_id or old_time > previous_by_id[old_id]:
+                            previous_by_id[old_id] = old_time
+                    for source in records:
+                        if (
+                            isinstance(source, dict)
+                            and source.get("id") in previous_by_id
+                            and _timestamp(source.get("modified")) < previous_by_id[source["id"]]
+                        ):
+                            raise ValueError("OSV record is older than the stored snapshot")
                     connection.execute(
                         text("DELETE FROM osv_findings WHERE asset_id=:asset"), {"asset": asset_id}
                     )
                     for cve_id, osv_id, record in normalized:
+                        record = dict(record)
+                        previous = previous_records.get((cve_id, osv_id))
+                        if previous:
+                            old_modified = _timestamp(previous["modified"])
+                            new_modified = _timestamp(record["modified"])
+                            if new_modified < old_modified:
+                                raise ValueError("OSV record is older than the stored snapshot")
+                            old_hash = previous.get("material_hash")
+                            changed = old_hash is not None and old_hash != record["material_hash"]
+                            if old_hash is None:
+                                changed = previous.get("description") != record["description"]
+                            if new_modified == old_modified and changed:
+                                raise ValueError(
+                                    "OSV content changed without a newer modification time"
+                                )
+                            unchanged = not changed and (
+                                old_hash is not None or new_modified == old_modified
+                            )
+                            record["alert_revision"] = (
+                                previous.get("alert_revision", previous["modified"])
+                                if unchanged
+                                else record["modified"]
+                            )
+                        else:
+                            record["alert_revision"] = record["modified"]
                         connection.execute(
                             text("""INSERT INTO osv_findings
                         (asset_id,cve_id,osv_id,ecosystem,package,version,record,checked_at)
@@ -229,17 +337,27 @@ def refresh(
                     last_attempt=:now,last_success=:now,last_error=NULL"""),
                         {"asset": asset_id, "now": current},
                     )
+                    connection.commit()
                 succeeded += 1
                 found += len(normalized)
             except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as error:
                 failed += 1
-                with engine.begin() as connection:
-                    connection.execute(
-                        text("""INSERT INTO osv_asset_state (asset_id,last_attempt,last_error)
+                if not isinstance(error, AssetChanged):
+                    with engine.connect() as connection:
+                        if engine.dialect.name == "sqlite":
+                            connection.exec_driver_sql("BEGIN IMMEDIATE")
+                        if _asset_unchanged(connection, asset_id, asset):
+                            connection.execute(
+                                text("""INSERT INTO osv_asset_state (asset_id,last_attempt,last_error)
                     VALUES (:asset,:now,:error) ON CONFLICT(asset_id) DO UPDATE SET
                     last_attempt=:now,last_error=:error"""),
-                        {"asset": asset_id, "now": current, "error": failure_message(error)},
-                    )
+                                {
+                                    "asset": asset_id,
+                                    "now": current,
+                                    "error": failure_message(error),
+                                },
+                            )
+                        connection.commit()
                 if isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 429:
                     retry_after = retry_after_seconds(error.response)
                 if isinstance(error, httpx.TransportError) or (

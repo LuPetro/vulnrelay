@@ -35,14 +35,18 @@ def _leaves(nodes, constrained=False):
         yield from _leaves(node.get("nodes", []) + node.get("children", []), restricted)
 
 
-def match(asset: Asset, vulnerability: dict) -> dict | None:
+def match(asset: Asset, vulnerability: dict, *, asset_id: str | None = None) -> dict | None:
     if not asset.enabled or vulnerability.get("status", "").casefold() == "rejected":
         return None
     if asset.kind == "package":
         from vulnrelay.osv import identity
 
         for item in vulnerability.get("osv", []):
-            if (item["ecosystem"], item["package"], item["version"]) == identity(asset):
+            if (asset_id is None or item.get("asset_id") == asset_id) and (
+                item["ecosystem"],
+                item["package"],
+                item["version"],
+            ) == identity(asset):
                 return {
                     "method": "osv_package_version",
                     "confidence": "confirmed",

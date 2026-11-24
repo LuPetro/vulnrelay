@@ -134,6 +134,277 @@ def test_failed_or_incomplete_sync_preserves_previous_snapshot(configured_engine
         assert "previous findings retained" in state
 
 
+def test_identical_packages_keep_per_asset_snapshots_separate(configured_engine):
+    first = package(configured_engine, name="Production dependency", group="production")
+    second = package(configured_engine, name="Staging dependency", group="staging")
+    connector = save_document(
+        configured_engine, "connectors", {"name": "Channel", "chat_id": "-123"}
+    )
+    save_document(
+        configured_engine,
+        "rules",
+        {
+            "name": "Exact dependency",
+            "destinations": [connector["id"]],
+            "condition": {
+                "kind": "condition",
+                "field": "confidence",
+                "op": "eq",
+                "value": "confirmed",
+            },
+        },
+    )
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"vulns": [advisory()]}))
+    ) as client:
+        assert osv.refresh(configured_engine, client=client, now=1800000000)["assets_checked"] == 2
+    assert correlate(configured_engine, enqueue=True)["queued"] == 2
+    with configured_engine.begin() as connection:
+        old_payload = next(
+            json.loads(row.payload)
+            for row in connection.execute(text("SELECT payload FROM outbox"))
+            if json.loads(row.payload)["asset_id"] == first["id"]
+        )
+        connection.execute(
+            text("UPDATE osv_asset_state SET last_attempt=0 WHERE asset_id=:id"),
+            {"id": first["id"]},
+        )
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"vulns": []}))
+    ) as client:
+        assert (
+            osv.refresh(configured_engine, client=client, now=1800000600, batch_size=1)[
+                "assets_checked"
+            ]
+            == 1
+        )
+    reports = correlate(configured_engine)["reports"]
+    assert [report["asset_id"] for report in reports] == [second["id"]]
+    from vulnrelay.pipeline import refresh_alert
+
+    refreshed, reason = refresh_alert(configured_engine, old_payload, connector["id"])
+    assert refreshed is None and "no longer matches" in reason
+
+
+def _versioned_advisory(modified, fixed="15.1.1", description="Public package issue"):
+    return advisory(
+        modified=modified,
+        summary=description,
+        affected=[
+            {
+                "package": {"ecosystem": "npm", "name": "next"},
+                "ranges": [{"type": "SEMVER", "events": [{"introduced": "0"}, {"fixed": fixed}]}],
+            }
+        ],
+    )
+
+
+def _package_rule(engine):
+    connector = save_document(engine, "connectors", {"name": "Channel", "chat_id": "-123"})
+    save_document(
+        engine,
+        "rules",
+        {
+            "name": "Exact dependency",
+            "destinations": [connector["id"]],
+            "condition": {
+                "kind": "condition",
+                "field": "confidence",
+                "op": "eq",
+                "value": "confirmed",
+            },
+        },
+    )
+    return connector
+
+
+def test_osv_timestamp_only_does_not_realert_but_fix_change_does(configured_engine, monkeypatch):
+    asset = package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-20T12:00:00Z"),
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+        _versioned_advisory("2026-11-22T12:00:00Z", fixed="15.1.2"),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456:" + "x" * 30)
+        with httpx.Client(
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"ok": True}))
+        ) as telegram:
+            assert (
+                deliver_one(configured_engine, now=2000000000, client=telegram)["state"] == "sent"
+            )
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        record = next(vulnerabilities(configured_engine, "CVE-2026-1234"))
+        evidence = match(
+            Asset.model_validate({k: v for k, v in asset.items() if k != "id"}),
+            record,
+            asset_id=asset["id"],
+        )
+        assert evidence["evidence"]["modified"] == "2026-11-21T12:00:00Z"
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+
+
+def test_legacy_osv_snapshots_keep_their_existing_deduplication_key(configured_engine):
+    asset = package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-20T12:00:00Z"),
+        _versioned_advisory("2026-11-20T12:00:00Z"),
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        with configured_engine.begin() as connection:
+            old = json.loads(
+                connection.execute(text("SELECT record FROM osv_findings")).scalar_one()
+            )
+            old.pop("material_hash")
+            old.pop("alert_revision")
+            connection.execute(
+                text("UPDATE osv_findings SET record=:record WHERE asset_id=:asset"),
+                {"record": json.dumps(old), "asset": asset["id"]},
+            )
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+
+
+def test_kev_enrichment_can_renotify_after_a_timestamp_only_osv_update(configured_engine):
+    package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-20T12:00:00Z"),
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+    with configured_engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO kev_entries (cve_id,date_added,raw) VALUES ('CVE-2026-1234','2026-11-22','{}')"
+            )
+        )
+    assert correlate(configured_engine, enqueue=True)["queued"] == 1
+    assert correlate(configured_engine, enqueue=True)["queued"] == 0
+
+
+def test_first_changed_legacy_snapshot_keeps_previous_renotification_behavior(configured_engine):
+    package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-20T12:00:00Z"),
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+        _versioned_advisory("2026-11-22T12:00:00Z"),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        with configured_engine.begin() as connection:
+            old = json.loads(
+                connection.execute(text("SELECT record FROM osv_findings")).scalar_one()
+            )
+            old.pop("material_hash")
+            old.pop("alert_revision")
+            connection.execute(
+                text("UPDATE osv_findings SET record=:record"), {"record": json.dumps(old)}
+            )
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 0
+
+
+@pytest.mark.parametrize("change", ["description", "fix_reference"])
+def test_osv_description_or_fix_reference_change_can_renotify(configured_engine, change):
+    package(configured_engine)
+    _package_rule(configured_engine)
+    later = _versioned_advisory("2026-11-21T12:00:00Z")
+    if change == "description":
+        later["summary"] = "Updated source description"
+    else:
+        later["references"] = [{"type": "FIX", "url": "https://example.org/fix"}]
+    responses = [_versioned_advisory("2026-11-20T12:00:00Z"), later]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+
+
+def test_osv_older_or_inconsistent_updates_retain_the_last_complete_snapshot(configured_engine):
+    package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+        _versioned_advisory("2026-11-20T12:00:00Z", fixed="15.1.2"),
+        _versioned_advisory("2026-11-21T12:00:00Z", fixed="15.1.2"),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        for _ in range(2):
+            assert osv.refresh(configured_engine, client=client)["assets_failed"] == 1
+            record = next(vulnerabilities(configured_engine, "CVE-2026-1234"))
+            assert record["osv"][0]["record"]["modified"] == "2026-11-21T12:00:00Z"
+            assert correlate(configured_engine, enqueue=True)["queued"] == 0
+
+
+def test_stale_record_without_cve_alias_cannot_erase_newer_findings(configured_engine):
+    package(configured_engine)
+    _package_rule(configured_engine)
+    responses = [
+        _versioned_advisory("2026-11-21T12:00:00Z"),
+        {**_versioned_advisory("2026-11-20T12:00:00Z"), "aliases": []},
+        {**_versioned_advisory("2026-11-22T12:00:00Z"), "withdrawn": "2026-11-22T12:00:00Z"},
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"vulns": [responses.pop(0)]})
+        )
+    ) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert correlate(configured_engine, enqueue=True)["queued"] == 1
+        assert osv.refresh(configured_engine, client=client)["assets_failed"] == 1
+        assert next(vulnerabilities(configured_engine, "CVE-2026-1234"), None) is not None
+        assert osv.refresh(configured_engine, client=client)["assets_checked"] == 1
+        assert next(vulnerabilities(configured_engine, "CVE-2026-1234"), None) is None
+
+
 def test_rate_limit_stops_batch_and_honors_provider_retry_deadline(configured_engine):
     package(configured_engine)
     package(configured_engine, name="Other package", package="react", version="19.0.0")
@@ -264,6 +535,20 @@ def test_asset_change_during_query_does_not_save_obsolete_evidence(configured_en
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         assert osv.refresh(configured_engine, client=client)["assets_failed"] == 1
     assert next(vulnerabilities(configured_engine, "CVE-2026-1234"), None) is None
+    assert osv.asset_status(configured_engine) == []
+
+
+def test_failed_query_does_not_mark_changed_asset_as_checked(configured_engine):
+    asset = package(configured_engine)
+    identifier = asset.pop("id")
+
+    def handler(_):
+        save_document(configured_engine, "assets", {**asset, "version": "16.0.0"}, identifier)
+        return httpx.Response(503)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert osv.refresh(configured_engine, client=client)["assets_failed"] == 1
+    assert osv.asset_status(configured_engine) == []
 
 
 def test_package_cannot_match_unrelated_nvd_cve():

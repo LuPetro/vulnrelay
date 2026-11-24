@@ -83,6 +83,13 @@ OSV-Treffer für deine **angegebene** Version; VulnRelay prüft nicht selbst,
 welche Version tatsächlich installiert ist. Nicht jeder OSV-Eintrag hat eine
 CVE-Kennung. Details: [OSV-Anleitung](osv.md).
 
+Nach dem Update können einzelne ältere OSV-Einträge einmal erneut gemeldet
+werden, wenn ihre Änderungshistorie bisher nicht für den neuen Vergleich
+gespeichert war. Reine Zeitstempeländerungen erzeugen nach der ersten
+erfolgreichen Vergleichsbasis keine zusätzlichen Alerts. Unterschiedliche
+Assets und Regeln sowie Zustellversuche nach einem Absturz können weiterhin
+separate Nachrichten auslösen.
+
 ## 4. Wöchentlichen Bericht prüfen
 
 Unter **Reports → Add report** wählst du **Worldwide** für zuletzt veröffentlichte

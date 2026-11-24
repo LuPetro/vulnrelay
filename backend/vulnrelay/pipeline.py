@@ -59,7 +59,7 @@ def vulnerabilities(
             if row["osv_count"]:
                 for finding in connection.execute(
                     text(
-                        "SELECT osv_id,ecosystem,package,version,record,checked_at FROM osv_findings WHERE cve_id=:id ORDER BY osv_id"
+                        "SELECT asset_id,osv_id,ecosystem,package,version,record,checked_at FROM osv_findings WHERE cve_id=:id ORDER BY osv_id,asset_id"
                     ),
                     {"id": row["id"]},
                 ).mappings():
@@ -136,6 +136,19 @@ def _event_key(
         "destination": destination,
     }
     if changes:
+        event_evidence = evidence
+        if evidence.get("method") == "osv_package_version":
+            for finding in vulnerability.get("osv", []):
+                if finding.get("asset_id") == asset_id and finding.get("osv_id") == evidence.get(
+                    "evidence", {}
+                ).get("osv_id"):
+                    revision = finding["record"].get("alert_revision")
+                    if revision:
+                        event_evidence = {
+                            **evidence,
+                            "evidence": {**evidence["evidence"], "modified": revision},
+                        }
+                    break
         material.update(
             {
                 "cvss": vulnerability["cvss"],
@@ -144,7 +157,7 @@ def _event_key(
                 if vulnerability["epss"] is not None
                 else None,
                 "status": vulnerability["status"],
-                "evidence": evidence,
+                "evidence": event_evidence,
                 "patches": sorted(
                     ref.get("url", "")
                     for ref in vulnerability["nvd"].get("references", [])
@@ -169,7 +182,7 @@ def _evaluate_pair(
         rule.groups and asset.group not in rule.groups
     ):
         return None
-    evidence = evidence if evidence is not None else match(asset, vulnerability)
+    evidence = evidence if evidence is not None else match(asset, vulnerability, asset_id=asset_id)
     if not evidence:
         return None
     vendor, product = (
@@ -287,7 +300,7 @@ def correlate(
     # Each bounded page closes its read connection before queue writes begin.
     for vulnerability in _batches(engine, cve_id):
         for asset_id, asset in assets:
-            evidence = match(asset, vulnerability)
+            evidence = match(asset, vulnerability, asset_id=asset_id)
             if not evidence:
                 continue
             for current_rule_id, rule in rules:

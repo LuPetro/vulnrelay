@@ -41,9 +41,34 @@ OSV's result means the public advisory matches the **declared package and
 version**. VulnRelay cannot verify that your declared inventory actually matches
 what is installed or that the application is exploitable in your environment.
 The alert names OSV, provides a direct advisory link and explains the match.
-Repeated checks of unchanged findings do not enqueue duplicate alerts. Changed
-or withdrawn findings are handled on a subsequent successful query, and queued
-alerts are rechecked before delivery.
+Each asset uses its own successful OSV snapshot, even when another asset has
+the same package and version. A changed or withdrawn finding is handled on a
+subsequent successful query; queued alerts are checked against that asset's
+current snapshot before delivery.
+
+Once a content baseline exists, a change to an OSV modification timestamp alone
+does not create another alert. Changes to the source description, affected range
+or listed versions, or `FIX` references can create a new event when the rule
+allows re-notification. CVSS, EPSS-band and KEV changes are considered separately.
+This is a practical filter, not a complete assessment of whether every upstream
+change matters. Multiple assets or rules can produce separate alerts, and a
+crash after a provider accepts a message can still cause a repeated delivery.
+
+Existing snapshots created before this content baseline can lack the fields
+needed to distinguish a metadata-only update. If such a record has already
+changed when first checked after upgrading, the old re-notification behavior is
+retained once; subsequent timestamp-only updates use the new baseline. After
+the per-asset matching correction, an old queued alert can be cancelled if its
+own asset no longer has the finding; a separate event may be created where an
+earlier alert used another asset's snapshot.
+
+If the same advisory is returned with an older modification time, or with
+changed tracked content but an unchanged modification time, the prior complete
+snapshot is retained and the check is shown as failed. A missing advisory in a
+successful OSV query is treated as no longer returned by the source; this does
+not guarantee OSV's data or coverage is complete. On SQLite, asset changes and
+the final result write are serialized so a response for an old declared version
+cannot be recorded as a successful check of the new version.
 
 The first implementation correlates OSV records with a CVE identifier or CVE
 alias; advisories without a CVE alias are currently omitted. It does not claim

@@ -252,7 +252,7 @@ def refresh_digest(
         reason = None
         if config.scope == "relevant":
             for asset_id, asset in assets:
-                evidence = match(asset, vulnerability)
+                evidence = match(asset, vulnerability, asset_id=asset_id)
                 if evidence:
                     for rule_id, rule in rules:
                         result = _evaluate_pair(

@@ -42,6 +42,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Opt-in OSV exact package/version queries and CVE-alias matching with persistent per-asset snapshots, source health and alert explanations.
 - [x] Import supported unqualified package URLs with exact versions into OSV asset identities, with validation and UI preview.
 - [x] Preview and atomically import up to 100 supported package URLs, preserving existing asset settings and avoiding concurrent duplicate imports.
+- [x] Isolate OSV matching by asset snapshot and suppress timestamp-only re-notifications after establishing a compatible source-content baseline.
 - [ ] Generic version ranges, qualified package URLs, non-CVE OSV advisories and inventory integration.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.
 
