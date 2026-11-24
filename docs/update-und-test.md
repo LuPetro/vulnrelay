@@ -70,6 +70,12 @@ OSV-Ökosysteme ohne Qualifikatoren oder Unterpfad und mit konkreter Version;
 ein bloßes `latest` reicht nicht. Eine Go-Kennung muss den tatsächlichen
 Modulpfad bezeichnen. Die Vorschau allein startet keine Überwachung.
 
+Für mehrere Pakete öffnest du **Assets → Import package list** und fügst pro
+Zeile eine solche Paket-URL ein. Wähle die Gruppe und nutze **Review package
+list**, bevor du importierst. Bereits vorhandene und doppelte Einträge werden
+angezeigt und nicht überschrieben. Neue Assets können von bestehenden Regeln
+erfasst werden. Mehr dazu in der [Anleitung für Paketlisten](package-import.md).
+
 Erstelle zum Prüfen eine passende Regel, etwa für die Testgruppe mit
 `confidence equals confirmed`. Eine Regel, die zwingend CVSS ≥ 9 verlangt,
 trifft einen OSV-Eintrag ohne CVSS nicht. „Confirmed“ bezieht sich auf den

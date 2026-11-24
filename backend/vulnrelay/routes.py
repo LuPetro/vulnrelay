@@ -16,6 +16,7 @@ from vulnrelay.monitor import state
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import validate_id
 from vulnrelay.osv import asset_status as osv_asset_status
+from vulnrelay.package_import import InvalidPackageURL, PackageSelection, import_packages
 from vulnrelay.pipeline import correlate, vulnerabilities
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.schemas import Asset
@@ -121,6 +122,25 @@ def parse_package_url(document: dict):
             422,
             "Unsupported package URL: use npm, PyPI, Go, Maven, Cargo or NuGet with an exact version and no qualifiers or subpath",
         ) from None
+
+
+@router.post("/packages/{operation}")
+def apply_package_selection(
+    operation: Literal["preview", "import"], document: dict, request: Request
+):
+    try:
+        return import_packages(
+            request.app.state.engine,
+            PackageSelection.model_validate(document),
+            preview=operation == "preview",
+        )
+    except InvalidPackageURL as error:
+        raise HTTPException(
+            422,
+            f"Package URL {error.index} is invalid or unsupported; use an exact-version unqualified PURL",
+        ) from None
+    except ValueError:
+        raise HTTPException(422, "Invalid package selection or asset context") from None
 
 
 @router.post("/catalog/{operation}")

@@ -18,7 +18,8 @@ PURLs, lockfile/SBOM import and automatic discovery are not supported yet.
    `pkg:npm/%40angular/core@17.1.0` into **Package URL**, choose **Use package
    URL**, review the resulting fields and save the asset. Previewing the URL
    does not create an asset or send it to OSV. The stored configuration contains
-   the resolved identity fields, not the original URL.
+   the resolved identity fields, not the original URL. To review and import
+   several PURLs together, see [package list import](package-import.md).
 2. In your server's private `.env`, set `VULNRELAY_OSV_ENABLED=true`. Recreate
    both containers with `docker compose up -d --force-recreate` so they read the
    updated environment. No OSV API key is needed. This sends the declared

@@ -18,7 +18,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
-- Import supported unqualified package URLs with exact versions into OSV asset identities via GUI, API or CLI.
+- Import supported unqualified package URLs with exact versions into OSV asset identities via GUI, API or CLI, including atomic, duplicate-aware list imports with preview.
 - ntfy and Gotify push connectors with environment-only token references, private-server opt-in and shared queue, scheduling and rate-limit handling.
 - Generic JSON webhook connector with optional HMAC-SHA256 signatures, stable event IDs, destination restrictions and persistent retry/queue semantics.
 - SMTP email connector with certificate-verified STARTTLS, pinned DNS, server-side credential references and delivery-hour support.

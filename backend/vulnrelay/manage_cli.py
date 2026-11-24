@@ -13,6 +13,7 @@ from vulnrelay.db import create_database_engine
 from vulnrelay.delivery import deliver_one, enqueue_test, history
 from vulnrelay.digests import delete_digest, list_digests, preview_digest, save_digest
 from vulnrelay.monitor import cycle, monitor_lock, run
+from vulnrelay.package_import import PackageSelection, import_packages
 from vulnrelay.pipeline import correlate
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.store import delete_document, list_documents, save_document
@@ -26,6 +27,18 @@ queue_app = typer.Typer(no_args_is_help=True, help="Inspect or discard waiting n
 app.add_typer(queue_app, name="queue")
 reports_app = typer.Typer(no_args_is_help=True, help="Configure scheduled CVE reports.")
 app.add_typer(reports_app, name="reports")
+packages_app = typer.Typer(no_args_is_help=True, help="Preview or import package URL lists.")
+app.add_typer(packages_app, name="packages")
+
+
+@packages_app.command("import")
+def packages_import(file: Path, preview: bool = False):
+    """Import a JSON package URL selection, or review it with --preview."""
+    _execute(
+        lambda engine: import_packages(
+            engine, PackageSelection.model_validate_json(file.read_text()), preview=preview
+        )
+    )
 
 
 @reports_app.command("list")

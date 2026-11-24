@@ -1,6 +1,7 @@
 import { version as appVersion } from "../package.json";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./Catalog";
+import PackageImport from "./PackageImport";
 import OverviewPage, { type OverviewData } from "./Overview";
 import QueuePanel from "./QueuePanel";
 import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
@@ -358,6 +359,7 @@ export default function App() {
       kind: "telegram",
     });
   const [packageUrl, setPackageUrl] = useState("");
+  const [packageImportOpen, setPackageImportOpen] = useState(false);
   const [theme, setTheme] = useState(
     () => localStorage.getItem("vulnrelay-theme") || "light",
   );
@@ -486,6 +488,7 @@ export default function App() {
   function navigate(value: string) {
     setPage(value);
     setEditor(null);
+    setPackageImportOpen(false);
     setDetail(null);
     setReport(null);
     setNotice("");
@@ -493,6 +496,7 @@ export default function App() {
   function openEditor(kind: string, entry?: Entry) {
     setEditId(entry?.id || null);
     setEditor(kind);
+    setPackageImportOpen(false);
     if (kind === "assets") {
       setPackageUrl("");
       setAsset(entry ? { ...entry } : structuredClone(initialAsset));
@@ -820,6 +824,26 @@ export default function App() {
                     Browse catalog <ArrowRight size={16} />
                   </button>
                 </section>
+              )}
+              {page === "Assets" && (
+                <>
+                  <button
+                    className="secondary"
+                    onClick={() => {
+                      setEditor(null);
+                      setPackageImportOpen((open) => !open);
+                    }}
+                  >
+                    Import package list
+                  </button>
+                  {packageImportOpen && (
+                    <PackageImport
+                      api={api}
+                      onImported={load}
+                      onClose={() => setPackageImportOpen(false)}
+                    />
+                  )}
+                </>
               )}
               {(page === "Assets" ||
                 page === "Notification rules" ||

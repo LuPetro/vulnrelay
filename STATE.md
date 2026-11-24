@@ -59,6 +59,10 @@ The push connector increment passed all GitHub CI and security runs, including b
 
 PURL increment local verification: 339 backend tests passed with 87.16% branch coverage; after adding a headless CLI test, all 27 targeted PURL tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final offline secret scan and GitHub browser/build/container/security checks follow.
 
+The PURL increment passed all GitHub CI and security runs. The next increment adds previewable batch import of up to 100 unqualified, exact-version package URLs via GUI, CLI and API. Imports validate the entire selection, serialize duplicate checks/inserts and preserve existing assets' settings, including disabled status. Deduplication uses normalized OSV identity plus exact version string and inventory context; equivalent version strings are not guessed. Preview makes no network requests and the GUI invalidates review on changes. Existing broad rules can match new assets. See docs/package-import.md. Full and GitHub checks follow.
+
+Package-list increment local verification: 346 backend tests passed with 87.24% branch coverage, including concurrent duplicate handling, rollback, API validation and CLI preview/import. Ruff, release metadata, dependency lock, workflow and frontend formatting checks passed. Final tracked-source secret scan and GitHub browser/build/container/security checks follow.
+
 Continue with non-CVE OSV advisories, qualified package URLs, inventory imports and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities

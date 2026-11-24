@@ -41,6 +41,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Expanded curated catalog: 87 technologies and 19 packs, with documented NVD provenance and conservative matching for libraries.
 - [x] Opt-in OSV exact package/version queries and CVE-alias matching with persistent per-asset snapshots, source health and alert explanations.
 - [x] Import supported unqualified package URLs with exact versions into OSV asset identities, with validation and UI preview.
+- [x] Preview and atomically import up to 100 supported package URLs, preserving existing asset settings and avoiding concurrent duplicate imports.
 - [ ] Generic version ranges, qualified package URLs, non-CVE OSV advisories and inventory integration.
 - [ ] Inventory JSON/YAML import/export and improved notification aggregation across matching assets.
 
@@ -66,7 +67,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Add SMTP email delivery with authenticated STARTTLS, source-safe error handling and shared queue/scheduling semantics; live operator acceptance remains pending.
 - [x] Add a versioned generic JSON webhook with optional HMAC signatures, stable event IDs, DNS pinning and shared delivery semantics; live operator acceptance remains pending.
 - [x] Add ntfy and Gotify push connectors with secure token handling, rate limits and existing queue/schedule semantics; live operator acceptance remains pending.
-- [ ] Add ntfy/Gotify, then Matrix, Teams and Mattermost where supported.
+- [ ] Add Matrix, Teams and Mattermost connectors where supported.
 - [x] Add scheduled personal and global daily/weekly reports with coverage disclosure and persistent queue identities; live operator acceptance remains pending.
 - [ ] Add digest grouping, historical missed-period catch-up options and alternative data-source coverage.
 - [x] Add an opt-in AI settings tab with OpenAI, Anthropic and compatible APIs, model/language selection, connection tests, daily request limits, caching and labeled source-grounded alert summaries with safe fallback. One active configuration; live provider acceptance remains pending.

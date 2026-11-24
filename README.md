@@ -28,7 +28,7 @@ The first source synchronization can take several minutes, especially without an
 - CISA KEV authoritative snapshots with validation, rollback on invalid catalogs and stale-catalog rejection.
 - Daily EPSS CSV enrichment of locally stored CVEs, plus individual FIRST API lookups.
 - Optional OpenCVE Knowledge Base enrichment, manual UI/CLI lookups, conditional caching and separate source assessments.
-- Opt-in OSV.dev lookups for exact versions of npm, PyPI, Go, Maven, crates.io and NuGet packages, with per-asset health, source evidence, CVE-alias correlation and import of supported unqualified package URLs.
+- Opt-in OSV.dev lookups for exact versions of npm, PyPI, Go, Maven, crates.io and NuGet packages, with per-asset health, source evidence, CVE-alias correlation and [previewable bulk import of supported package URLs](docs/package-import.md).
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
 - Searchable offline catalog of 87 technologies and 19 customizable environment packs, with preview, atomic import and duplicate protection. Manual asset entry remains available.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
