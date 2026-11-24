@@ -1141,7 +1141,15 @@ export default function App() {
                                           ? "SLACK_WEBHOOK_URL"
                                           : e.target.value === "webhook"
                                             ? "VULNRELAY_WEBHOOK_URL"
-                                            : "",
+                                            : e.target.value === "ntfy"
+                                              ? "VULNRELAY_NTFY_URL"
+                                              : e.target.value === "gotify"
+                                                ? "VULNRELAY_GOTIFY_URL"
+                                                : "",
+                                    push_token_env:
+                                      e.target.value === "gotify"
+                                        ? "VULNRELAY_GOTIFY_TOKEN"
+                                        : "VULNRELAY_NTFY_TOKEN",
                                   })
                                 }
                               >
@@ -1150,6 +1158,8 @@ export default function App() {
                                 <option value="slack">Slack webhook</option>
                                 <option value="smtp">Email via SMTP</option>
                                 <option value="webhook">Generic webhook</option>
+                                <option value="ntfy">ntfy push</option>
+                                <option value="gotify">Gotify push</option>
                               </select>
                             </label>
                             <ConnectorSchedule
@@ -1327,6 +1337,65 @@ export default function App() {
                                   never entered here. STARTTLS and a valid
                                   server certificate are required; recreate both
                                   containers after changing .env.
+                                </p>
+                              </>
+                            ) : connector.kind === "ntfy" ||
+                              connector.kind === "gotify" ? (
+                              <>
+                                <label>
+                                  Push server URL environment variable
+                                  <input
+                                    required
+                                    pattern={`VULNRELAY_${connector.kind.toUpperCase()}_URL[A-Z0-9_]*`}
+                                    value={connector.webhook_env || ""}
+                                    onChange={(e) =>
+                                      setConnector({
+                                        ...connector,
+                                        webhook_env: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  Push token environment variable
+                                  <input
+                                    required
+                                    pattern={`VULNRELAY_${connector.kind.toUpperCase()}_TOKEN[A-Z0-9_]*`}
+                                    value={connector.push_token_env || ""}
+                                    onChange={(e) =>
+                                      setConnector({
+                                        ...connector,
+                                        push_token_env: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                {connector.kind === "ntfy" && (
+                                  <label>
+                                    ntfy topic
+                                    <input
+                                      required
+                                      maxLength={64}
+                                      pattern={"[A-Za-z0-9_\\-]{1,64}"}
+                                      value={connector.ntfy_topic || ""}
+                                      onChange={(e) =>
+                                        setConnector({
+                                          ...connector,
+                                          ntfy_topic: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                )}
+                                <p className="help">
+                                  Set the server URL and token in these server
+                                  environment variables; only their names are
+                                  stored here. Tokens require HTTPS. Gotify
+                                  requires an application token; an ntfy token
+                                  is optional. Public ntfy topics may be
+                                  readable by others: use access controls for
+                                  private alerts. Recreate both containers after
+                                  changing .env.
                                 </p>
                               </>
                             ) : (
@@ -1552,12 +1621,16 @@ export default function App() {
                                 : page === "Connectors"
                                   ? entry.kind === "smtp"
                                     ? `Email · ${entry.smtp_to}`
-                                    : entry.kind === "webhook"
-                                      ? `Webhook · URL: $${entry.webhook_env}`
-                                      : entry.kind === "discord" ||
-                                          entry.kind === "slack"
-                                        ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
-                                        : `${entry.chat_id} · token: $${entry.token_env}`
+                                    : entry.kind === "ntfy"
+                                      ? `ntfy · topic: ${entry.ntfy_topic}`
+                                      : entry.kind === "gotify"
+                                        ? `Gotify · server: $${entry.webhook_env}`
+                                        : entry.kind === "webhook"
+                                          ? `Webhook · URL: $${entry.webhook_env}`
+                                          : entry.kind === "discord" ||
+                                              entry.kind === "slack"
+                                            ? `${entry.kind === "discord" ? "Discord" : "Slack"} · webhook: $${entry.webhook_env}`
+                                            : `${entry.chat_id} · token: $${entry.token_env}`
                                   : `${entry.groups.join(", ") || "All groups"} · ${entry.destinations.length} destination(s) · ${entry.format}`}
                             </small>
                             {page === "Assets" && entry.kind === "package" && (

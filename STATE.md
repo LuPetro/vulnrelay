@@ -51,7 +51,11 @@ The corrected SMTP commit passed GitHub CI (both Python versions, browser, front
 
 Webhook increment local verification: 297 backend tests passed with 86.90% branch coverage, and Ruff, lock, workflow, release metadata, frontend formatting and offline secret checks passed. The German docs/update-und-test.md covers a backed-up update and safe feature testing in the operator's own test installation. GitHub CI must still verify the new commit.
 
-Continue with non-CVE OSV advisories, package URLs and inventory imports, then ntfy/Gotify and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+The webhook increment passed GitHub CI and security. The next increment adds ntfy and Gotify push delivery, using server-side URL and token references, pinned DNS, TLS certificate verification, explicit private-host opt-in, the existing durable queue, schedules and shared provider cooldowns. ntfy topic privacy is the operator's responsibility; Gotify and token-authenticated ntfy require HTTPS. Automated tests exercise provider protocols with mocks and an isolated local ntfy-style receiver. See docs/push-connectors.md. Live service acceptance and final GitHub checks remain pending.
+
+Push increment local verification: 310 backend tests passed with 87.11% branch coverage; after adding provider-failure classification tests, all 16 targeted push tests passed. Ruff, release metadata, dependency lock, workflow and frontend formatting checks passed. GitHub browser/build/container/security validation follows.
+
+Continue with non-CVE OSV advisories, package URLs and inventory imports, and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
 

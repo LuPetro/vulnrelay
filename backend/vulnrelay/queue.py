@@ -44,6 +44,14 @@ def same_destination(first: dict, second: dict) -> bool:
             == second.get("smtp_port_env", "VULNRELAY_SMTP_PORT")
             and first.get("smtp_to", "").casefold() == second.get("smtp_to", "").casefold()
         )
+    if kind == "ntfy":
+        return first.get("webhook_env") == second.get("webhook_env") and first.get(
+            "ntfy_topic"
+        ) == second.get("ntfy_topic")
+    if kind == "gotify":
+        return first.get("webhook_env") == second.get("webhook_env") and first.get(
+            "push_token_env"
+        ) == second.get("push_token_env")
     if kind != "telegram":
         return first.get("webhook_env") == second.get("webhook_env")
     return (

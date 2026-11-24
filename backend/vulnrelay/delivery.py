@@ -369,6 +369,88 @@ def send_generic_webhook(
             client.close()
 
 
+def send_push(
+    connector: Connector, message: str, *, client: httpx.Client | None = None
+) -> DeliveryResult:
+    """Deliver to an opt-in ntfy or Gotify server without forwarding secrets to redirects."""
+    from vulnrelay.ai import AIError, _pin_endpoint
+    from vulnrelay.config import get_settings
+    from vulnrelay.nvd import retry_after_seconds
+
+    kind = connector.kind
+    name = "ntfy" if kind == "ntfy" else "Gotify"
+    base = _secret(connector.webhook_env).strip().rstrip("/")
+    token = _secret(connector.push_token_env)
+    if not base:
+        return DeliveryResult(False, error=f"{name} server URL environment variable is missing")
+    if kind == "gotify" and not token:
+        return DeliveryResult(
+            False, error="Gotify application token environment variable is missing"
+        )
+    if token and (len(token) > 4096 or any(ord(char) < 33 or ord(char) > 126 for char in token)):
+        return DeliveryResult(False, error=f"{name} token environment variable is invalid")
+    endpoint = base + ("/" if kind == "ntfy" else "/message")
+    if token and not endpoint.startswith("https://"):
+        return DeliveryResult(False, error=f"{name} tokens require HTTPS")
+    try:
+        url, host, tls_host = _pin_endpoint(endpoint, get_settings().push_allow_private_hosts)
+    except AIError:
+        return DeliveryResult(
+            False, error=f"{name} server URL is invalid, unavailable, or not permitted"
+        )
+    if kind == "ntfy":
+        # ntfy treats messages over 4096 UTF-8 bytes as attachments.
+        encoded = message.encode("utf-8", errors="replace")
+        if len(encoded) > 3900:
+            message = encoded[:3860].decode("utf-8", errors="ignore") + "\n[Message truncated]"
+        data = {
+            "topic": connector.ntfy_topic,
+            "title": "VulnRelay",
+            "message": message,
+            "priority": 3,
+        }
+    else:
+        data = {"title": "VulnRelay", "message": message, "priority": 5}
+    headers = {"Host": host}
+    if token:
+        headers["Authorization" if kind == "ntfy" else "X-Gotify-Key"] = (
+            f"Bearer {token}" if kind == "ntfy" else token
+        )
+    owned = client is None
+    client = client or httpx.Client(
+        timeout=httpx.Timeout(15, connect=5), trust_env=False, follow_redirects=False
+    )
+    try:
+        with client.stream(
+            "POST",
+            url,
+            json=data,
+            headers=headers,
+            follow_redirects=False,
+            extensions={"sni_hostname": tls_host},
+        ) as response:
+            if 200 <= response.status_code < 300:
+                return DeliveryResult(True)
+            if response.status_code == 429:
+                return DeliveryResult(
+                    False,
+                    True,
+                    f"{name} rate limit",
+                    max(1, retry_after_seconds(response) or 60),
+                    True,
+                )
+            return DeliveryResult(
+                False,
+                response.status_code >= 500,
+                f"{name} delivery rejected (HTTP {response.status_code})",
+            )
+    except httpx.HTTPError:
+        return DeliveryResult(False, True, f"{name} transport failed")
+    finally:
+        if owned:
+            client.close()
+
+
 class _PinnedSMTP(smtplib.SMTP):
     """Connect to a resolved IP while STARTTLS authenticates the original hostname."""
 
@@ -626,6 +708,10 @@ def deliver_one(
                     render(payload, ai_summary=ai_summary),
                     message_id=row["id"],
                     client=client,
+                )
+            elif config.kind in ("ntfy", "gotify"):
+                outcome = send_push(
+                    config, render(payload, max_bytes=2200, ai_summary=ai_summary), client=client
                 )
             else:
                 outcome = send_webhook(

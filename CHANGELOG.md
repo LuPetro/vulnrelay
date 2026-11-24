@@ -18,6 +18,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- ntfy and Gotify push connectors with environment-only token references, private-server opt-in and shared queue, scheduling and rate-limit handling.
 - Generic JSON webhook connector with optional HMAC-SHA256 signatures, stable event IDs, destination restrictions and persistent retry/queue semantics.
 - SMTP email connector with certificate-verified STARTTLS, pinned DNS, server-side credential references and delivery-hour support.
 - Opt-in OSV.dev checks for declared exact package versions in six ecosystems, CVE-alias matching, per-asset health and conservative source attribution.

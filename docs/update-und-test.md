@@ -105,6 +105,9 @@ Einzelheiten stehen in der [KI-Anleitung](ai.md).
 
 Discord und Slack verwenden Webhook-URLs in der `.env`; E-Mail verwendet einen
 SMTP-Server mit STARTTLS. Für eigene Dienste gibt es einen generischen JSON-
-Webhook mit optionaler Signatur. Richte nur die Kanäle ein, die du nutzen
-möchtest. Die jeweiligen Schritte stehen in [Discord/Slack](webhook-connectors.md),
-[E-Mail](email.md) und [generischer Webhook](generic-webhook.md).
+Webhook mit optionaler Signatur. Für Push-Nachrichten am Handy gibt es auch
+ntfy und Gotify. Öffentliche ntfy-Themen können von anderen mitgelesen werden;
+verwende für private Meldungen einen zugriffsgeschützten Server. Richte nur die
+Kanäle ein, die du nutzen möchtest. Die jeweiligen Schritte stehen in
+[Discord/Slack](webhook-connectors.md), [E-Mail](email.md),
+[ntfy/Gotify](push-connectors.md) und [generischer Webhook](generic-webhook.md).

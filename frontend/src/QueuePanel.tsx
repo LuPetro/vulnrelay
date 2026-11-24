@@ -88,7 +88,7 @@ export default function QueuePanel({
               }
             >
               {destination.status === "rate_limited"
-                ? `${destination.kind === "telegram" ? "Telegram" : destination.kind === "discord" ? "Discord" : destination.kind === "slack" ? "Slack" : "Provider"} rate limit`
+                ? `${destination.kind === "telegram" ? "Telegram" : destination.kind === "discord" ? "Discord" : destination.kind === "slack" ? "Slack" : destination.kind === "ntfy" ? "ntfy" : destination.kind === "gotify" ? "Gotify" : "Provider"} rate limit`
                 : labels[destination.status] || destination.status}
             </span>
             <small>

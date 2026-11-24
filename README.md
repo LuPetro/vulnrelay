@@ -32,7 +32,7 @@ The first source synchronization can take several minutes, especially without an
 - Assets identified by vendor, product, vendor/product, CPE 2.3 or explicit keyword; group, importance, exposure and tags.
 - Searchable offline catalog of 87 technologies and 19 customizable environment packs, with preview, atomic import and duplicate protection. Manual asset entry remains available.
 - Nested AND/OR/NOT rules with missing-data semantics and machine-readable explanations.
-- Telegram, Discord, Slack, SMTP email and a [generic JSON webhook with optional signatures](docs/generic-webhook.md), compact/detailed messages, queued test notifications and delivery history. Credentials use server-side environment references.
+- Telegram, Discord, Slack, SMTP email, [ntfy and Gotify push notifications](docs/push-connectors.md), and a [generic JSON webhook with optional signatures](docs/generic-webhook.md), compact/detailed messages, queued test notifications and delivery history. Credentials use server-side environment references.
 - Optional, quota-limited AI alert summaries using OpenAI, Anthropic or a compatible provider. AI is disabled by default, receives only the CVE ID and source description after matching, and never controls alert delivery or applicability.
 - Daily or weekly worldwide and asset-relevant [reports](docs/reports.md) with local-time schedules, previews, persistent delivery and explicit source-coverage limits.
 - Durable queue, expiring delivery claims, bounded retries, deduplication and re-notification on selected material changes.
@@ -92,7 +92,7 @@ vulnrelay history
 vulnrelay monitor --once --no-sync
 ```
 
-See [Telegram setup](docs/telegram.md), [Discord and Slack setup](docs/webhook-connectors.md), [email setup](docs/email.md), [optional AI setup](docs/ai.md), [rules and assets](docs/configuration.md), [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md), [security](SECURITY.md), and [contributing](CONTRIBUTING.md). Local API documentation is at `/docs`; mutations require `X-VulnRelay-Request: 1` and the bearer token if configured.
+See [Telegram setup](docs/telegram.md), [Discord and Slack setup](docs/webhook-connectors.md), [email setup](docs/email.md), [ntfy and Gotify setup](docs/push-connectors.md), [optional AI setup](docs/ai.md), [rules and assets](docs/configuration.md), [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md), [security](SECURITY.md), and [contributing](CONTRIBUTING.md). Local API documentation is at `/docs`; mutations require `X-VulnRelay-Request: 1` and the bearer token if configured.
 
 In **Connectors → Edit → Delivery hours**, choose unrestricted delivery or weekly windows, such as Monday–Friday 07:00–17:00 in Europe/Vienna. Outside those hours, alerts and test messages stay queued without consuming delivery attempts. Monitoring continues, and current applicability is checked before sending. Multiple windows, overnight hours and daylight-saving changes are supported. See [connector delivery hours](docs/connector-schedules.md) and [a CLI-ready example](examples/telegram-workhours.json).
 
