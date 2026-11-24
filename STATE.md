@@ -67,6 +67,8 @@ The package-list increment passed all GitHub CI and security runs. A further OSV
 
 OSV reliability increment local verification: 355 backend tests passed with 87.22% branch coverage; after adding a KEV re-notification test, all 29 targeted OSV tests passed. Ruff, release metadata, dependency lock and workflow checks passed. GitHub CI/security validation and tracked-source secret scan follow.
 
+The OSV reliability code commit passed both GitHub CI runs and both security runs, including Python 3.12/3.13, frontend, browser and container jobs. An additional isolated integration exercise of the preceding package-list increment imported two synthetic package identities, correlated two mocked OSV findings, queued two alerts, produced zero duplicates on re-evaluation and delivered both through a mocked Telegram transport. Real user credentials, inventory and deployments were not used. Before relying on a new connector or AI provider, the operator still needs to test it against their own service. The current application remains an alpha development build; release hardening, independent security review and real CVE/restart acceptance are not complete.
+
 Continue with non-CVE OSV advisories, qualified package URLs, inventory imports and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
 
 ## Next priorities
