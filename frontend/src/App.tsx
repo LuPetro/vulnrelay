@@ -7,6 +7,7 @@ import QueuePanel from "./QueuePanel";
 import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
 import AISettings from "./AISettings";
 import Reports from "./Reports";
+import News from "./News";
 import {
   Activity,
   Boxes,
@@ -19,6 +20,7 @@ import {
   Layers3,
   ListFilter,
   Moon,
+  Newspaper,
   Plus,
   Radio,
   RefreshCw,
@@ -50,6 +52,7 @@ const pages = [
   "Notification rules",
   "Connectors",
   "Vulnerabilities",
+  "News",
   "Reports",
   "AI",
   "Settings",
@@ -61,6 +64,7 @@ const icons = [
   ListFilter,
   Radio,
   ShieldCheck,
+  Newspaper,
   FileClock,
   Cpu,
   Settings,
@@ -713,6 +717,7 @@ export default function App() {
                           "Notification rules": "ALERT POLICY",
                           Connectors: "DELIVERY OPERATIONS",
                           Vulnerabilities: "INTELLIGENCE REGISTER",
+                          News: "SECURITY NEWS",
                           Reports: "SCHEDULED REPORTS",
                           AI: "OPTIONAL INTELLIGENCE",
                           Settings: "INSTANCE CONFIGURATION",
@@ -734,11 +739,13 @@ export default function App() {
                           ? "Bring relevant vulnerability alerts to your team."
                           : page === "Vulnerabilities"
                             ? "Inspect locally synchronized intelligence and matching evidence."
-                            : page === "Reports"
-                              ? "Receive a recurring view of global or asset-relevant CVEs."
-                              : page === "AI"
-                                ? "Connect your chosen model to add optional alert summaries."
-                                : "Configure access and understand your local instance."}
+                            : page === "News"
+                              ? "Security reporting and advisories from selected sources."
+                              : page === "Reports"
+                                ? "Receive a recurring view of global or asset-relevant CVEs."
+                                : page === "AI"
+                                  ? "Connect your chosen model to add optional alert summaries."
+                                  : "Configure access and understand your local instance."}
               </p>
             </div>
             <button
@@ -800,6 +807,13 @@ export default function App() {
                 />
               )}
               {page === "AI" && <AISettings api={api} />}
+              {page === "News" && (
+                <News
+                  api={api}
+                  connectors={connectors}
+                  onConnectors={() => navigate("Connectors")}
+                />
+              )}
               {page === "Reports" && (
                 <Reports
                   api={api}

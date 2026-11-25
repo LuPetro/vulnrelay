@@ -25,6 +25,7 @@ the installation guide, then verify a real alert before relying on it. The
 | Destination setup | [Telegram](telegram.md) · [Discord and Slack](webhook-connectors.md) · [Email](email.md) · [ntfy and Gotify](push-connectors.md) · [Generic webhook](generic-webhook.md) |
 | Delivery windows, retries and backlog | [Delivery hours](connector-schedules.md) · [Queue](delivery-queue.md) |
 | Scheduled summaries | [Daily and weekly reports](reports.md) |
+| Security news and alerts | [News subscriptions](news.md) |
 | Optional intelligence | [OpenCVE](opencve.md) · [AI summaries](ai.md) |
 | Backup and troubleshooting | [Backup, restore and upgrade](backup-and-upgrade.md) · [Troubleshooting](troubleshooting.md) |
 

@@ -13,6 +13,8 @@ from vulnrelay.config import get_settings
 from vulnrelay.delivery import deliver_one, enqueue_test, history, retry_failed
 from vulnrelay.digests import delete_digest, list_digests, preview_digest, save_digest
 from vulnrelay.monitor import state
+from vulnrelay.news import list_news
+from vulnrelay.news import save_settings as save_news_settings
 from vulnrelay.opencve import lookup as lookup_opencve
 from vulnrelay.opencve import validate_id
 from vulnrelay.osv import asset_status as osv_asset_status
@@ -24,6 +26,19 @@ from vulnrelay.store import delete_document, list_documents, save_document
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.get("/news")
+def get_news(request: Request):
+    return list_news(request.app.state.engine)
+
+
+@router.put("/news/settings")
+def put_news_settings(document: dict, request: Request):
+    try:
+        return save_news_settings(request.app.state.engine, document).model_dump()
+    except ValueError:
+        raise HTTPException(422, "Invalid news settings or destination") from None
 
 
 @router.get("/digests")
