@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
+import { waitForUiTransitions } from "./transitions";
 
 test("overview shows honest state, motion controls, branding and responsive layouts", async ({
   page,
@@ -260,6 +261,8 @@ test("overview shows honest state, motion controls, branding and responsive layo
     ).violations,
   ).toEqual([]);
   await page.getByRole("button", { name: "Toggle color theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await waitForUiTransitions(page);
   await page.screenshot({
     path: "test-results/overview-modern-dark.png",
     fullPage: true,
@@ -272,6 +275,8 @@ test("overview shows honest state, motion controls, branding and responsive layo
     ).violations,
   ).toEqual([]);
   await page.getByRole("button", { name: "Toggle color theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await waitForUiTransitions(page);
   await page
     .getByRole("button", { name: "Resume overview animation", exact: true })
     .click();
@@ -329,10 +334,15 @@ test("overview shows honest state, motion controls, branding and responsive layo
   await page
     .getByRole("button", { name: "Clear waiting messages", exact: true })
     .click();
+  await expect.poll(() => cleared).toBe(1);
+  await expect(
+    page
+      .getByRole("region", { name: "Delivery queue" })
+      .getByText(/^No waiting messages\./),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Clear waiting messages", exact: true }),
   ).toBeDisabled();
-  expect(cleared).toBe(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(
     page.getByRole("button", { name: "Motion reduced by system preference" }),

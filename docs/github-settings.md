@@ -1,11 +1,11 @@
-# GitHub administration before publication
+# GitHub administration
 
 These are repository settings, not settings applied by committing YAML. The
-repository remains private until the owner explicitly chooses otherwise. The
-default `main` branch currently differs from `development`; workflows,
-community files and the README on the development branch do not update what
-GitHub shows or runs from `main` automatically. Review the existing draft PR
-and agree on the release branch before an authorized merge or public launch.
+repository is public and `main` is the default branch. Development changes
+reach `main` through reviewed pull requests; changing files on `development`
+alone does not update the public default branch. GitHub reports that `main`
+is protected, but the precise protection settings have not been verified by
+the connected integration.
 
 1. Protect the default branch against force pushes and deletion; require pull
    requests and the tested CI contexts. Require resolved review conversations.
@@ -22,12 +22,13 @@ and agree on the release branch before an authorized merge or public launch.
    alerts/push protection, dependency alerts and private vulnerability
    reporting. The committed audit workflows do not imply these settings are
    enabled. Do not enable paid products or change billing without approval.
-5. Verify the confidential reporting flow as an outside contributor before
-   making the repository public. If private reporting is unavailable, the
+5. Verify the confidential reporting flow as an outside contributor. The
+   public advisories page displays **Report a vulnerability**; an actual
+   submission has not been tested. If private reporting is unavailable, the
    maintainer must provide a verified private contact; do not invent one.
 6. Review **all** branches, tags and history as well as PRs, issues, Actions
    logs and artifacts, and screenshots. Remove or remediate private content
-   before publication, rotate any exposed credentials and check third-party
+   responsibly, rotate any exposed credentials and check third-party
    notices. Local secret checks do not certify the complete history as safe.
    GitHub explains the
    [visibility-change consequences](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility),

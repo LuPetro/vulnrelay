@@ -41,11 +41,11 @@ exploit code.
 
 Use a Linux host with Git, Docker Engine, **Docker Compose 2.24 or later**,
 permission to access Docker and outbound HTTPS. The first image build and
-source synchronization take time. The repository is currently private, so a
-GitHub account with access is needed until the owner publishes it.
+source synchronization take time. The public repository can be cloned over
+HTTPS without a GitHub account.
 
 ```sh
-git clone --branch development https://github.com/LuPetro/vulnrelay.git
+git clone https://github.com/LuPetro/vulnrelay.git
 cd vulnrelay
 cp .env.example .env
 chmod 600 .env

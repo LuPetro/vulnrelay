@@ -12,17 +12,15 @@ ab **2.24**. Dein Benutzer muss auf Docker zugreifen können. VulnRelay braucht
 ausgehende HTTPS-Verbindungen zu den Quellen und den gewählten Zielen. Der
 erste Image-Build benötigt freien Speicher und kann auf kleinen Servern dauern.
 
-Das Repository ist momentan privat. Zum Klonen brauchst du Zugriff auf das
-GitHub-Konto: Bei HTTPS funktioniert ein berechtigtes Token, nicht das
-GitHub-Kontopasswort; alternativ kannst du einen eingerichteten SSH-Schlüssel
-nutzen. Zugangsdaten gehören nicht in die Clone-URL oder in einen Chat.
+Das Repository ist öffentlich. Für das Klonen über HTTPS brauchst du weder
+ein GitHub-Konto noch Zugangsdaten.
 
 ## 1. Neu klonen und starten
 
 Wähle einen neuen Ordner und führe die Befehle auf dem Server aus:
 
 ```sh
-git clone --branch development https://github.com/LuPetro/vulnrelay.git
+git clone https://github.com/LuPetro/vulnrelay.git
 cd vulnrelay
 cp .env.example .env
 chmod 600 .env
@@ -30,9 +28,9 @@ docker compose up -d --build --wait --wait-timeout 180
 docker compose ps
 ```
 
-`development` enthält derzeit den aktuellen Stand; `main` ist noch nicht auf
-demselben Stand. Der Start legt ein eigenes Datenvolume für diese
-Compose-Installation an. Für eine **zweite** Installation neben einer
+Der Klon verwendet den Standardbranch `main` mit dem aktuellen Alpha-Stand.
+Der Start legt ein eigenes Datenvolume für diese Compose-Installation an. Für
+eine **zweite** Installation neben einer
 bestehenden nimm die [Anleitung mit getrenntem Port und Volume](server-test-installation.md).
 
 ## 2. Oberfläche öffnen

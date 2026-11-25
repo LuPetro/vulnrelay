@@ -9,16 +9,14 @@ host rather than exposing the application directly to the Internet.
 ## Reporting a vulnerability
 
 Please do not publish credentials, exploit details or affected private
-infrastructure in an issue or pull request. Use the repository's
-[private vulnerability reporting page](https://github.com/LuPetro/vulnrelay/security/advisories)
-if the owner has enabled that feature. Its availability has not yet been
-verified. If it is unavailable, contact the repository owner through a
-verified private channel before sending details. Do not use a guessed email
-address. Before public release, the owner must establish and verify at least
-one confidential reporting route; see [GitHub settings](docs/github-settings.md).
-The optional private reporting form lives in `.github/VULNERABILITY_REPORT.yml`;
-it takes effect on the default branch after the repository feature is enabled.
-Adding the form does not enable private reporting by itself.
+infrastructure in an issue or pull request. Open the repository's
+[security advisories](https://github.com/LuPetro/vulnrelay/security/advisories)
+and choose **Report a vulnerability** to submit a private report. A GitHub
+account may be required. If the reporting option is unavailable, contact the
+repository owner through a verified private channel before sending details;
+do not use a guessed email address. The reporting form lives in
+`.github/VULNERABILITY_REPORT.yml` on the default branch. See
+[GitHub settings](docs/github-settings.md) for administration.
 
 ## Protecting an installation
 

@@ -12,9 +12,8 @@ instead. To run a second instance on the same server, use the
 - Outbound HTTPS for the public sources and any notification services used.
 - Enough disk space for the image, database and backups. The first build can
   take several minutes and consume substantial memory on a small server.
-- Access to the GitHub repository. Until it is public, use an authorized SSH
-  key or a GitHub token when prompted over HTTPS; a GitHub account password is
-  not a Git authentication token. Do not put credentials in the clone URL.
+- Read access to the public GitHub repository; cloning over HTTPS does not
+  require a GitHub account or credentials.
 
 Check `docker --version`, `docker compose version` and that `docker info` can
 connect to the daemon. A separate NVD API key is optional; without one,
@@ -22,12 +21,12 @@ upstream rate limits can make the initial synchronization slower.
 
 ## 2. Clone and start
 
-These commands target the current `development` branch. `main` is the default
-branch but does not yet contain the complete alpha. Run them in a directory
-where a new `vulnrelay` folder can be created:
+These commands use the default `main` branch. It contains the current alpha,
+not a supported stable release. Run them in a directory where a new
+`vulnrelay` folder can be created:
 
 ```sh
-git clone --branch development https://github.com/LuPetro/vulnrelay.git
+git clone https://github.com/LuPetro/vulnrelay.git
 cd vulnrelay
 cp .env.example .env
 chmod 600 .env

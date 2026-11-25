@@ -4,7 +4,7 @@ Dieser Ablauf prüft die Alpha vor weiteren Funktionen. Die automatisierten Test
 
 ## Start und Vorbereitung
 
-Verwende den aktuellen Stand von `development`. Folge der Docker-Installation in der [README](../README.md) und der [Telegram-Anleitung](telegram.md). Trage den Bot-Token ausschließlich lokal in `.env` ein, niemals in Issues oder Chat-Nachrichten. Nach Änderungen an `.env` die Container mit `docker compose up -d --force-recreate` neu erstellen; ein bloßer Container-Neustart übernimmt geänderte Umgebungsvariablen nicht.
+Verwende den aktuellen Stand des Branches, den du testen möchtest, zum Beispiel `main` für eine normale Installation oder `development` für einen separaten Entwicklungstest. Folge der Docker-Installation in der [README](../README.md) und der [Telegram-Anleitung](telegram.md). Trage den Bot-Token ausschließlich lokal in `.env` ein, niemals in Issues oder Chat-Nachrichten. Nach Änderungen an `.env` die Container mit `docker compose up -d --force-recreate` neu erstellen; ein bloßer Container-Neustart übernimmt geänderte Umgebungsvariablen nicht.
 
 Öffne `http://localhost:8080` auf dem Rechner, auf dem VulnRelay läuft. Bei einer Installation auf deinem Server nutze einen SSH-Tunnel, beispielsweise `ssh -L 8080:127.0.0.1:8080 BENUTZER@SERVER`, und öffne die lokale Adresse. Die Alpha bleibt an localhost gebunden.
 

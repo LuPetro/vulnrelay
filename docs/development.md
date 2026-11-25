@@ -1,6 +1,6 @@
 # Development and verification
 
-Use Python 3.12 or 3.13, Node 22.12+ LTS and a recent Docker Compose. Runtime dependencies, build tools and developer tools have separate hash-locked requirement files. Frontend dependencies use npm's integrity-checked package lock. Docker base images and GitHub Actions use immutable digests/commit SHAs.
+Use Python 3.12 or 3.13, a recent Docker Compose, and Node 22.22.2+ within 22.x, 24.15+ within 24.x, or 26+. The Node requirement includes the pinned frontend test dependencies. Runtime dependencies, build tools and developer tools have separate hash-locked requirement files. Frontend dependencies use npm's integrity-checked package lock. Docker base images and GitHub Actions use immutable digests/commit SHAs.
 
 Container builds and browser checks can be resource-intensive; use GitHub CI
 when working on a constrained host. The browser job uploads its report and
@@ -29,7 +29,7 @@ python scripts/check_locks.py
 
 These commands preserve existing pins unless an update is requested; add `--upgrade` for an intentional refresh. Commit declarations and locks together. CI checks declared runtime constraints and common runtime/development versions, installs with hash verification and audits known vulnerabilities. Review platform/Python compatibility before accepting upgrades. PostgreSQL is an unvalidated optional extra (`pip install 'backend[postgres]'`); its extra dependencies are not covered by the default runtime lock or audit yet.
 
-For npm updates, change package declarations using npm, commit package-lock.json, then run format/build/unit/browser checks and `npm audit --audit-level=high`. Do not automatically merge dependency PRs. Dependabot and scheduled workflows only become active as intended once these configuration files are present on the default branch; the current development branch does not change default-branch settings.
+For npm updates, change package declarations using npm, commit package-lock.json, then run format/build/unit/browser checks and `npm audit --audit-level=high`. Do not automatically merge dependency PRs. Dependabot and scheduled workflows use configuration on the default branch; changes on development branches do not update those settings until merged.
 
 ## Secret checking
 
