@@ -11,6 +11,10 @@
   --q-muted: var(--ov-muted);
   --q-line: var(--ov-line);
 }
+.panel > .delivery-queue {
+  padding-inline: var(--space-6);
+  border-top: 0;
+}
 .queue-heading {
   display: flex;
   align-items: baseline;
@@ -87,5 +91,10 @@
   }
   .queue-destination small {
     grid-column: 1;
+  }
+}
+@media (max-width: 760px) {
+  .panel > .delivery-queue {
+    padding-inline: var(--space-4);
   }
 }

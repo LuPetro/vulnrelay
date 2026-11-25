@@ -2,6 +2,15 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
+## Connector queue spacing (2026-11-25)
+
+The delivery queue inside the Connectors panel now has the same horizontal
+inset as the surrounding panel content, with a smaller inset on mobile. The
+shared Overview queue retains its existing layout. Frontend formatting, all
+seven unit tests and the production build passed locally. Browser rendering
+still needs visual confirmation; browser checks must run in GitHub CI rather
+than on the resource-constrained VPS.
+
 ## Public repository and merged alpha (2026-11-25)
 
 The owner made the GitHub repository public and merged PR #1 into `main`.
