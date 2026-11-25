@@ -12,7 +12,8 @@ and changes that can be reviewed and tested independently.
 2. Work on a branch and keep pull requests focused. Explain the problem, the
    behavior change, any compatibility considerations and the checks run.
 3. Follow [development and verification](docs/development.md) to set up
-   Python 3.12 or 3.13 and, for UI work, Node 22.12+ LTS. `make install`,
+   Python 3.12 or 3.13 and, for UI work, Node 22.22.2+ within 22.x, 24.15+
+   within 24.x, or 26+. `make install`,
    `make lint`, `make test`, `make frontend` and `make audit` provide local
    entry points. Run the checks relevant to your change; CI runs the full
    matrix, browser and container checks.

@@ -18,6 +18,22 @@ not rewrite history, delete artifacts or affect the operator's installation
 without authorization. Future documentation corrections and code changes
 should go through reviewed pull requests to protected `main`.
 
+During the public-documentation PR, both CI browser runs exposed test timing
+races in existing scenarios. The contrast check sampled intermediate colors
+during a theme transition; it now waits for active CSS transitions before
+checking the final theme without disabling the accessibility assertions. The
+queue-clear scenario had treated the immediately disabled busy button as proof
+that the request had completed; it now waits for the mocked clear request and
+the refreshed empty state. No production UI or queue logic changed. Verify the
+updated browser checks in GitHub CI.
+
+Local verification also found that the documented Node 22.12 minimum cannot
+run the pinned jsdom/undici test dependencies. Their published engine ranges
+require Node 22.22.2+ in 22.x, 24.15+ in 24.x, or 26+. The frontend package,
+lock metadata and contributor guides now agree; Node 22.23.5 passed the local
+frontend unit tests. This changes contributor/tooling requirements, not the
+runtime container or an existing installation.
+
 ## Current implementation and verification
 
 - SQLite WAL, packaged migrations through 0010, native CLI, Docker API/UI and

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { waitForUiTransitions } from "./transitions";
 
 test.use({ timezoneId: "Europe/Vienna", actionTimeout: 20000 });
 
@@ -85,6 +86,7 @@ test("shared design covers every workspace page, editor and both themes", async 
         page.getByRole("button", { name: "Close details" }),
       ).toBeVisible();
     }
+    await waitForUiTransitions(page);
     expect(
       (
         await new AxeBuilder({ page })
@@ -106,6 +108,8 @@ test("shared design covers every workspace page, editor and both themes", async 
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.getByLabel("Time zone")).toHaveValue("Europe/Vienna");
   await page.getByRole("button", { name: "Toggle color theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await waitForUiTransitions(page);
   expect(
     (
       await new AxeBuilder({ page })

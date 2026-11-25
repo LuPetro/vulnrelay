@@ -25,7 +25,8 @@ Run `vulnrelay monitor` in a second terminal with the same virtual environment
 and working directory. Native commands read `.env` from the current directory;
 environment variables take precedence. Do not overwrite an existing `.env`.
 `vulnrelay start` serves the local API; to use the optional UI natively, build
-it from `frontend/` with Node 22.12+ and `npm ci && npm run build`, then start
+it from `frontend/` with a Node version supported by `frontend/package.json`
+(22.22.2+ within 22.x, 24.15+ within 24.x, or 26+) and `npm ci && npm run build`, then start
 the API from the repository root. Docker builds the frontend automatically.
 
 ## Check health and sources
