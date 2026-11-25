@@ -42,13 +42,43 @@ current `development` work. An existing draft PR tracks that merge. Review
 the entire Git history and Actions logs/artifacts for sensitive content,
 verify a confidential vulnerability-reporting route and repository
 protections, then obtain owner approval before merging or changing visibility.
-Another security product already uses the VulnRelay name; review naming,
-domain and trademark availability before public branding. This observation is
-not a trademark determination. Public alpha and supported production v1 have
-separate acceptance gates in `docs/releasing.md`.
+Another security product uses the VulnRelay name; the owner chose to continue
+with it after being informed. This decision is not a trademark determination.
+Public alpha and supported production v1 have separate acceptance gates in
+`docs/releasing.md`.
 
 The sections below preserve the history of prior increments; old test counts
 and next-step statements in them describe those dates, not current status.
+
+## Publication audit and attribution (2026-11-25)
+
+The owner chose to keep the project name and requested a history/Actions audit,
+private reporting setup and clear Apache-2.0 attribution. A read-only audit
+covered both GitHub branch heads, 42 reachable remote commits (41 trees matched
+local development trees; the remaining initial main README was also scanned),
+568 unique text blobs, commit messages, the open PR and its discussion, 439
+available Actions job logs and all 150 then-available workflow artifacts.
+Offline pattern scanners flagged two historical synthetic test fixtures but no
+identified real credentials. These checks do not certify history as secret-free:
+binary contents and 10,388 image/video entries were not visually reviewed or
+OCR-scanned, and unrecognized credential forms may escape detection.
+
+Earlier commits still contain internal workspace details and an unrelated
+project name in three historical files. The current checkout was sanitized
+without altering history. Rewriting history is not authorized by a read-only
+audit; it changes commit IDs and affects existing clones/PRs. Do not force-push,
+delete branches, purge artifacts, merge or change visibility without the
+appropriate owner decision. `docs/github-einrichten.md` explains the owner
+settings and the limitations of GitHub's public-repository reporting feature.
+
+The root, backend distribution and frontend now include a consistent NOTICE
+crediting LuPetro and contributors. The standard Apache-2.0 LICENSE remains
+unchanged. The Python package includes both license and notice, and release
+checks verify attribution consistency. `.github/VULNERABILITY_REPORT.yml`
+prepares a private reporting form, but cannot turn on the GitHub setting or
+take effect on the default branch before an authorized merge. The connected
+GitHub integration cannot administer branch protection or vulnerability
+reporting; a protection read returned 403. Repository visibility remains private.
 
 ## Additional connectors and forthcoming work (2026-11-23)
 

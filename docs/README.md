@@ -40,9 +40,11 @@ outside localhost.
 - [Development and verification](development.md)
 - [Contributing](../CONTRIBUTING.md), [code of conduct](../CODE_OF_CONDUCT.md)
   and [governance](../GOVERNANCE.md)
+- [License and attribution](licensing.md) and [third-party notices](../THIRD_PARTY_NOTICES.md)
 - [Roadmap](../PROJECT_PLAN.md), [changelog](../CHANGELOG.md) and
   [release checklist](releasing.md)
 - [GitHub administration before publication](github-settings.md)
+- [GitHub-Einstellungen auf Deutsch](github-einrichten.md)
 - [Brand and UI behavior](brand.md) and [frontend design](frontend-design.md)
 
 Screenshots in `docs/images/` come from the project's automated browser tests

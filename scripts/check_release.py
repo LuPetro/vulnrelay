@@ -25,6 +25,13 @@ assert frontend["license"] == backend["license"], "Frontend license differs"
 assert (root / "LICENSE").read_bytes() == (root / "frontend/public/LICENSE").read_bytes(), (
     "Static Apache license differs"
 )
+assert (root / "NOTICE").read_bytes() == (root / "backend/NOTICE").read_bytes(), (
+    "Packaged attribution notice differs"
+)
+assert (root / "NOTICE").read_bytes() == (root / "frontend/public/NOTICE").read_bytes(), (
+    "Static attribution notice differs"
+)
+assert set(backend["license-files"]) == {"LICENSE", "NOTICE"}, "Package license files differ"
 assert frontend["private"] is True, "Frontend is a private static application, not an npm package"
 assert (root / "THIRD_PARTY_NOTICES.md").read_bytes() == (
     root / "frontend/public/THIRD_PARTY_NOTICES.md"

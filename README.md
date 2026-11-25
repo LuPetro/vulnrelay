@@ -113,7 +113,9 @@ instructions, rules, API/CLI usage, troubleshooting and contributor guides.
 
 ## Development and project status
 
-The source is Apache-2.0 licensed. CI runs backend, frontend, browser and
+Copyright 2026 LuPetro and the VulnRelay contributors. The source is
+[Apache-2.0 licensed](LICENSE); see [NOTICE](NOTICE) for attribution and
+[licensing](docs/licensing.md) for a plain-language explanation. CI runs backend, frontend, browser and
 container checks without real credentials. See [contributing](CONTRIBUTING.md),
 the [roadmap](PROJECT_PLAN.md), [changelog](CHANGELOG.md) and
 [release checklist](docs/releasing.md). New integrations and optional AI need

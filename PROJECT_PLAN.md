@@ -93,7 +93,9 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Governance, code of conduct, CODEOWNERS, issue/PR templates, dependency-update configuration, changelog and third-party notices.
 - [x] Manual unpublished release-candidate artifact/SBOM/checksum workflow.
 - [x] Documentation index, English/German quickstarts, CLI and real-alert acceptance guides, and synthetic browser screenshots.
-- [ ] Owner review of the name: another security product uses VulnRelay; assess domain/trademark availability before public branding.
+- [x] Owner chose to retain the name after being informed that another security product uses VulnRelay; no legal clearance is implied.
+- [x] Automated offline secret-pattern review of accessible Git trees, GitHub job logs and available artifacts; limitations and synthetic findings recorded in STATE.md.
+- [ ] Owner decision on previously committed internal workspace details before public visibility; do not rewrite history or delete artifacts without authorization.
 - [ ] Audit all branches, tags, Git history, PRs/issues and Actions logs/artifacts for sensitive content; review licensing and source attribution.
 - [ ] Establish and verify a confidential security-reporting route before public release.
 - [ ] Owner review of default-branch protections, private security reporting and public visibility before publication; these are not activated by files alone.

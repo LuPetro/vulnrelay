@@ -9,16 +9,18 @@ owner's explicit authorization.
 
 ## Before opening the repository as an alpha
 
-- [ ] Resolve the project name before public branding. As of 2026-11-25,
-  [another security product](https://vulnrelay.app/en/) also uses the name
-  VulnRelay. This is not a trademark determination; the owner should review
-  name, domain and trademark availability before deciding what to publish.
+- [x] The owner decided to continue with the VulnRelay name after being informed
+  that [another security product](https://vulnrelay.app/en/) uses it. No
+  trademark or domain availability determination is implied by that decision.
 - [ ] Review the full contents of all Git branches, tags and commit history,
   plus issue and pull-request content, Actions logs and artifacts, images and
   screenshots. Look for credentials, private inventory, personal data and
   internal infrastructure details. A clean current tree and automated scans
-  do not establish that the history is safe. Rotate exposed credentials and
-  agree on remediation before publication.
+  do not establish that the history is safe. An automated review on
+  2026-11-25 found no identified real credentials but did find old internal
+  workspace details; image/video contents were not visually reviewed. See
+  `STATE.md` for scope and decide how to handle the historical details.
+  Rotate exposed credentials and agree on remediation before publication.
 - [ ] Review [GitHub's visibility-change consequences](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility):
   public visibility exposes repository content and Actions history/logs, and
   public push rulesets have different behavior. Check settings again after an
@@ -26,8 +28,10 @@ owner's explicit authorization.
 - [ ] Establish and verify a confidential security-reporting route. The
   [private reporting feature](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository)
   is a separate repository setting, not something `SECURITY.md` enables.
-- [ ] Review the Apache-2.0 license, third-party notices and source attribution.
-  Confirm a maintainer and practical contribution/support expectations.
+- [x] Include the unchanged Apache-2.0 license, project attribution and
+  third-party notices in the source tree and distributions. Maintainers must
+  review new dependencies and notices as they are added.
+- [ ] Confirm a maintainer and practical contribution/support expectations.
 - [ ] Review the current development work and draft PR, require green CI and
   Security checks on the intended commit, and arrange appropriate branch
   protections. Files in `development` do not update the default branch.

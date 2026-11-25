@@ -5,11 +5,20 @@ import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 wheel = Path(sys.argv[1]).resolve()
 assert wheel.is_file() and wheel.suffix == ".whl"
+with zipfile.ZipFile(wheel) as archive:
+    notice_paths = [
+        name for name in archive.namelist() if name.endswith(".dist-info/licenses/NOTICE")
+    ]
+    assert len(notice_paths) == 1, "Wheel must contain exactly one attribution notice"
+    assert archive.read(notice_paths[0]) == (root / "NOTICE").read_bytes(), (
+        "Wheel attribution notice differs"
+    )
 with tempfile.TemporaryDirectory(prefix="vulnrelay-wheel-") as temporary:
     work = Path(temporary)
     venv = work / "venv"

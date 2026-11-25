@@ -6,4 +6,6 @@ Install with Python 3.12+: `pip install .`, then `vulnrelay init`. Configure ass
 
 See the repository README for Docker, full configuration, limitations, security and contribution guidance: https://github.com/LuPetro/vulnrelay
 
-Apache-2.0. The source distribution includes the license and database migrations.
+Copyright 2026 LuPetro and the VulnRelay contributors. Licensed under
+Apache-2.0; the distribution includes the license, attribution notice and
+database migrations.

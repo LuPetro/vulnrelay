@@ -36,6 +36,8 @@ and agree on the release branch before an authorized merge or public launch.
    without publishing packages, images or releases. Their visibility follows
    repository permissions. Review and explicitly approve the final release.
 
-See the full [release checklist](releasing.md) for the name review and
+See the full [release checklist](releasing.md) for owner decisions and
 acceptance criteria. Recheck protections and access after any owner-approved
 visibility change; account permissions and feature availability can vary.
+For step-by-step owner instructions in German, see
+[GitHub für die Veröffentlichung einrichten](github-einrichten.md).

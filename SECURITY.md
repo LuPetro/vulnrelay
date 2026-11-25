@@ -16,6 +16,9 @@ verified. If it is unavailable, contact the repository owner through a
 verified private channel before sending details. Do not use a guessed email
 address. Before public release, the owner must establish and verify at least
 one confidential reporting route; see [GitHub settings](docs/github-settings.md).
+The optional private reporting form lives in `.github/VULNERABILITY_REPORT.yml`;
+it takes effect on the default branch after the repository feature is enabled.
+Adding the form does not enable private reporting by itself.
 
 ## Protecting an installation
 
