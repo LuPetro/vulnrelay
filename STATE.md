@@ -2,6 +2,22 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
+## Public repository and merged alpha (2026-11-25)
+
+The owner made the GitHub repository public and merged PR #1 into `main`.
+At the time checked, `main` and `development` had identical trees; CI and
+Security passed on the merge commit. GitHub reports `main` as protected, but
+the connected integration receives 403 when reading the rule details, so the
+specific required checks and review settings remain unverified. The public
+advisories page displays **Report a vulnerability**; no actual report has been
+submitted to verify the full flow. The release remains alpha.
+
+Historical workspace details and Actions artifacts are now publicly
+accessible. The earlier automated audit and its limitations remain below; do
+not rewrite history, delete artifacts or affect the operator's installation
+without authorization. Future documentation corrections and code changes
+should go through reviewed pull requests to protected `main`.
+
 ## Current implementation and verification
 
 - SQLite WAL, packaged migrations through 0010, native CLI, Docker API/UI and
@@ -37,11 +53,11 @@ The current documentation omits specific unrelated project names and local
 workspace paths while preserving development/production isolation rules in
 `AGENTS.md`. Prior history and Actions logs have not been fully audited.
 
-The repository is private; `main` is the default and does not yet include the
-current `development` work. An existing draft PR tracks that merge. Review
-the entire Git history and Actions logs/artifacts for sensitive content,
-verify a confidential vulnerability-reporting route and repository
-protections, then obtain owner approval before merging or changing visibility.
+At the time of that review the repository was private, and a draft PR tracked
+the merge into `main`. The owner subsequently made it public and merged that
+PR; see the current status above. Review the Git history and Actions
+logs/artifacts for sensitive content, and verify confidential reporting and
+the precise repository protection settings.
 Another security product uses the VulnRelay name; the owner chose to continue
 with it after being informed. This decision is not a trademark determination.
 Public alpha and supported production v1 have separate acceptance gates in
@@ -78,7 +94,8 @@ checks verify attribution consistency. `.github/VULNERABILITY_REPORT.yml`
 prepares a private reporting form, but cannot turn on the GitHub setting or
 take effect on the default branch before an authorized merge. The connected
 GitHub integration cannot administer branch protection or vulnerability
-reporting; a protection read returned 403. Repository visibility remains private.
+reporting; a protection read returned 403. The repository was private at the
+time of this audit and was subsequently made public by the owner.
 
 ## Additional connectors and forthcoming work (2026-11-23)
 

@@ -95,7 +95,8 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Documentation index, English/German quickstarts, CLI and real-alert acceptance guides, and synthetic browser screenshots.
 - [x] Owner chose to retain the name after being informed that another security product uses VulnRelay; no legal clearance is implied.
 - [x] Automated offline secret-pattern review of accessible Git trees, GitHub job logs and available artifacts; limitations and synthetic findings recorded in STATE.md.
-- [ ] Owner decision on previously committed internal workspace details before public visibility; do not rewrite history or delete artifacts without authorization.
-- [ ] Audit all branches, tags, Git history, PRs/issues and Actions logs/artifacts for sensitive content; review licensing and source attribution.
-- [ ] Establish and verify a confidential security-reporting route before public release.
-- [ ] Owner review of default-branch protections, private security reporting and public visibility before publication; these are not activated by files alone.
+- [x] Owner made the repository public and merged the alpha into `main`; CI and Security passed on the merge commit.
+- [ ] Review the now-public historical workspace details and agree on any remediation; do not rewrite history or delete artifacts without authorization.
+- [ ] Continue reviewing public branches, history and Actions artifacts for sensitive content; automated scans and prior review do not certify them as secret-free.
+- [ ] Verify confidential security-report submission end to end; the public advisories page displays the reporting button.
+- [ ] Verify the specific default-branch protections and required checks; the integration can see that protection is enabled but cannot read its details.

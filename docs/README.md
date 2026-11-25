@@ -43,7 +43,7 @@ outside localhost.
 - [License and attribution](licensing.md) and [third-party notices](../THIRD_PARTY_NOTICES.md)
 - [Roadmap](../PROJECT_PLAN.md), [changelog](../CHANGELOG.md) and
   [release checklist](releasing.md)
-- [GitHub administration before publication](github-settings.md)
+- [GitHub administration](github-settings.md)
 - [GitHub-Einstellungen auf Deutsch](github-einrichten.md)
 - [Brand and UI behavior](brand.md) and [frontend design](frontend-design.md)
 

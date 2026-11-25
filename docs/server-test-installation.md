@@ -7,7 +7,7 @@ und bereits vorhandene VulnRelay-Daten werden dabei nicht verwendet.
 
 Deine Installation kannst du nach erfolgreicher Abnahme für den Dauerbetrieb nutzen. Der Projektstatus bleibt bis zu den ausstehenden Abnahmen Alpha. Entwicklungsänderungen werden nicht automatisch in deine Installation übernommen; du entscheidest über Updates und führst sie nach einem Backup selbst aus.
 
-Voraussetzungen sind Git, Docker mit aktuellem Compose, Docker-Zugriff ohne sudo und Leseberechtigung für `LuPetro/vulnrelay`. Das Repository ist noch privat. Bei HTTPS-Abfragen verwendet Git einen berechtigten GitHub-Token als Passwort, nicht dein Kontopasswort. Bei bereits eingerichtetem GitHub-SSH-Zugriff kannst du stattdessen `git@github.com:LuPetro/vulnrelay.git` klonen. Zugangsdaten gehören nicht in die Clone-URL oder in Chat-Nachrichten.
+Voraussetzungen sind Git, Docker mit aktuellem Compose und Docker-Zugriff ohne sudo. Das Repository ist öffentlich; für den HTTPS-Klon brauchst du keine GitHub-Zugangsdaten. Bei bereits eingerichtetem GitHub-SSH-Zugriff kannst du alternativ `git@github.com:LuPetro/vulnrelay.git` verwenden. Zugangsdaten gehören nicht in die Clone-URL oder in Chat-Nachrichten.
 
 ## 1. Selbst frisch klonen
 
@@ -23,7 +23,7 @@ chmod 600 .env
 nano .env
 ```
 
-Benutze ausdrücklich `development`: Auf `main` liegt noch nicht die vollständige Anwendung. Falls der Zielordner schon existiert, halte an und prüfe ihn; lösche oder überschreibe ihn nicht blind.
+Hier wird `development` gewählt, um aktuelle Entwicklungsänderungen isoliert zu testen. Dieser Branch kann Änderungen enthalten, die noch nicht auf `main` sind. Für eine normale Neuinstallation verwende die [Schnellstartanleitung](schnellstart.md). Falls der Zielordner schon existiert, halte an und prüfe ihn; lösche oder überschreibe ihn nicht blind.
 
 ## 2. Die Testinstanz getrennt konfigurieren
 

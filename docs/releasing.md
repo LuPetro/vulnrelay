@@ -1,13 +1,11 @@
 # Release checklist
 
 VulnRelay is an alpha, not a supported stable release. The repository is
-currently private and its default `main` branch does not yet contain the
-current `development` work. A public **alpha** can be useful before every
-roadmap feature is complete, provided its scope and limitations are clear.
-Publication, a merge to the default branch, tags and releases require the
-owner's explicit authorization.
+public and its default `main` branch contains the merged alpha. Formal tags,
+package publishing, releases and further merges remain separate decisions.
+Keep the scope and limitations clear as the project develops.
 
-## Before opening the repository as an alpha
+## Public alpha maintenance
 
 - [x] The owner decided to continue with the VulnRelay name after being informed
   that [another security product](https://vulnrelay.app/en/) uses it. No
@@ -18,23 +16,27 @@ owner's explicit authorization.
   internal infrastructure details. A clean current tree and automated scans
   do not establish that the history is safe. An automated review on
   2026-11-25 found no identified real credentials but did find old internal
-  workspace details; image/video contents were not visually reviewed. See
-  `STATE.md` for scope and decide how to handle the historical details.
-  Rotate exposed credentials and agree on remediation before publication.
+  workspace details; image/video contents were not visually reviewed. These
+  historical details are now public. See `STATE.md` for scope and agree with
+  the owner on any remediation. Rotate credentials if any are found exposed.
 - [ ] Review [GitHub's visibility-change consequences](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility):
   public visibility exposes repository content and Actions history/logs, and
   public push rulesets have different behavior. Check settings again after an
   approved change; do not assume protections carry over unchanged.
-- [ ] Establish and verify a confidential security-reporting route. The
+- [ ] Verify the confidential security-reporting flow end to end. The public
+  advisories page displays a report button, but a submission has not been
+  tested. The
   [private reporting feature](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository)
   is a separate repository setting, not something `SECURITY.md` enables.
 - [x] Include the unchanged Apache-2.0 license, project attribution and
   third-party notices in the source tree and distributions. Maintainers must
   review new dependencies and notices as they are added.
 - [ ] Confirm a maintainer and practical contribution/support expectations.
-- [ ] Review the current development work and draft PR, require green CI and
-  Security checks on the intended commit, and arrange appropriate branch
-  protections. Files in `development` do not update the default branch.
+- [x] The owner merged the alpha into `main`; CI and Security passed on the
+  merge commit. GitHub reports that `main` is protected.
+- [ ] Review the exact branch-protection settings and require green CI and
+  Security checks for future changes. Development does not update the default
+  branch until merged.
 - [ ] Perform a clean installation and the
   [real-alert acceptance checklist](acceptance.md). Record what was actually
   tested, and retain explicit alpha limitations for anything still unverified.
