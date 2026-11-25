@@ -1,0 +1,12 @@
+{
+  "name": "Critical production alerts",
+  "groups": ["production"],
+  "destinations": ["REPLACE_WITH_CONNECTOR_ID"],
+  "condition": {"kind": "any", "children": [
+    {"kind":"condition","field":"cvss","op":"gte","value":9},
+    {"kind":"condition","field":"epss","op":"gte","value":0.7},
+    {"kind":"condition","field":"kev","op":"eq","value":true}
+  ]},
+  "format":"detailed",
+  "renotify_changes":true
+}

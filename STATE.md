@@ -1,0 +1,244 @@
+# Current state
+
+VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
+
+## Current implementation and verification
+
+- SQLite WAL, packaged migrations through 0010, native CLI, Docker API/UI and
+  separate persistent monitoring/delivery worker. Remote deployment and
+  PostgreSQL remain unsupported or provisional for release.
+- NVD, CISA KEV and FIRST EPSS ingestion; optional OpenCVE and exact-version
+  OSV lookups. Assets/catalog, nested rules, matching evidence, durable
+  deduplicated outbox, connector schedules and daily/weekly reports.
+- Telegram, Discord, Slack, SMTP, generic webhooks, ntfy and Gotify; optional
+  source-grounded AI summaries after matching. See the README for limitations.
+- The last full local backend suite passed 355 tests; the preceding code
+  increment passed GitHub CI and Security, including Python 3.12/3.13,
+  frontend, browser and container checks. Remote checks apply to the commit
+  they tested and must be checked again after changes.
+- The operator confirmed a real Telegram test message. A controlled real CVE
+  alert, duplicate/restart acceptance, backup/restore rehearsal, longer
+  monitoring test and independent security review remain open. Automated tests
+  use mocked connectors and do not establish live provider compatibility.
+
+## Documentation and release review (2026-11-25)
+
+The README and documentation index now lead to English/German Docker
+quickstarts, a native CLI guide, connector guides, a controlled real-alert
+acceptance procedure, security/privacy guidance and release checklists. UI
+screenshots come from CI browser fixtures with synthetic data and a stopped
+monitor, not an operator installation. Source coverage, delivery semantics,
+matching uncertainty and alpha status are explicit. Local verification checked
+Markdown file links, Compose configuration rendering and documented CLI setup,
+catalog and asset commands against an isolated temporary database, with no
+live providers or operator data.
+
+The current documentation omits specific unrelated project names and local
+workspace paths while preserving development/production isolation rules in
+`AGENTS.md`. Prior history and Actions logs have not been fully audited.
+
+The repository is private; `main` is the default and does not yet include the
+current `development` work. An existing draft PR tracks that merge. Review
+the entire Git history and Actions logs/artifacts for sensitive content,
+verify a confidential vulnerability-reporting route and repository
+protections, then obtain owner approval before merging or changing visibility.
+Another security product uses the VulnRelay name; the owner chose to continue
+with it after being informed. This decision is not a trademark determination.
+Public alpha and supported production v1 have separate acceptance gates in
+`docs/releasing.md`.
+
+The sections below preserve the history of prior increments; old test counts
+and next-step statements in them describe those dates, not current status.
+
+## Publication audit and attribution (2026-11-25)
+
+The owner chose to keep the project name and requested a history/Actions audit,
+private reporting setup and clear Apache-2.0 attribution. A read-only audit
+covered both GitHub branch heads, 42 reachable remote commits (41 trees matched
+local development trees; the remaining initial main README was also scanned),
+568 unique text blobs, commit messages, the open PR and its discussion, 439
+available Actions job logs and all 150 then-available workflow artifacts.
+Offline pattern scanners flagged two historical synthetic test fixtures but no
+identified real credentials. These checks do not certify history as secret-free:
+binary contents and 10,388 image/video entries were not visually reviewed or
+OCR-scanned, and unrecognized credential forms may escape detection.
+
+Earlier commits still contain internal workspace details and an unrelated
+project name in three historical files. The current checkout was sanitized
+without altering history. Rewriting history is not authorized by a read-only
+audit; it changes commit IDs and affects existing clones/PRs. Do not force-push,
+delete branches, purge artifacts, merge or change visibility without the
+appropriate owner decision. `docs/github-einrichten.md` explains the owner
+settings and the limitations of GitHub's public-repository reporting feature.
+
+The root, backend distribution and frontend now include a consistent NOTICE
+crediting LuPetro and contributors. The standard Apache-2.0 LICENSE remains
+unchanged. The Python package includes both license and notice, and release
+checks verify attribution consistency. `.github/VULNERABILITY_REPORT.yml`
+prepares a private reporting form, but cannot turn on the GitHub setting or
+take effect on the default branch before an authorized merge. The connected
+GitHub integration cannot administer branch protection or vulnerability
+reporting; a protection read returned 403. Repository visibility remains private.
+
+## Additional connectors and forthcoming work (2026-11-23)
+
+The operator requested additional connectors, scheduled reports, package coverage and optional AI with a dedicated configuration tab. Discord and Slack now have provider-specific official webhook delivery via environment-variable references, compact/detailed rendering, disabled Discord mentions, redacted errors, persisted provider cooldown and the existing queue/scheduling/rule semantics. Both providers have mocked API-to-delivery regression tests; no actual webhook has been contacted. Webhook endpoint restrictions and setup are documented in docs/webhook-connectors.md. Existing Telegram documents remain compatible. Local full suite: 231 tests passed; Ruff, metadata, dependency-lock and workflow checks passed. CI must verify the frontend/browser/container workflow after the commit, and real provider acceptance remains operator-controlled.
+
+Continue with the operator's requested AI tab and configurable providers, evidence-grounded opt-in summaries, scheduled personal/global digests, then package/version coverage and further providers. Do not claim these are implemented until tested. AI must not gate delivery or determine asset applicability; only send the minimum source information after deterministic matching, and do not use paid credentials in tests. Preserve the operator's separate VPS deployment and data.
+
+Discord/Slack commit passed both GitHub CI runs and security checks, including frontend, browser and container workflows. No live webhook was used. The next increment implements optional AI settings and alert summaries: one active OpenAI Responses, Anthropic Messages or OpenAI-compatible Chat Completions configuration; model and language are free text; keys and custom base URLs remain server environment settings. AI defaults off, only receives the public CVE ID/description after a deterministic match, has a persisted per-UTC-day request cap and bounded cache, and visibly labels generated text. Source alerts continue on AI errors. Endpoint resolution pins an allowed IP with TLS hostname verification and blocks redirects/link-local addresses; private hosts require an explicit server opt-in. Migration 0008 preserves existing inventory and outbox. Mocked provider, privacy, quota, fallback and migration tests are included. No paid provider request has been made; real-provider and browser/container acceptance must be checked separately. See docs/ai.md.
+
+AI increment local verification: 246 backend tests passed with 86.99% branch coverage, including 15 AI-focused cases; Ruff, formatting, release metadata, lock and workflow checks passed. Browser/build/container validation runs in GitHub CI.
+
+The AI commit passed GitHub backend on Python 3.12/3.13, frontend, browser and container jobs. Its security job flagged two deliberately fictional test credentials. They were changed to dynamically constructed test values without disabling or weakening the scan; the offline tracked-source scan and AI tests now pass locally. Re-run GitHub security on the correction commit.
+
+The corrected AI increment passed all GitHub CI and security checks. No live AI provider was contacted.
+
+Scheduled reports now offer daily/weekly worldwide NVD records or records matching enabled asset rules, configurable local time/timezone, CVSS threshold, destination, entry limit, UI/CLI preview and one asset/rule/confidence explanation for personal results. Migration 0009 persists schedules; due reports use the existing outbox, retry, destination hours, deduplication and revalidation. Missed periods coalesce to the most recent; source coverage and the 1,000-candidate scan limit are explicit. Reports do not replace immediate alerts or invoke AI. DST, source gaps, safe message length, restart/dedup, cancellation, CLI/API and migration have targeted tests. No operator service or live connector was used. See docs/reports.md.
+
+Report increment local verification: 256 backend tests passed with 86.68% branch coverage; Ruff, metadata, lock, workflow, frontend formatting and offline tracked-source secret scans passed. Browser, build and container workflows need to pass in GitHub CI on this increment.
+
+The report increment passed all GitHub CI and security workflows. The next increment adds opt-in OSV.dev lookups for exact package versions in npm, PyPI, Go, Maven, crates.io and NuGet. Migration 0010 persists per-asset snapshots and health. Query results are correlated only to CVE identifiers/aliases, matched to the declared exact version with source evidence, and never overwrite NVD assessments; no-CVE advisories, PURLs and range expressions remain unsupported. Unchanged snapshots do not re-alert. Version/identity changes clear stale findings and health; failed or paginated-incomplete lookups retain a previous complete snapshot. The monitor limits batches, stops on provider outages, honors rate-limit deadlines and remains opt-in. UI, CLI, source diagnostics, mock tests and docs/osv.md are included. An isolated public test of npm next 15.1.0 retrieved 39 OSV advisories and 34 CVE findings; it queued 34, queued zero duplicates on re-evaluation, and delivered one via mocked Telegram. No user inventory or real connector credentials were used. Browser/container and final CI outcomes must be checked separately.
+
+OSV local verification: full backend suite passed 274 tests with 86.00% branch coverage; after adding conflicting-duplicate-page handling, all 19 targeted OSV tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final tracked-source secret scan and GitHub browser/build/container/security checks follow.
+
+The first OSV CI passed backend on both Python versions, frontend build/tests, container and security. Browser tests passed except an existing Overview assertion that expected exactly one "Manual" source, while both OpenCVE and OSV now display that status. The assertion now checks each source explicitly; re-run CI after this correction.
+
+The corrected OSV commit passed all GitHub CI and security jobs. SMTP email delivery has now been added with required certificate-verified STARTTLS, environment-only credential references, per-recipient connectors, source explanations, the existing durable queue and destination hours, retry classification, DNS pinning and optional private-server access. Automated tests use fake SMTP servers and no real credentials. An additional isolated local protocol test generated an ephemeral certificate, negotiated actual STARTTLS, and delivered a synthetic message to a temporary local SMTP server; no operator deployment or mail account was touched. Implicit TLS port 465, OAuth and SMTPUTF8 are not supported. See docs/email.md. Full suite and GitHub checks follow.
+
+SMTP increment local full suite: 290 backend tests passed with 86.65% branch coverage; targeted SMTP tests were re-run after strengthening credential validation. Final tracked-source secret scan and GitHub frontend/browser/container/security checks follow.
+
+The SMTP GitHub run passed Python 3.12, frontend, browser, container and security. Python 3.13 exposed a test double that replaced SMTP.connect without setting the hostname, unlike its real 3.13 implementation. The test now exercises the real connect path with only socket/reply mocked, verifying pinned IP and certificate hostname on both versions. Re-run CI on the correction.
+
+The corrected SMTP commit passed GitHub CI (both Python versions, browser, frontend and container) and security. The following increment adds a generic versioned JSON webhook with optional HMAC-SHA256, stable event/idempotency keys, source and matching data, report events, TLS hostname verification, pinned DNS, private-host opt-in, rate-limit handling and the existing queue/scheduling semantics. Credentials and target URL are server environment references. A temporary local receiver accepted a synthetic message and verified its actual HMAC; no user service was contacted. Mocked retry, SSRF, redaction, API and UI tests accompany docs/generic-webhook.md. Final full suite and GitHub checks remain to be run.
+
+Webhook increment local verification: 297 backend tests passed with 86.90% branch coverage, and Ruff, lock, workflow, release metadata, frontend formatting and offline secret checks passed. The German docs/update-und-test.md covers a backed-up update and safe feature testing in the operator's own test installation. GitHub CI must still verify the new commit.
+
+The webhook increment passed GitHub CI and security. The next increment adds ntfy and Gotify push delivery, using server-side URL and token references, pinned DNS, TLS certificate verification, explicit private-host opt-in, the existing durable queue, schedules and shared provider cooldowns. ntfy topic privacy is the operator's responsibility; Gotify and token-authenticated ntfy require HTTPS. Automated tests exercise provider protocols with mocks and an isolated local ntfy-style receiver. See docs/push-connectors.md. Live service acceptance and final GitHub checks remain pending.
+
+Push increment local verification: 310 backend tests passed with 87.11% branch coverage; after adding provider-failure classification tests, all 16 targeted push tests passed. Ruff, release metadata, dependency lock, workflow and frontend formatting checks passed. GitHub browser/build/container/security validation follows.
+
+The push connector increment passed all GitHub CI and security runs, including browser and container jobs. The next increment adds supported unqualified, exact-version npm, PyPI, Go, Maven, Cargo and NuGet PURL input. The GUI resolves locally and asks users to review the fields; API and CLI accept PURL as asset input. Only the resolved identity is stored. Unsupported qualifiers/subpaths, moving tags and conflicting fields are rejected. PURL-based identity changes use the existing snapshot invalidation path. Go PURLs cannot prove the declared path is a module; users must supply the right module. See docs/osv.md. Full and GitHub checks follow.
+
+PURL increment local verification: 339 backend tests passed with 87.16% branch coverage; after adding a headless CLI test, all 27 targeted PURL tests passed. Ruff, metadata, lock, workflow and frontend formatting checks passed. Final offline secret scan and GitHub browser/build/container/security checks follow.
+
+The PURL increment passed all GitHub CI and security runs. The next increment adds previewable batch import of up to 100 unqualified, exact-version package URLs via GUI, CLI and API. Imports validate the entire selection, serialize duplicate checks/inserts and preserve existing assets' settings, including disabled status. Deduplication uses normalized OSV identity plus exact version string and inventory context; equivalent version strings are not guessed. Preview makes no network requests and the GUI invalidates review on changes. Existing broad rules can match new assets. See docs/package-import.md. Full and GitHub checks follow.
+
+Package-list increment local verification: 346 backend tests passed with 87.24% branch coverage, including concurrent duplicate handling, rollback, API validation and CLI preview/import. Ruff, release metadata, dependency lock, workflow and frontend formatting checks passed. Final tracked-source secret scan and GitHub browser/build/container/security checks follow.
+
+The package-list increment passed all GitHub CI and security runs. A further OSV reliability correction scopes findings to the exact asset snapshot for matching, queued revalidation and relevant reports. This prevents one same-identity asset from inheriting another asset's stale result. On SQLite the final asset identity check and snapshot write are serialized; failures after an asset changes do not mark its new identity as checked. A persisted content hash and compatible alert revision suppress timestamp-only re-notification after a baseline, while description, affected-range/version and FIX-reference changes can still re-alert. Older or same-timestamp inconsistent advisory responses preserve the previous snapshot. Existing legacy records may re-alert once if their source timestamp already changed before the first new baseline, preserving prior behavior. No database migration was required. Isolated live public npm next 15.1.0 and PyPI django 5.1.0 queries returned 76 CVE-linked findings across two checks without failure; no user inventory or credentials were used. See docs/osv.md. Full and GitHub checks follow.
+
+OSV reliability increment local verification: 355 backend tests passed with 87.22% branch coverage; after adding a KEV re-notification test, all 29 targeted OSV tests passed. Ruff, release metadata, dependency lock and workflow checks passed. GitHub CI/security validation and tracked-source secret scan follow.
+
+The OSV reliability code commit passed both GitHub CI runs and both security runs, including Python 3.12/3.13, frontend, browser and container jobs. An additional isolated integration exercise of the preceding package-list increment imported two synthetic package identities, correlated two mocked OSV findings, queued two alerts, produced zero duplicates on re-evaluation and delivered both through a mocked Telegram transport. Real user credentials, inventory and deployments were not used. Before relying on a new connector or AI provider, the operator still needs to test it against their own service. The current application remains an alpha development build; release hardening, independent security review and real CVE/restart acceptance are not complete.
+
+Continue with non-CVE OSV advisories, qualified package URLs, inventory imports and lifecycle improvements. AI multi-profile management, native protocols and monetary/token accounting, digest grouping/catch-up options, inventory import/export and release hardening remain future work. Do not mark the overall roadmap complete.
+
+## Next priorities
+
+Operator decision (2026-11-15): the long-running installation belongs to the user's separate VPS account. The old default development Compose deployment was brought down without removing its data volume; it must stay off between deliberate development tests. This checkout is for coding and isolated verification only. Do not access or change the operator installation or automatically roll out changes to it. No operator-owned installation has been started or validated by this action. Development tests must use distinct projects/images/ports/data and clean up their own containers afterwards; do not use real Telegram credentials for automated tests. See AGENTS.md.
+
+For an operator-driven clean install alongside development, follow docs/server-test-installation.md. Compose now accepts VULNRELAY_IMAGE with the existing image as default; the test procedure selects its own project/image/localhost port and starts with a new named volume. Default and isolated Compose rendering were checked for both services, host binding, port and distinct volume names; git diff --check passed. No test instance is started automatically, and no existing deployment configuration is changed.
+
+The operator explicitly requested catalog/packs and the UI redesign after confirming Telegram setup. Continue the remaining checks in docs/first-test.md with operator-owned credentials. Keep release status alpha until acceptance criteria are independently verified. The later 2026-11-23 request prioritizes optional AI, additional connectors and digests alongside version applicability and inventory improvements.
+
+Git is configured locally as the connected LuPetro account with its GitHub noreply address. GitHub development history differs from local history because uploads use the GitHub connector; reconcile before a normal Git push. The development-agent timer is not active. The application's own monitoring worker is separate and runs through Docker Compose.
+
+## First-test and open-source hardening
+
+Added hash-locked Python runtime/build/developer environments, pinned CI actions/base images, a Python 3.12/3.13 CI matrix, branch coverage with a 75% floor (local measured 78.83%), format/type checks, wheel/sdist/Twine verification and an isolated built-wheel installation. Local Python runtime/developer and npm audits report no known vulnerabilities; an offline secret baseline has no findings and a synthetic-token rejection was checked. These scans do not certify security or history. New GitHub job outcomes must be checked on the pushed commit.
+
+Added request-size and malformed-input safeguards, efficient paged correlation and an empty-configuration fast path, schema readiness and a recent worker heartbeat, private new SQLite files, online backups and restore/upgrade documentation. A consistent pre-readiness backup of the local deployment was made inside its existing volume. An isolated Compose project passed packaged API/UI/worker health, restart persistence and backup tests and then removed only its own test resources.
+
+Community/release files now include governance, code of conduct, CODEOWNERS, issue and PR templates, changelog, third-party notices and an unpublished release-candidate workflow. Dependency-update and scheduled-audit activation depends on the configuration reaching the default branch; branch rules, GitHub security features and public visibility remain owner administration tasks. No publication or automatic merge has been enabled.
+
+## Alert correctness fixes and acceptance procedure
+
+New asset writes reject conflicting inventory/CPE versions with a static, safe API error. Invalid legacy asset documents are excluded without preventing other assets from monitoring, and unchecked inconsistent models cannot return confirmed matches. General version ranges remain unsupported.
+
+Before every alert attempt (pending, retry and recovered lease), delivery loads the current rule, asset, destination selection and stored CVE and uses the same deterministic evaluation as enqueueing. Obsolete alerts become cancelled with a recorded reason and no Telegram HTTP request. Eligible messages refresh their content/evidence/format. Normal evaluation may reconsider cancelled events when their configuration becomes eligible again; sent-event deduplication remains intact. Test messages still work independently of rules. An HTTP request already in flight cannot be recalled.
+
+Added regression coverage for 12 eligibility changes across three queue states, reactivation/deduplication, refreshed content, legacy conflicts and rejected create/update operations. Coverage for that increment was 80.58% (75% gate). Matching evidence is reused across rules during correlation to retain the previous per-asset matching cost. docs/first-test.md describes controlled real delivery, deduplication, restart and rule-disable checks. Docker credential changes require container recreation, not just restart. The operator subsequently confirmed a real Telegram test message; the controlled CVE-alert acceptance remains pending.
+
+## OpenCVE integration
+
+The user explicitly requested OpenCVE before operator acceptance. Implemented the public Knowledge Base JSON format, independently of OpenCVE accounts or deployment. Migration 0006 adds a cache that retains valid raw/normalized assessments when a lookup fails or a previously found record becomes unavailable. Existing numeric NVD scores remain primary, including zero; OpenCVE can fill absent scores/text. EPSS and KEV filters keep using the direct FIRST/CISA data. Merged OpenCVE product/CPE identities never confirm installed-version applicability.
+
+Manual commands are lookup-opencve and sync-opencve; the UI has a detail lookup button and independent assessment panel. The source card shows Manual when background enrichment is off. Automatic enrichment requires VULNRELAY_OPENCVE_ENABLED=true, has a configurable 1–100-record batch (default 25), skips records checked in the past day and operates on known local CVEs. It does not discover/import the whole OpenCVE catalog. Authenticated REST API v2/self-hosted project synchronization is separate future scope. Fixed public HTTPS URLs, no redirects, bounded payloads, timeouts, backoff and generic source errors preserve the existing security model. See docs/opencve.md and the optional step in docs/first-test.md.
+
+
+## Catalog and interface increment (2026-11-15)
+
+Implemented 50 bundled technology identities, ten starter packs, offline search/category filters and a two-stage selection review/import flow. The operator chooses group/environment and optional team/importance/exposure; pack components can be removed or combined. Imports are atomic and serialize duplicate detection, reuse same-identity/context manual assets and preserve their settings. Manual creation remains available, and inventory search covers group/environment/product. Product identities never establish installed-version applicability. No migration is required.
+
+Added API and CLI catalog/preview/import commands plus tests for malformed selections, authentication/mutation guards, preview without writes, concurrency, failure rollback, overlapping imports, existing disabled/manual entries, and distinct environments/teams. An official NVD check corrected the containerd vendor identity to linuxfoundation. The first browser run exposed an ambiguous select label; explicit accessible names fixed it. Catalog test retries now clean up only their own fixture assets.
+
+Verified implementation commit ecde7981426495473378ae7fc5f28681b6d87fc2 in GitHub CI run 43706788270 and Security run 43706788314; the corresponding draft-PR runs also passed. Both Python versions (3.12/3.13), 109 backend tests, 82.91% coverage, frontend formatting/build/unit test, both Chromium scenarios, packaged wheel checks, migrations, Docker build/restart/backup smoke checks and dependency/secret checks passed. Downloaded and visually inspected the desktop overview, catalog packs, dark catalog and mobile selection screenshots from browser-report artifact 14158438436. Selected automated accessibility checks found no violations; this is not a comprehensive accessibility audit.
+
+The UI uses a new navy/blue visual system, illustrated notification flow, dedicated catalog view, selectable product/pack cards, persistent review panel and responsive dark/light layouts. It retains existing configuration/notification functionality. docs/catalog.md documents behavior, freshness limits, safe updates and acceptance steps.
+
+The small shared VPS encountered severe memory pressure during local Chromium testing; the operator rebooted it. Working-tree changes survived. Do not repeat local browser or image-build tests on this VPS; use GitHub CI and its browser screenshot/report artifacts. No operator configuration or unrelated service was changed. The old development deployment remains off.
+
+## Overview and brand increment (2026-11-15)
+
+Replaced the introductory Overview with a separate typed component and scoped stylesheet. Added a custom SVG V/relay mark, light/dark wordmarks, brand sheet and favicon. The Overview now has an illustrative animated source-to-rule-to-channel flow, actionable inventory/rule/connector/message counts, engine/source/queue attention states, recent destination history and asset-group cards. Enabled assets exclude disabled entries; sent-message totals explicitly include connector tests. Motion can be paused persistently and is disabled by system reduced-motion preference or a hidden tab. No new dependencies, API changes, migrations or external services. See docs/brand.md.
+
+Added browser coverage for branding assets, enabled counts, normal/stale/error states, navigation, persistent motion pause, reduced motion and light/dark/mobile accessibility/screenshots. The existing setup test caught transient text contrast loss during the entrance animation; removed opacity changes while retaining positional motion, without weakening the test. Refined the mobile heartbeat layout and removed redundant mobile topbar text.
+
+Implementation commit 16d405573fba2973084f9d97b5a74d3b98bdb402 passed CI 43708705483 and Security 43708705481, plus the corresponding draft-PR runs. This includes 109 backend tests on Python 3.12/3.13, frontend formatting/type/build/unit checks, all three Chromium scenarios without retries, package checks and Docker restart/backup smoke tests. Selected light/dark/mobile accessibility checks reported no violations. Visually inspected desktop/dark/mobile screenshots and the logo preview from browser-report artifact 14159253764. This is not a comprehensive accessibility audit. Operator deployment and unrelated applications remain untouched; no local browser or image build was run.
+
+## NVD diagnostics (2026-11-15)
+
+The operator reported that NVD only showed a generic synchronization failure. The adapter now persists/logs allowlisted diagnostic text for HTTP status, timeout, connection/transport failure, invalid data, invalid/future checkpoints and database errors. No upstream response content, headers, URLs, exception text or API key is included. Existing successful records, checkpoint and last-success time survive a failed sync; recovery clears the error. Checkpoint validation is now inside the diagnostic boundary. The manual sync command prints the safe reason and separately identifies a possible monitor-lock conflict.
+
+Added `vulnrelay check-nvd [--json]`: one fixed-endpoint request, one result, no retries, no database or monitor lock, ten-second per-operation network timeout, safe key-presence/status output and meaningful exit codes. It works alongside monitoring and does not clear the last synchronization error. Success is only connectivity evidence, not proof of a complete sync. Troubleshooting explains old stored errors, safe immediate sync, key handling and update behavior. Existing Overview browser coverage now asserts a concrete timeout reason is visible, including its mobile layout.
+
+Local mocked regression coverage exercises denial/rate limits, transport failures, malformed responses, saved-state retention/recovery, checkpoint faults, safe logs/CLI/API and read-only probe semantics. Local full-suite, formatting, release/lock/workflow policy and offline secret checks are recorded with the change; GitHub CI remains responsible for Python 3.13, browser and container verification. A separate unauthenticated development-side live probe returned ReadTimeout after ten seconds; this is not a confirmed diagnosis of the operator's last failure. Operator containers, data and configuration were not accessed or modified.
+
+The NVD diagnostics implementation aada585f29b74609d5c06c485a99771526323891 passed push CI 43748778726 and Security 43748778864 and corresponding draft-PR checks. The operator subsequently confirmed the read-only probe succeeded and a manual sync processed one record; after restarting their monitor and refreshing, NVD showed Synced. The original transient failure is not established by that recovery.
+
+## Overview-only design study (2026-11-15)
+
+The operator requested a more deliberate, less templated visual direction and more explanatory motion, initially only for Overview and subject to their review. Replaced repeated cards/promotional hero styling with a paper/ink/green operating journal, numbered ruled sections, typographic coverage band, source/delivery registers and inventory rows. IBM Plex Sans (400/500/600) and Mono (400) are self-hosted, unmodified, scoped to Overview and accompanied by SIL OFL notices. App changes only add a conditional Overview main class and Overview-specific introductory text. Navigation, other pages, logo, backend and data remain unchanged.
+
+The signal diagram coordinates ingress, travelling packets, matching, filter bars and a notification sheet on a 6.8-second cycle. It remains explicitly illustrative. Mobile has its own vertical composition; hidden variants do not animate. Pause, reduced motion and hidden-tab controls cover the whole Overview. Metrics remain real values and their entrance animation only changes position. Browser coverage checks new font loading, motion phases/pause/visibility, scope removal when navigating away, responsive SVG composition and existing operational/error/empty states. Browser/build checks run in GitHub CI; no local Chromium or image build is permitted. See docs/overview-design.md for rationale and rollback boundaries. Broader styling changes await operator feedback.
+
+The initial design run passed all browser scenarios, backend and container checks; the formatter caught a non-idempotent first-pass CSS grid layout, corrected by a second formatting pass and a full format check. Visually reviewed light/dark/mobile screenshots from artifact 14176422090, then balanced the mobile heading, enlarged operational timestamps/notes and removed unintended inheritance from the application's shared footer. Browser coverage also checks that packets actually advance and that the layout fits a 320px viewport. Final checks should be read on the latest development commit.
+
+## Queue controls and Overview corrections (2026-11-15)
+
+Operator requests synchronized top-layer pipeline packets, aligned registration lines/clean inventory label, live sent counter with roll animation (full below 1000, k above), configurable delivery pacing and a way to clear unwanted queued messages. No operator-owned queue has been inspected or modified. Read-only code investigation found the fixed 1.1s per-connector guard plus a blind 1s worker sleep, opaque provider cooldowns, and a 6-attempt budget that also consumed HTTP 429 responses. App currently polls all configuration/history every 15s. Telegram official FAQ documents ~1/sec per chat and 20/min per group; provider retry_after must be honored.
+
+Implementation direction: migration 0007 adds a non-rate failure counter and a provider-rate-limit deadline; per-connector interval defaults to 3.1s and is editable down to 1.1s for suitable destinations. Surface full queue counts, next eligibility, last sent time and per-destination wait reasons. Clearing pending/retry marks events dismissed (not deleted), preserves history/deduplication and excludes in-flight sends/newer records. Repeated 429 does not terminally fail solely from rate limiting. Shared token references propagate provider cooldown; identical chat identifiers share configured pacing. Keep unknown external rate-limit cause unconfirmed. Refresh status independently/without overlapping polls; animate only actual sent-count increases. User clarified they did not intend an asset-entry deduplication change; only adjust diagram labels. Implemented with mocked regression coverage; browser/build verification is handled by GitHub CI.
+
+Implemented migration 0007, configurable pacing (3.1s default, minimum 1.1s), persisted provider cooldowns, non-rate failure budgets and queue status/clear UI/API/CLI. Provider cooldowns are keyed by environment reference without storing tokens and also block destinations added during a cooldown. Same-reference/chat aliases share the longest pacing interval. Dismissal uses a server snapshot cutoff, leaves in-flight requests/newer events untouched, retains event keys and does not immediately refill on correlation. The sent counter uses exact stored sent-event totals, k notation at 1,000, accessible precise values, real-increase rolling transitions and five-second visible-page status refresh independent of configuration loads. The SVG ingress paths now merge synchronously into one trunk, packets render in a final overlay, registration marks align and the inventory inlet has one label.
+
+Local Python 3.12 full suite passed 158 tests with 84.79% branch coverage. New regressions cover >1,000 queue entries, scoped/confirmed clears, in-flight acknowledgement, deduplication/material changes, repeated 429 beyond the old attempt budget, restart/new-destination cooldowns, shared-chat pacing, bounded non-rate failures, migration of old cooldown state, API guards and CLI confirmation. CI owns TypeScript/unit/browser/320px/a11y/container checks; source changes have no live-provider or operator-queue acceptance claim. The actual reason for the operator backlog remains unconfirmed until they inspect their new queue diagnostics. Back up before the 0007 upgrade. See docs/delivery-queue.md.
+
+Added a delivery-history state filter so old failures remain discoverable behind a large pending backlog. Queue counts and destination diagnostics share an explicit SQLite read snapshot. One additional filtered-history API regression passed independently; the prior full-suite count was 158.
+
+Initial queue-control CI passed backend, frontend unit/type/build, security and container checks. The new Overview scenario passed synchronized packet geometry/layering, live counter and clear confirmation. The existing setup scenario needed status assertions scoped to message rows because the new filter also contains state names; added an explicit filter round-trip check and human-readable option labels. No assertion was removed.
+
+
+## NVD recovery and continuous Overview motion (2026-11-15)
+
+The operator observed intermittent HTTP 503 failures followed by successful manual syncs (including zero records). No live upstream root cause is established. Added jittered per-request waits of roughly 6/12/24 seconds and persisted transient run backoff starting at two minutes, doubling to a 30-minute cap. Retry-After deadlines longer than 60 seconds are deferred to the monitor without truncation or blocking other source work; schedules start at completion and survive restart. Nontransient failures retain the regular interval. Successful manual or automatic sync resets the failure streak; prior checkpoint/data retention is unchanged. No new migration. Overview distinguishes the last failed sync from current availability, shows last success and next attempt, and uses amber for scheduled retries.
+
+Packet motion now runs on a 4.2-second linear cycle with no start/end holds, synchronized three-source convergence and a continuous merge handoff. Core loading, filter scans and output movement run independently and continuously. Foreground layering, illustration disclosure, responsive SVGs and pause/hidden/reduced-motion controls remain. Mocked recovery tests and browser motion/status regressions accompany the change. Local full-suite verification passed 171 backend tests with 85.26% branch coverage, plus Ruff, release metadata, lock and workflow checks. Browser/build verification is delegated to GitHub CI; operator-owned services/data/secrets remain untouched.
+
+
+## Shared workspace design, catalog expansion and connector hours (2026-11-19)
+
+The operator accepted the Overview and requested its visual identity across every page, useful catalog additions and connector delivery hours. Shared styles now use the self-hosted Plex fonts, paper/ink/green tokens, ruled lists, restrained controls and responsive forms for setup, assets, catalog, rules, connectors, vulnerabilities and settings, including dark/mobile views. Existing Overview motion/structure stays intact. Added a schedule editor with weekday/time inputs, IANA zone selection, workday presets, multiple/overnight windows and readable connector summaries.
+
+Connector delivery_schedule defaults to null (24/7) for legacy documents. Explicit weekly windows hold alerts/test notifications without making claims or consuming attempts/failure budgets/pacing. Monitoring keeps running. Before outbound delivery, eligibility/config is rechecked; provider deadlines and schedule windows jointly determine next eligibility. DST handles skipped/repeated and half-hour transitions. Queue diagnostics explain outside_schedule and the next eligible timestamp. No new migration or dependency; CI container smoke checks prove the pinned image carries seasonal IANA timezone data. No operator installation, credentials or queue has been read or modified.
+
+The curated offline catalog grew from 50 to 87 technologies and 10 to 19 packs. New identities include libraries/dependencies, homelab, collaboration, identity, networking and DevOps products, verified against linked NVD records. Original IDs/pack contents remain unchanged. Explicit product matching remains conservative; this does not add OSV, package ecosystems, version-range applicability or inventory discovery. See docs/catalog-sources.md, docs/connector-schedules.md and docs/frontend-design.md.
+
+Local full-suite verification passed 217 backend tests with 86.38% branch coverage before two additional API-diagnostic cases, which passed in the 36-case schedule suite. Frontend formatting and CI unit/type/browser/container checks follow; E2E additions cover shared page styles/light-dark-mobile and a real API schedule round trip that holds a queued test, then returns to unrestricted delivery. All external delivery remains disabled in CI.
+
+
+First shared-design CI passed both backend Python versions (219 tests), frontend unit/type/build, security and container/IANA smoke checks. Existing three browser scenarios passed. New broader scenarios exposed two accessible-name ambiguities: the Assets nav count changed its button name and the delivery-mode label included option text. Marked the supplemental nav count aria-hidden and gave the mode select an explicit accessible name; bounded new test action waits to 20s for clearer failures. No assertions removed. Final browser/artifact review follows on the next commit.
+
+
+The second browser run passed the real API schedule workflow and the six desktop light views/accessibility checks. It exposed the footer theme control below the viewport on a short desktop window. Added vertical sidebar scrolling with nonshrinking navigation sections and restored visible overflow for the mobile masthead; the test keeps its original viewport and normal click behavior. Other existing browser scenarios and all non-browser jobs stayed green.

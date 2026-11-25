@@ -1,0 +1,48 @@
+services:
+  vulnrelay:
+    image: ${VULNRELAY_IMAGE:-vulnrelay-local:development}
+    build: .
+    ports:
+      - "127.0.0.1:${VULNRELAY_PORT:-8080}:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      VULNRELAY_DATABASE_URL: sqlite:////app/data/vulnrelay.db
+    volumes:
+      - vulnrelay-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+    mem_limit: 256m
+  monitor:
+    image: ${VULNRELAY_IMAGE:-vulnrelay-local:development}
+    command: ["vulnrelay", "monitor"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      VULNRELAY_DATABASE_URL: sqlite:////app/data/vulnrelay.db
+    volumes:
+      - vulnrelay-data:/app/data
+    depends_on:
+      vulnrelay:
+        condition: service_healthy
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vulnrelay", "engine-health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    mem_limit: 384m
+    stop_grace_period: 2m
+volumes:
+  vulnrelay-data:

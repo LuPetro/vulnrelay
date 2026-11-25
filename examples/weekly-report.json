@@ -1,0 +1,12 @@
+{
+  "name": "Weekly vulnerability report",
+  "enabled": true,
+  "scope": "global",
+  "frequency": "weekly",
+  "timezone": "Europe/Vienna",
+  "time": "08:00",
+  "weekday": 0,
+  "destinations": ["REPLACE_WITH_CONNECTOR_ID"],
+  "min_cvss": 0,
+  "item_limit": 10
+}
