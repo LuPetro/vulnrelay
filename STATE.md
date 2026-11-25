@@ -33,6 +33,10 @@ Markdown file links, Compose configuration rendering and documented CLI setup,
 catalog and asset commands against an isolated temporary database, with no
 live providers or operator data.
 
+The current documentation omits specific unrelated project names and local
+workspace paths while preserving development/production isolation rules in
+`AGENTS.md`. Prior history and Actions logs have not been fully audited.
+
 The repository is private; `main` is the default and does not yet include the
 current `development` work. An existing draft PR tracks that merge. Review
 the entire Git history and Actions logs/artifacts for sensitive content,
@@ -102,7 +106,7 @@ Continue with non-CVE OSV advisories, qualified package URLs, inventory imports 
 
 ## Next priorities
 
-Operator decision (2026-11-15): the long-running installation belongs to the user's separate VPS account. The old `neues-projekt` development Compose deployment was brought down without removing its data volume; it must stay off between deliberate development tests. This checkout is for coding and isolated verification only. Do not access or change the operator installation or automatically roll out changes to it. No operator-owned installation has been started or validated by this action. Development tests must use distinct projects/images/ports/data and clean up their own containers afterwards; do not use real Telegram credentials for automated tests. See AGENTS.md.
+Operator decision (2026-11-15): the long-running installation belongs to the user's separate VPS account. The old default development Compose deployment was brought down without removing its data volume; it must stay off between deliberate development tests. This checkout is for coding and isolated verification only. Do not access or change the operator installation or automatically roll out changes to it. No operator-owned installation has been started or validated by this action. Development tests must use distinct projects/images/ports/data and clean up their own containers afterwards; do not use real Telegram credentials for automated tests. See AGENTS.md.
 
 For an operator-driven clean install alongside development, follow docs/server-test-installation.md. Compose now accepts VULNRELAY_IMAGE with the existing image as default; the test procedure selects its own project/image/localhost port and starts with a new named volume. Default and isolated Compose rendering were checked for both services, host binding, port and distinct volume names; git diff --check passed. No test instance is started automatically, and no existing deployment configuration is changed.
 
