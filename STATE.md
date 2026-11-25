@@ -2,20 +2,49 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
-## Implemented
+## Current implementation and verification
 
-- Packaged migrations through 0006; init/status/doctor; SQLite WAL; .env support; non-root Docker API/UI plus monitoring worker and persistent volume.
-- Incremental NVD ingestion stages downloads before a short atomic write transaction. CISA snapshots preserve valid prior data on failure. FIRST EPSS enriches local CVEs daily from the bulk feed, supports bounded same-host HTTPS redirects, and keeps on-demand API lookup.
-- Optional OpenCVE public KB adapter: account-free manual CLI/API/UI lookup, separate raw/normalized assessments, ETag/miss caching, bounded opt-in background enrichment and conservative identity matching.
-- Persistent monitoring schedule and per-database lock; independent delivery thread; source failure isolation; structured application logging without provider exception URLs.
-- Validated asset/rule/Telegram CRUD shared between CLI and API. Matching returns confidence and evidence; generic version ranges remain unverified. Rule evaluation is three-valued and supports nested AND/OR/NOT.
-- Deduplicated persistent outbox, selected material-change re-notification, destination cooldowns, expiring claims, bounded retries, failure history and explicit operator retry. At-least-once semantics; not exactly once.
-- Local UI: setup guidance, overview/source health, assets, nested rule builder, Telegram connector tests, rule dry runs, CVE search/details, delivery history/retry, dark/light themes and optional API token in browser memory.
-- Configuration API has Host validation, cross-origin mutation checks and optional bearer protection. Remote deployment is unsupported.
+- SQLite WAL, packaged migrations through 0010, native CLI, Docker API/UI and
+  separate persistent monitoring/delivery worker. Remote deployment and
+  PostgreSQL remain unsupported or provisional for release.
+- NVD, CISA KEV and FIRST EPSS ingestion; optional OpenCVE and exact-version
+  OSV lookups. Assets/catalog, nested rules, matching evidence, durable
+  deduplicated outbox, connector schedules and daily/weekly reports.
+- Telegram, Discord, Slack, SMTP, generic webhooks, ntfy and Gotify; optional
+  source-grounded AI summaries after matching. See the README for limitations.
+- The last full local backend suite passed 355 tests; the preceding code
+  increment passed GitHub CI and Security, including Python 3.12/3.13,
+  frontend, browser and container checks. Remote checks apply to the commit
+  they tested and must be checked again after changes.
+- The operator confirmed a real Telegram test message. A controlled real CVE
+  alert, duplicate/restart acceptance, backup/restore rehearsal, longer
+  monitoring test and independent security review remain open. Automated tests
+  use mocked connectors and do not establish live provider compatibility.
 
-## Verification
+## Documentation and release review (2026-11-25)
 
-109 backend tests pass, covering sources, matching, missing metrics, API guards/authentication, the API-to-queue-to-mocked-Telegram path, deduplication, material changes, retries, claim recovery, schedule persistence and source isolation. OpenCVE tests cover conditional cache reads, absent/malformed/older responses, rate limits, transport errors, strict outbound URLs, negative caching, source-only matching, NVD precedence, CLI/API behavior, optional scheduling and migration from 0005 with preserved inventory/queue. Current branch-inclusive CI coverage is 82.91% (75% gate). Ruff, TypeScript/Vite build, the frontend form test and all three Chromium scenarios pass. The browser flows include catalog selection/preview/import/reimport, unchanged manual entry, mobile selection navigation, CPE/version conflicts, setup, delivery retry/cancellation and manual OpenCVE lookup with distinct source assessments, with selected automated accessibility checks in light/dark/mobile views. A real public OpenCVE lookup of CVE-2021-44228 and a consistent second lookup passed in an isolated temporary database. The operator confirmed a real Telegram test message on 2026-11-15. A controlled real CVE-alert, duplicate-prevention and restart acceptance are still pending. Broader/manual accessibility and PostgreSQL E2E remain pending. Remote CI outcomes must be checked separately for each commit.
+The README and documentation index now lead to English/German Docker
+quickstarts, a native CLI guide, connector guides, a controlled real-alert
+acceptance procedure, security/privacy guidance and release checklists. UI
+screenshots come from CI browser fixtures with synthetic data and a stopped
+monitor, not an operator installation. Source coverage, delivery semantics,
+matching uncertainty and alpha status are explicit. Local verification checked
+Markdown file links, Compose configuration rendering and documented CLI setup,
+catalog and asset commands against an isolated temporary database, with no
+live providers or operator data.
+
+The repository is private; `main` is the default and does not yet include the
+current `development` work. An existing draft PR tracks that merge. Review
+the entire Git history and Actions logs/artifacts for sensitive content,
+verify a confidential vulnerability-reporting route and repository
+protections, then obtain owner approval before merging or changing visibility.
+Another security product already uses the VulnRelay name; review naming,
+domain and trademark availability before public branding. This observation is
+not a trademark determination. Public alpha and supported production v1 have
+separate acceptance gates in `docs/releasing.md`.
+
+The sections below preserve the history of prior increments; old test counts
+and next-step statements in them describe those dates, not current status.
 
 ## Additional connectors and forthcoming work (2026-11-23)
 

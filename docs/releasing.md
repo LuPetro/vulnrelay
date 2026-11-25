@@ -1,13 +1,74 @@
-# Release preparation
+# Release checklist
 
-The current version is an alpha candidate, not a supported stable release. Do not publish without explicit owner authorization.
+VulnRelay is an alpha, not a supported stable release. The repository is
+currently private and its default `main` branch does not yet contain the
+current `development` work. A public **alpha** can be useful before every
+roadmap feature is complete, provided its scope and limitations are clear.
+Publication, a merge to the default branch, tags and releases require the
+owner's explicit authorization.
 
-1. Complete the acceptance criteria in PROJECT_PLAN.md, including a real Telegram setup, an installation from a clean machine, restart recovery and backup/restore rehearsal. Record limitations rather than marking mocked integration tests as real delivery.
-2. Update backend/pyproject.toml and frontend/package.json together. Python `0.1.0a0` and frontend `0.1.0-alpha.0` express the same prerelease. Run scripts/check_release.py. Keep root and packaged Apache licenses identical.
-3. Regenerate and review dependency locks following docs/development.md. Resolve security audit findings or document an explicit, time-bounded maintainer decision. Do not silently suppress vulnerable dependencies.
-4. Update CHANGELOG.md, compatibility notes and installation docs. Review source-provider attribution, notification guarantees, security policy and third-party dependency license notices. Review generated SBOMs before public distribution.
-5. Require green CI and Security checks on the candidate commit. Dispatch the Release candidate workflow, which validates, builds the Python wheel/sdist and frontend bundle and attaches checksums/SBOMs as private workflow artifacts. It does not publish a GitHub release, package or container.
-6. Install the wheel into a clean Python environment and test the Compose candidate. Keep persistent volume backups. Rehearse a restore to a fresh database before upgrading a real installation.
-7. Only after human approval, tag the reviewed commit, publish through separately authorized credentials, and attach the validated artifacts and release notes. Never modify an already-published tag or replace an artifact silently. A fix requires a new version.
+## Before opening the repository as an alpha
 
-Stable release support windows, signing/attestations and distribution registries must be agreed before claiming long-term production support. No automatic publishing credentials are stored in this repository.
+- [ ] Resolve the project name before public branding. As of 2026-11-25,
+  [another security product](https://vulnrelay.app/en/) also uses the name
+  VulnRelay. This is not a trademark determination; the owner should review
+  name, domain and trademark availability before deciding what to publish.
+- [ ] Review the full contents of all Git branches, tags and commit history,
+  plus issue and pull-request content, Actions logs and artifacts, images and
+  screenshots. Look for credentials, private inventory, personal data and
+  internal infrastructure details. A clean current tree and automated scans
+  do not establish that the history is safe. Rotate exposed credentials and
+  agree on remediation before publication.
+- [ ] Review [GitHub's visibility-change consequences](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility):
+  public visibility exposes repository content and Actions history/logs, and
+  public push rulesets have different behavior. Check settings again after an
+  approved change; do not assume protections carry over unchanged.
+- [ ] Establish and verify a confidential security-reporting route. The
+  [private reporting feature](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository)
+  is a separate repository setting, not something `SECURITY.md` enables.
+- [ ] Review the Apache-2.0 license, third-party notices and source attribution.
+  Confirm a maintainer and practical contribution/support expectations.
+- [ ] Review the current development work and draft PR, require green CI and
+  Security checks on the intended commit, and arrange appropriate branch
+  protections. Files in `development` do not update the default branch.
+- [ ] Perform a clean installation and the
+  [real-alert acceptance checklist](acceptance.md). Record what was actually
+  tested, and retain explicit alpha limitations for anything still unverified.
+
+## Before claiming a supported production v1
+
+- [ ] Have someone else follow the installation and upgrade instructions on a
+  clean host. Verify a real matching CVE alert, duplicate behavior, restarts,
+  source outages and recovery with operator-controlled test destinations.
+- [ ] Exercise a backup and restore on a separate instance, run a longer
+  monitoring/queue soak test, and document operational limits and recovery.
+- [ ] Complete a security and threat review, including dependencies,
+  credentials, outbound integrations and the supported localhost/SSH access
+  model. Define supported versions, response expectations and upgrade policy.
+- [ ] Validate the providers and platforms advertised as supported. Keep
+  unsupported features, source gaps and unverified version applicability
+  clearly documented; a mock provider test is not live-service acceptance.
+
+## Prepare an authorized release candidate
+
+1. Update `backend/pyproject.toml` and `frontend/package.json` together.
+   Python `0.1.0a0` and frontend `0.1.0-alpha.0` express the same prerelease.
+   Run `python scripts/check_release.py` and keep the root and packaged Apache
+   licenses identical.
+2. Review dependency locks, audit findings, `CHANGELOG.md`, compatibility
+   notes, attribution, license notices and the security policy. Document any
+   explicit maintainer decisions; do not silently suppress findings.
+3. Require green CI and Security checks on the candidate commit. The manually
+   dispatched Release candidate workflow validates and builds the Python
+   wheel/sdist and frontend bundle, with checksums and SBOMs as workflow
+   artifacts. Artifact visibility follows repository permissions. The workflow
+   does not publish a package, image or GitHub release.
+4. Install the wheel in a clean Python environment and test the Compose
+   candidate. Rehearse restore from a backup to a fresh database before
+   upgrading an existing installation.
+5. Only after owner approval, tag the reviewed commit and publish the validated
+   artifacts and release notes using separately authorized credentials. Do
+   not replace an already-published tag or artifact; release a new version.
+
+See [GitHub administration](github-settings.md),
+[development and verification](development.md) and the [roadmap](../PROJECT_PLAN.md).

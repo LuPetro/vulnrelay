@@ -2,6 +2,10 @@
 
 The **Catalog** page offers **87 bundled technologies and 19 editable starter packs**. It works offline and requires no external catalog account. Choose infrastructure, applications, network devices, identity providers, databases or common libraries instead of typing their matching identities. Manual asset creation remains available.
 
+![The technology catalog showing Linux and web application environment packs](images/catalog.png)
+
+*Catalog view captured by an automated browser test using synthetic data.*
+
 1. Search a technology or select a category. **Matching identity** shows the exact product/vendor used and links to an NVD identity record or dictionary search. Searches also understand terms included in the descriptions, such as `npm lodash`, `PyPI fastapi` and `Composer laravel`.
 2. Alternatively open **Environment packs**. A pack shows its components before selection. Remove anything you do not run and add other technologies individually.
 3. Choose an asset group and environment. Team, importance and Internet exposure are optional context.

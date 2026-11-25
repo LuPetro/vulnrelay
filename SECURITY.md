@@ -1,11 +1,50 @@
 # Security policy
 
-This project is alpha; no supported production release exists yet. Keep it bound to localhost. Optional bearer-token protection applies to `/api`; this is not a complete remote-access security model. Host validation and cross-origin mutation protection reduce local browser attack surface, and source/AI content must be treated as untrusted.
+VulnRelay is alpha software; no supported production release exists yet. No
+independent security review or certification is implied. The supported default
+is localhost access. Optional bearer-token protection applies to `/api`; it is
+not a complete remote-access security model. Use an SSH tunnel for a remote
+host rather than exposing the application directly to the Internet.
 
-Never commit connector credentials. Connector configuration references environment variables, with optional native `.env` fallback. Keep `.env` and the persistent data volume private: they contain secrets or infrastructure inventory. Delivery error records omit raw provider exception strings. Notifications leave the local machine and contain configured asset names and vulnerability information.
+## Reporting a vulnerability
 
-For a suspected vulnerability, use GitHub private vulnerability reporting if available on this repository. Do not include credentials or exploit details in public issues. If private reporting is unavailable, contact the repository owner through a private channel before disclosing details. No security review or certification is implied.
+Please do not publish credentials, exploit details or affected private
+infrastructure in an issue or pull request. Use the repository's
+[private vulnerability reporting page](https://github.com/LuPetro/vulnrelay/security/advisories)
+if the owner has enabled that feature. Its availability has not yet been
+verified. If it is unavailable, contact the repository owner through a
+verified private channel before sending details. Do not use a guessed email
+address. Before public release, the owner must establish and verify at least
+one confidential reporting route; see [GitHub settings](docs/github-settings.md).
 
-Configuration requests are bounded before JSON parsing. Native SQLite files created by the application and online backup files use private file modes; existing files and host backup storage still need operator review. `/ready` checks the installed database revision, while worker health uses a separate recent delivery-thread heartbeat. These operational checks do not certify upstream data freshness or security.
+## Protecting an installation
 
-CI uses read-only repository permissions, immutable action pins and no production credentials. Scheduled dependency audits and offline secret checks are configured; repository-level secret scanning, push protection and private vulnerability reporting are separate GitHub settings and are not asserted to be enabled. See [docs/github-settings.md](docs/github-settings.md). Audit findings must be fixed or explicitly reviewed; passing an automated audit is not a complete security assessment.
+- Never commit connector credentials. Connector configuration references
+  server environment variables, with an optional native `.env` fallback.
+- Keep `.env`, the persistent data volume, exports and backups private. They
+  may contain credentials or infrastructure inventory. Review ownership,
+  access and storage permissions; the application does not encrypt the whole
+  database or backups for you.
+- Notifications leave the host and may contain asset names, matching evidence
+  and vulnerability information. Choose destinations and retention
+  accordingly. Delivery error records omit raw provider exception strings.
+- Opt-in OSV requests disclose declared package names and exact versions to
+  OSV. Optional AI summaries send a public CVE identifier and its public
+  description to the configured provider after a rule match; connection tests
+  are real requests and can incur charges. Review [OSV](docs/osv.md) and
+  [AI privacy and controls](docs/ai.md).
+- Treat source and AI content as untrusted. Enable access to private outbound
+  endpoints only for trusted services; see the relevant connector guides.
+
+Configuration requests are bounded before JSON parsing. Native SQLite files
+created by the application and online backup files use private file modes;
+existing files and host backup storage still need operator review. `/ready`
+checks the installed database revision, while worker health uses a separate
+recent delivery-thread heartbeat. These operational checks do not certify
+upstream data freshness or security.
+
+CI uses read-only repository permissions, pinned actions and no production
+credentials. Scheduled dependency audits and offline secret checks are
+configured; repository-level secret scanning, push protection and private
+vulnerability reporting are separate GitHub settings and are not asserted to
+be enabled. A passing automated scan is not a complete security assessment.

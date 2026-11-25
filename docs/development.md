@@ -2,7 +2,11 @@
 
 Use Python 3.12 or 3.13, Node 22.12+ LTS and a recent Docker Compose. Runtime dependencies, build tools and developer tools have separate hash-locked requirement files. Frontend dependencies use npm's integrity-checked package lock. Docker base images and GitHub Actions use immutable digests/commit SHAs.
 
-On a small VPS shared with an operator deployment, use GitHub CI for container builds and browser checks. Do not run Chromium alongside production services on the project's current sub-2-GiB/no-swap host. The browser job uploads its report and synthetic screenshots on success as well as failure; these can be reviewed without a local browser process.
+Container builds and browser checks can be resource-intensive; use GitHub CI
+when working on a constrained host. The browser job uploads its report and
+synthetic screenshots on success as well as failure; these can be reviewed
+without a local browser process. Keep development checks isolated from any
+operator's live installation, credentials and data.
 
 ## Setup and checks
 

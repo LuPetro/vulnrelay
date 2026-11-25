@@ -14,7 +14,7 @@ docker compose exec vulnrelay vulnrelay doctor
 docker compose exec monitor vulnrelay engine-health
 ```
 
-Erwartung: API und Monitor sind gesund. Die Oberfläche zeigt erfolgreiche Synchronisationen für NVD, CISA und EPSS sowie einen aktuellen Worker-Heartbeat. Der erste Quellenlauf kann mehrere Minuten dauern; EPSS muss nicht für jeden CVE verfügbar sein. Bei Fehlern den Abnahmeschritt offen lassen und den Fehler aus Overview notieren.
+Erwartung: API und Monitor sind gesund. Prüfe in der Oberfläche den Worker-Heartbeat sowie Status und Zeitpunkt der letzten erfolgreichen Synchronisationen für NVD, CISA und EPSS. Der erste Quellenlauf kann mehrere Minuten dauern; Quellen können vorübergehend nicht verfügbar sein und EPSS muss nicht für jeden CVE vorliegen. Bei Fehlern den Abnahmeschritt offen lassen und den Fehler aus Overview notieren.
 
 ## 1. Echten Telegram-Kanal prüfen
 
@@ -22,7 +22,7 @@ Lege unter **Connectors** dein Ziel an und klicke **Test**. Die Testnachricht mu
 
 ## 2. Asset und Regel ohne Versand prüfen
 
-Lege zunächst ein Asset und eine **deaktivierte** Regel für dieses Asset und dein Testziel an. Verwende **Test rule**: Das funktioniert auch bei deaktivierter Regel und sendet nichts. Prüfe CVE, Produkt, Regelbegründung und Trefferqualität. Ein Produkt- oder Schlüsselworttreffer ist keine Bestätigung, dass eine installierte Version betroffen ist. Allgemeine Versionsbereiche werden noch nicht ausgewertet.
+Lege zunächst ein Asset und eine Regel für dieses Asset und dein Testziel an. Neue Regeln sind standardmäßig aktiv: Entferne daher **Rule enabled**, bevor du die Testregel speicherst. Verwende **Test rule**: Das funktioniert auch bei deaktivierter Regel und sendet nichts. Prüfe CVE, Produkt, Regelbegründung und Trefferqualität. Ein Produkt- oder Schlüsselworttreffer ist keine Bestätigung, dass eine installierte Version betroffen ist. Allgemeine Versionsbereiche werden noch nicht ausgewertet.
 
 Zusätzlicher Fehlertest: Ein CPE-Asset mit `cpe:2.3:a:example:server:1.0:*:*:*:*:*:*:*` und installiertem Versionsfeld `2.0` darf sich nicht speichern lassen. Die Oberfläche muss den Versionskonflikt erklären. Dieses Beispiel ist synthetisch und soll kein echtes Asset darstellen.
 
@@ -61,7 +61,7 @@ Erwartung: Asset, Regel und Versandhistorie bleiben erhalten; die unveränderte 
 
 ## 5. Deaktivierte Regel stoppt eine wartende Meldung
 
-Lege mit weiterhin gestopptem Monitor eine zweite, zunächst deaktivierte Testregel mit neuem Namen und eigenständiger ID an. Nach dem Regeltest aktivieren und mit deren ID gezielt denselben CVE einplanen. **Noch nicht `deliver` ausführen.** Deaktiviere diese zweite Regel wieder und führe anschließend `deliver` aus.
+Lege mit weiterhin gestopptem Monitor eine zweite, zunächst deaktivierte Testregel mit neuem Namen und eigenständiger ID an. Nach dem Regeltest aktivieren und mit deren ID gezielt denselben CVE einplanen. **Noch nicht `deliver` ausführen.** Deaktiviere diese zweite Regel wieder und führe anschließend `deliver` aus. Die Testwarteschlange sollte keine anderen fälligen Einträge enthalten: `deliver` bearbeitet den nächsten fälligen Eintrag über alle Regeln und Ziele hinweg.
 
 Erwartung: `cancelled` mit dem Grund `Rule disabled or removed`, keine neue Telegram-Nachricht. Der Verlauf bleibt sichtbar. Das gilt auch für zwischenzeitlich entfernte Assets, geänderte Auswahl/Filter und inzwischen abgelehnte CVEs. Eine bereits laufende HTTP-Anfrage kann durch nachträgliches Deaktivieren nicht zurückgerufen werden.
 

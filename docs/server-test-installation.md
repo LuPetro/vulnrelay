@@ -1,6 +1,9 @@
 # Frische Testinstallation auf dem Server
 
-Dieser Ablauf ist ein eigenständiger Installationstest: Du klonst das private Repository selbst, baust das Image und startest eine leere Installation unter deinem eigenen VPS-Nutzer. Der Entwicklungsordner liegt in `/home/codexdev/projects/neues-projekt`; seine bisherige Dauerinstanz ist abgeschaltet und wird nur bei gezielten Entwicklungstests verwendet. Der neue Ordner ist `$HOME/vulnrelay-test`. Estate Atlas und die Entwicklungsdaten werden nicht verwendet.
+Dieser Ablauf ist ein eigenständiger Installationstest: Du klonst das Repository
+selbst, baust ein eigenes Image und startest eine leere Installation unter
+deinem VPS-Nutzer. Der neue Ordner ist `$HOME/vulnrelay-test`. Andere Projekte
+und bereits vorhandene VulnRelay-Daten werden dabei nicht verwendet.
 
 Deine Installation kannst du nach erfolgreicher Abnahme für den Dauerbetrieb nutzen. Der Projektstatus bleibt bis zu den ausstehenden Abnahmen Alpha. Entwicklungsänderungen werden nicht automatisch in deine Installation übernommen; du entscheidest über Updates und führst sie nach einem Backup selbst aus.
 
