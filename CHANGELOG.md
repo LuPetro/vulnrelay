@@ -18,6 +18,7 @@ Changes are recorded here before a release is published. No stable version has b
 
 ### Added
 
+- Opt-in security news from selected RSS feeds, a searchable News tab, headline-based topic filters, source status and connector notifications through the persistent outbox. The first feed check establishes a baseline without sending old stories.
 - Import supported unqualified package URLs with exact versions into OSV asset identities via GUI, API or CLI, including atomic, duplicate-aware list imports with preview.
 - Scope OSV findings to their own asset snapshot, retain newer records against stale or inconsistent responses, and avoid re-alerting on timestamp-only updates after a content baseline is established.
 - ntfy and Gotify push connectors with environment-only token references, private-server opt-in and shared queue, scheduling and rate-limit handling.

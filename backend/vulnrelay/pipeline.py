@@ -239,6 +239,10 @@ def refresh_alert(
         return None, "Invalid queued alert"
     if payload.get("test") is True:
         return payload, None
+    if payload.get("news") is True:
+        from vulnrelay.news import refresh_news
+
+        return refresh_news(engine, payload, destination)
     if payload.get("digest") is True:
         from vulnrelay.digests import refresh_digest
 

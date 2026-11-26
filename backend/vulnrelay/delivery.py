@@ -57,6 +57,14 @@ class DeliveryResult:
 def render(payload: dict, *, max_bytes: int = 7600, ai_summary: str | None = None) -> str:
     if payload.get("test"):
         return "VulnRelay test notification. Your notification connector is working."
+    if payload.get("news"):
+        item = payload["item"]
+        category = "Vulnerability news" if item["category"] == "vulnerability" else "Security news"
+        heading = f"VulnRelay · {category}"
+        footer = f"Source: {item['source_name']}\nPublished: {item['published'] or 'unknown'}\n{item['url']}"
+        budget = max(0, max_bytes - len(f"{heading}\n\n{footer}".encode("utf-16-le")))
+        title = item["title"].encode("utf-16-le")[:budget].decode("utf-16-le", errors="ignore")
+        return f"{heading}\n{title}\n{footer}"
     if payload.get("digest"):
 
         def instant(value):
@@ -283,7 +291,15 @@ def send_generic_webhook(
         )
     except AIError:
         return DeliveryResult(False, error="Webhook URL is invalid, unavailable, or not permitted")
-    event_type = "test" if payload.get("test") else "report" if payload.get("digest") else "alert"
+    event_type = (
+        "test"
+        if payload.get("test")
+        else "news"
+        if payload.get("news")
+        else "report"
+        if payload.get("digest")
+        else "alert"
+    )
     data = {
         "schema_version": 1,
         "event_id": message_id,
@@ -326,6 +342,8 @@ def send_generic_webhook(
                 "nvd_synced",
             )
         }
+    elif event_type == "news":
+        data["news"] = payload["item"]
     body = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
         "utf-8", errors="replace"
     )
@@ -647,7 +665,7 @@ def deliver_one(
             outcome = DeliveryResult(False, error=cancellation)
         else:
             ai_summary = None
-            if not payload.get("test") and not payload.get("digest"):
+            if not payload.get("test") and not payload.get("digest") and not payload.get("news"):
                 try:
                     from vulnrelay.ai import summarize
 

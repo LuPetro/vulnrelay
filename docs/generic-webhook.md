@@ -1,7 +1,7 @@
 # Generic JSON webhook
 
 The generic webhook connector sends versioned JSON events to an endpoint you
-operate. It supports normal alerts, scheduled reports and test messages through
+operate. It supports normal alerts, security news, scheduled reports and test messages through
 the persistent queue. Delivery hours, pacing, retries, history and at-least-once
 semantics are shared with other connectors.
 
@@ -20,10 +20,11 @@ semantics are shared with other connectors.
    test message and inspect delivery history. Tests obey connector delivery hours.
 
 Each POST includes `Content-Type: application/json`, an `Idempotency-Key` equal
-to the stable event ID and an `X-VulnRelay-Event` of `alert`, `report` or `test`.
+to the stable event ID and an `X-VulnRelay-Event` of `alert`, `news`, `report` or `test`.
 For alerts, the JSON includes `schema_version`, `event_id`, `event_type`,
 `message`, selected vulnerability metrics and the matching asset/rule reason.
-Report events include their period, entries and coverage information. Asset and
+News events include the source-attributed article details in `news`. Report
+events include their period, entries and coverage information. Asset and
 rule names are sent to the configured receiver. AI-generated text remains labeled
 in the message and should not be treated as verified source data.
 

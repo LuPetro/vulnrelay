@@ -1829,3 +1829,75 @@ footer > span:first-child {
     scroll-behavior: auto !important;
   }
 }
+
+.news-settings > p,
+.news-settings > .news-check,
+.news-settings > fieldset,
+.news-settings > button {
+  margin: 0 var(--space-6) var(--space-4);
+}
+.news-settings > .news-check:first-of-type {
+  margin-top: var(--space-6);
+}
+.news-settings > p,
+.news-source-status,
+.news-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.news-settings fieldset {
+  border: 0;
+  padding: 0;
+}
+.news-settings legend {
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+.news-check {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-block: 4px;
+}
+.news-check input {
+  width: auto;
+  margin: 0;
+}
+.news-item {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+.news-search {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+.news-item:last-child {
+  border-bottom: 0;
+}
+.news-item h3 {
+  margin: var(--space-2) 0 0;
+  font-size: 17px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.news-item a {
+  color: var(--ink);
+}
+.news-item a:hover {
+  color: var(--accent);
+}
+@media (max-width: 760px) {
+  .news-settings > p,
+  .news-settings > .news-check,
+  .news-settings > fieldset,
+  .news-settings > button {
+    margin-inline: var(--space-4);
+  }
+  .news-item {
+    padding: var(--space-4);
+  }
+  .news-search {
+    padding-inline: var(--space-4);
+  }
+}

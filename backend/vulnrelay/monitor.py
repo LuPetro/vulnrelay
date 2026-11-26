@@ -19,6 +19,8 @@ from vulnrelay.digests import schedule_due
 from vulnrelay.epss_bulk import refresh as refresh_epss
 from vulnrelay.kev import sync as sync_kev
 from vulnrelay.logging_config import configure
+from vulnrelay.news import refresh as refresh_news
+from vulnrelay.news import settings as news_settings
 from vulnrelay.nvd import retry_after_seconds, transient_failure
 from vulnrelay.nvd import sync as sync_nvd
 from vulnrelay.opencve import refresh as refresh_opencve
@@ -109,6 +111,8 @@ def cycle(
         )
     if settings.osv_enabled:
         sources.append(("osv", lambda: refresh_osv(engine)))
+    if news_settings(engine).enabled:
+        sources.append(("news", lambda: refresh_news(engine)))
     for source, action in sources:
         if sync_sources and current >= schedule.get(f"next_{source}", 0):
             deferred_until = 0
@@ -117,7 +121,10 @@ def cycle(
             try:
                 records = action()
                 outcomes[source] = {
-                    "ok": not (source == "osv" and records["assets_failed"]),
+                    "ok": not (
+                        (source == "osv" and records["assets_failed"])
+                        or (source == "news" and records["failed"])
+                    ),
                     "records": records,
                 }
                 if source == "osv" and records.get("retry_after"):

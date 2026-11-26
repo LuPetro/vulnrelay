@@ -2,6 +2,35 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
+## Opt-in security news (2026-11-25)
+
+The News tab collects source-attributed RSS headlines from CISA Advisories,
+BleepingComputer and The Hacker News. Users select feeds, headline-derived
+topics and existing notification destinations. On a feed's first successful
+check, existing items form a silent baseline; newly discovered stories are
+queued once per source URL and destination and revalidated before delivery.
+Connector schedules, retry behavior and at-least-once semantics still apply.
+The monitor checks feeds at the configured sync interval; news is disabled by
+default. Keyword labels are not verified exploitation or importance claims.
+Cross-publisher grouping, scheduled news digests and automatic retention are
+not implemented. See `docs/news.md` for coverage and privacy limitations.
+
+All three feeds were fetched and parsed from the development host. Offline
+backend tests cover baseline, source isolation, duplicate handling, retry,
+settings validation, monitor and webhook routing. Frontend unit tests/build
+passed. Browser and container checks must run in GitHub CI; a live connector
+and manual visual acceptance of News remain open. No operator installation or
+real connector was used during development.
+
+## Connector queue spacing (2026-11-25)
+
+The delivery queue inside the Connectors panel now has the same horizontal
+inset as the surrounding panel content, with a smaller inset on mobile. The
+shared Overview queue retains its existing layout. Frontend formatting, all
+seven unit tests and the production build passed locally. Browser rendering
+still needs visual confirmation; browser checks must run in GitHub CI rather
+than on the resource-constrained VPS.
+
 ## Public repository and merged alpha (2026-11-25)
 
 The owner made the GitHub repository public and merged PR #1 into `main`.
@@ -36,7 +65,7 @@ runtime container or an existing installation.
 
 ## Current implementation and verification
 
-- SQLite WAL, packaged migrations through 0010, native CLI, Docker API/UI and
+- SQLite WAL, packaged migrations through 0011, native CLI, Docker API/UI and
   separate persistent monitoring/delivery worker. Remote deployment and
   PostgreSQL remain unsupported or provisional for release.
 - NVD, CISA KEV and FIRST EPSS ingestion; optional OpenCVE and exact-version
