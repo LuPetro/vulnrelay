@@ -232,3 +232,43 @@ def test_monitor_checks_opted_in_news_without_blocking_other_work(configured_eng
         result = cycle(configured_engine, get_settings(), now=10, process_deliveries=False)
     assert result["sources"]["news"]["ok"] is True
     assert list_news(configured_engine)["items"][0]["title"] == "Vendor incident"
+
+
+def test_new_sources_remain_opt_in_for_existing_and_new_installations(configured_engine):
+    from vulnrelay.news import DEFAULT_SOURCES, settings
+
+    assert settings(configured_engine).sources == list(DEFAULT_SOURCES)
+    save_settings(configured_engine, {"enabled": True, "sources": ["cisa"]})
+    assert settings(configured_engine).sources == ["cisa"]
+    sources = {source["id"]: source for source in list_news(configured_engine)["sources"]}
+    assert "cert_eu_advisories" in sources
+    assert sources["cert_fr"]["type"] == "Official advisories · French"
+    assert len(sources) > len(DEFAULT_SOURCES)
+    item = parse_feed("cert_eu_advisories", feed(("Critical issue in Example", "issue")))[0]
+    assert item["category"] == "vulnerability"
+
+
+def test_new_advisory_feed_uses_feed_scope_and_silent_baseline(configured_engine, monkeypatch):
+    _, connector, _ = seed(configured_engine)
+    config(configured_engine, connector["id"], sources=["cert_fr"], categories=["vulnerability"])
+    responses = [
+        feed(("Multiples vulnérabilités dans Example", "old")),
+        feed(("Multiples vulnérabilités dans Autre", "new")),
+        feed(("Multiples vulnérabilités dans Autre", "new")),
+    ]
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, content=responses.pop(0)))
+    ) as client:
+        assert refresh(configured_engine, client=client, now=10)["new"] == 1
+        with configured_engine.connect() as connection:
+            assert connection.execute(text("SELECT count(*) FROM outbox")).scalar_one() == 0
+        assert refresh(configured_engine, client=client, now=20)["new"] == 1
+        assert refresh(configured_engine, client=client, now=30)["new"] == 0
+    with configured_engine.connect() as connection:
+        payload = json.loads(connection.execute(text("SELECT payload FROM outbox")).scalar_one())
+        assert connection.execute(text("SELECT count(*) FROM outbox")).scalar_one() == 1
+    item, error = refresh_news(configured_engine, payload, connector["id"])
+    assert error is None
+    assert item["item"]["category"] == "vulnerability"
+    assert item["item"]["source_name"] == "CERT-FR Advisories"
+    assert "CERT-FR Advisories" in render(item)

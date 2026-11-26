@@ -12,6 +12,7 @@ type Config = {
 type Source = {
   id: string;
   name: string;
+  type?: string;
   last_success?: number | null;
   last_error?: string | null;
 };
@@ -145,6 +146,9 @@ export default function News({
           Feeds are checked alongside the monitor. The first successful check
           establishes a baseline and does not send old articles.
         </p>
+        <p>
+          New sources are optional. Select the publishers you want to follow.
+        </p>
         <fieldset>
           <legend>Sources</legend>
           {data.sources.map((source) => (
@@ -156,6 +160,7 @@ export default function News({
               />{" "}
               {source.name}{" "}
               <span className="news-source-status">
+                {source.type && `· ${source.type} `}
                 {source.last_error
                   ? "· Last check failed"
                   : source.last_success

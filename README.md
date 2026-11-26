@@ -83,7 +83,7 @@ database; [back up before upgrading](docs/backup-and-upgrade.md).
 | Inventory | Vendor/product, CPE, explicit keyword and exact package/version assets; groups, context, catalog and environment packs. |
 | Rules | Nested AND/OR/NOT conditions, missing-data handling, rule testing and matching evidence. |
 | Delivery | Telegram, Discord, Slack, SMTP email, ntfy, Gotify and a generic JSON webhook; queue history, retries and per-connector delivery hours. |
-| News | Opt-in headlines from CISA, BleepingComputer and The Hacker News, with topic filters and notifications through existing connectors. |
+| News | Opt-in headlines from official advisories, security news and threat researchers, with topic filters and notifications through existing connectors. |
 | Reports | Daily or weekly worldwide or asset-relevant CVE reports based on locally synchronized NVD records. |
 | AI | Optional source-based alert summaries through OpenAI, Anthropic or a compatible API. Disabled by default; not used for matching. |
 | Operation | Docker Compose or native Python, SQLite, a headless CLI, local UI and packaged migrations. |

@@ -22,16 +22,67 @@ FEEDS = {
     "cisa": {
         "name": "CISA Advisories",
         "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+        "type": "Official advisories",
     },
     "bleepingcomputer": {
         "name": "BleepingComputer",
         "url": "https://www.bleepingcomputer.com/feed/",
+        "type": "Security news",
     },
     "thehackernews": {
         "name": "The Hacker News",
         "url": "https://feeds.feedburner.com/TheHackersNews",
+        "type": "Security news",
+    },
+    "cert_eu_advisories": {
+        "name": "CERT-EU Security Advisories",
+        "url": "https://cert.europa.eu/publications/security-advisories-rss",
+        "type": "Official advisories",
+        "category": "vulnerability",
+    },
+    "cert_eu_threats": {
+        "name": "CERT-EU Threat Intelligence",
+        "url": "https://cert.europa.eu/publications/threat-intelligence-rss",
+        "type": "Official threat intelligence",
+    },
+    "cert_fr": {
+        "name": "CERT-FR Advisories",
+        "url": "https://cert.cyber.gouv.fr/avis/feed/",
+        "type": "Official advisories · French",
+        "category": "vulnerability",
+    },
+    "ncsc_uk": {
+        "name": "UK NCSC Reports",
+        "url": "https://www.ncsc.gov.uk/api/1/services/v1/report-rss-feed.xml",
+        "type": "Official security reports",
+    },
+    "krebs": {
+        "name": "Krebs on Security",
+        "url": "https://feeds.feedburner.com/KrebsOnSecurity",
+        "type": "Security investigations",
+    },
+    "securityweek": {
+        "name": "SecurityWeek",
+        "url": "https://www.securityweek.com/feed/",
+        "type": "Security news",
+    },
+    "darkreading": {
+        "name": "Dark Reading",
+        "url": "https://www.darkreading.com/rss.xml",
+        "type": "Security news",
+    },
+    "cisco_talos": {
+        "name": "Cisco Talos",
+        "url": "https://blog.talosintelligence.com/rss/",
+        "type": "Threat research",
+    },
+    "unit42": {
+        "name": "Palo Alto Networks Unit 42",
+        "url": "https://unit42.paloaltonetworks.com/feed/",
+        "type": "Threat research",
     },
 }
+DEFAULT_SOURCES = ("cisa", "bleepingcomputer", "thehackernews")
 MAX_FEED_BYTES = 2_000_000
 MAX_ITEMS = 100
 
@@ -39,7 +90,7 @@ MAX_ITEMS = 100
 class NewsSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: bool = False
-    sources: list[str] = Field(default_factory=lambda: list(FEEDS), max_length=len(FEEDS))
+    sources: list[str] = Field(default_factory=lambda: list(DEFAULT_SOURCES), max_length=len(FEEDS))
     notifications: bool = False
     destinations: list[str] = Field(default_factory=list, max_length=20)
     categories: list[str] = Field(
@@ -164,7 +215,7 @@ def parse_feed(source: str, body: bytes) -> list[dict]:
                 "source": source,
                 "title": title,
                 "url": url,
-                "category": _category(title),
+                "category": FEEDS.get(source, {}).get("category", _category(title)),
                 "published": published,
             }
         )
@@ -292,7 +343,7 @@ def list_news(engine: Engine) -> dict:
     return {
         "settings": settings(engine).model_dump(),
         "sources": [
-            {"id": key, "name": value["name"], **states.get(key, {})}
+            {"id": key, "name": value["name"], "type": value["type"], **states.get(key, {})}
             for key, value in FEEDS.items()
         ],
         "items": items,

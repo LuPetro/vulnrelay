@@ -2,6 +2,23 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
+## Expanded security news sources (2026-11-26)
+
+Added selectable CERT-EU advisories and threat intelligence, CERT-FR
+advisories (French), UK NCSC reports, Krebs on Security, SecurityWeek, Dark
+Reading, Cisco Talos and Unit 42 RSS feeds. Existing subscriptions and the
+three original default selections are unchanged; new sources are opt-in and
+each builds a silent first-fetch baseline. The UI identifies the type of each
+publisher. Feed-scoped CERT-FR and CERT-EU advisory entries are categorized as
+vulnerability news; other classification remains headline-based. Publisher
+attribution is not independent verification. See `docs/news.md` for coverage.
+All twelve configured feeds returned parseable RSS entries in development
+checks. The direct Krebs site also returned HTTP 403 on a later check, so the
+configured feed uses its working FeedBurner distribution. Source availability
+can vary by network and time. Focused news tests and frontend tests/build
+passed; browser and container checks remain delegated to GitHub CI. No live
+operator connector or deployment was used.
+
 ## Opt-in security news (2026-11-25)
 
 The News tab collects source-attributed RSS headlines from CISA Advisories,

@@ -64,3 +64,39 @@ test("enables a news subscription and filters a source-attributed story", async 
     ),
   );
 });
+
+test("additional publishers are selectable without changing the saved selection", async () => {
+  const api = vi.fn(async () => ({
+    settings: {
+      enabled: true,
+      sources: ["cisa"],
+      notifications: false,
+      destinations: [],
+      categories: ["security", "vulnerability"],
+    },
+    sources: [
+      { id: "cisa", name: "CISA Advisories", type: "Official advisories" },
+      {
+        id: "krebs",
+        name: "Krebs on Security",
+        type: "Security investigations",
+      },
+    ],
+    items: [],
+  }));
+  render(<News api={api} connectors={[]} onConnectors={() => {}} />);
+  const added = await screen.findByRole("checkbox", {
+    name: /Krebs on Security/,
+  });
+  expect(added).not.toBeChecked();
+  expect(screen.getByText(/Security investigations/)).toBeInTheDocument();
+  fireEvent.click(added);
+  fireEvent.click(screen.getByRole("button", { name: "Save news settings" }));
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith(
+      "/news/settings",
+      "PUT",
+      expect.objectContaining({ sources: ["cisa", "krebs"] }),
+    ),
+  );
+});

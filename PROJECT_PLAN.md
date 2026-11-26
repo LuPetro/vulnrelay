@@ -65,6 +65,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 ## Beyond the MVP
 
 - [x] Opt-in source-attributed security news from fixed RSS feeds, headline filters and deduplicated per-connector notifications with first-run baseline and delivery revalidation.
+- [x] Expand the opt-in source catalog with European advisories, threat research and security journalism; retain existing source selections during upgrades.
 - [ ] Cross-source story grouping, editorial relevance ranking, retention controls and scheduled news digests; live connector acceptance and browser CI remain pending.
 - [x] Add Discord and Slack webhook connectors with real delivery, tests and shared queue semantics; operator acceptance remains pending.
 - [x] Add SMTP email delivery with authenticated STARTTLS, source-safe error handling and shared queue/scheduling semantics; live operator acceptance remains pending.
