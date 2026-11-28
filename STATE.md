@@ -2,6 +2,28 @@
 
 VulnRelay now has an integrated alpha notification engine and optional React/TypeScript/Vite/Tailwind local UI. It is not a v1 release.
 
+## Telegram setup assistant (2026-11-28)
+
+Connectors now offers a three-step Telegram assistant: verify a server-side
+token variable, discover/select a recent chat or enter its ID, then save the
+connector and queue a tracked test. Discovery uses only getMe, getWebhookInfo
+and explicit getUpdates without offsets or subscription changes. Active
+webhooks are left intact and lead to manual entry. Responses include chat
+identity only; tokens, webhook URLs and message text are not exposed or stored.
+Checks share a persistent cooldown, including upstream 429 deadlines.
+
+Saved tests use the existing outbox and respect connector delivery hours and
+provider pacing. A new read-only delivery-by-ID endpoint supports the assistant's
+status poll. Queueing a test does not imply delivery; success is shown only once
+the worker records Telegram acceptance. The user must confirm receipt. No
+operator installation, credentials or live connector were used in development.
+Backend tests cover secret-safe errors, empty updates, webhook preservation,
+bounded responses, persisted cooldowns and API-to-queue delivery tracking.
+The full local backend suite passed before final edge-case additions; focused
+tests passed after those changes. All 14 frontend unit tests, formatting and
+the production build passed locally. Mobile browser, accessibility and
+container validation must run in GitHub CI.
+
 ## Expanded security news sources (2026-11-26)
 
 Added selectable CERT-EU advisories and threat intelligence, CERT-FR

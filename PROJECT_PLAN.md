@@ -27,6 +27,7 @@ The first release must deliver real asset-relevant alerts and recover after rest
 - [x] Nested AND/OR/NOT rules, missing-metric semantics and rule dry runs.
 - [x] Persistent outbox, selected material-change deduplication, retry/backoff, expiring claims and failure inspection/retry.
 - [x] Telegram connector, environment-only secret references, tests and bounded plain-text rendering.
+- [x] Telegram setup assistant with bot checks, recent-chat selection, manual fallback and persistent test-delivery status.
 - [x] Independent delivery pump while sources synchronize.
 - [x] Configurable pacing, persisted Telegram cooldowns separate from failure retries, queue diagnostics and snapshot-based dismissals that retain deduplication.
 - [x] Connector-specific weekly delivery windows, IANA timezones/DST, overnight schedules and off-hours queues without consumed attempts.

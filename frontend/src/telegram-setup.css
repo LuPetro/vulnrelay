@@ -1,0 +1,71 @@
+.telegram-setup-body {
+  padding: var(--space-6);
+}
+.telegram-setup-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  list-style: none;
+  padding: 0 0 var(--space-6);
+  margin: 0 0 var(--space-6);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.telegram-setup-progress span {
+  font-family: var(--mono);
+  margin-right: var(--space-2);
+}
+.telegram-setup-progress [aria-current="step"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.telegram-setup h3 {
+  margin: 0 0 var(--space-4);
+  font-size: 23px;
+}
+.telegram-setup h3:focus {
+  outline: none;
+}
+.telegram-setup form {
+  max-width: 840px;
+}
+.telegram-setup-help {
+  margin-bottom: var(--space-6);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.telegram-setup-help summary {
+  cursor: pointer;
+  color: var(--ink);
+}
+.telegram-setup-help pre {
+  padding: var(--space-3);
+  background: var(--bg);
+  overflow-x: auto;
+}
+.telegram-bot-identity,
+.telegram-test-status {
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-left: 2px solid var(--accent);
+  background: var(--bg);
+  overflow-wrap: anywhere;
+}
+.telegram-test-status p {
+  margin-bottom: 0;
+  line-height: 1.7;
+}
+.connector-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+@media (max-width: 760px) {
+  .telegram-setup-body {
+    padding: var(--space-4);
+  }
+  .telegram-setup .form-actions {
+    flex-wrap: wrap;
+  }
+}

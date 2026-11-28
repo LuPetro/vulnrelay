@@ -23,9 +23,32 @@ from vulnrelay.pipeline import correlate, vulnerabilities
 from vulnrelay.queue import ClearQueue, clear_queue, queue_status
 from vulnrelay.schemas import Asset
 from vulnrelay.store import delete_document, list_documents, save_document
+from vulnrelay.telegram_setup import TelegramProbe, defer_probe, probe, reserve_probe
 
 router = APIRouter(prefix="/api")
 Collection = Literal["assets", "rules", "connectors"]
+
+
+@router.post("/telegram/setup/probe")
+def telegram_setup_probe(document: dict, request: Request):
+    try:
+        config = TelegramProbe.model_validate(document)
+    except ValueError:
+        raise HTTPException(
+            422, "Enter a token environment variable name and valid check mode"
+        ) from None
+    wait = reserve_probe(request.app.state.engine)
+    if wait:
+        return {
+            "ok": False,
+            "code": "cooldown",
+            "message": "Please wait a few seconds before checking again.",
+            "retry_after": wait,
+        }
+    result = probe(config)
+    if result.get("retry_after"):
+        defer_probe(request.app.state.engine, result["retry_after"])
+    return result
 
 
 @router.get("/news")
@@ -282,6 +305,14 @@ def deliveries(
     | None = None,
 ):
     return history(request.app.state.engine, limit, state)
+
+
+@router.get("/deliveries/{message_id}")
+def get_delivery(message_id: str, request: Request):
+    rows = history(request.app.state.engine, limit=1, message_id=message_id)
+    if not rows:
+        raise HTTPException(404, "Delivery not found")
+    return rows[0]
 
 
 @router.get("/queue/status")

@@ -8,6 +8,7 @@ import ConnectorSchedule, { scheduleDescription } from "./ConnectorSchedule";
 import AISettings from "./AISettings";
 import Reports from "./Reports";
 import News from "./News";
+import TelegramSetup from "./TelegramSetup";
 import {
   Activity,
   Boxes,
@@ -364,6 +365,7 @@ export default function App() {
     });
   const [packageUrl, setPackageUrl] = useState("");
   const [packageImportOpen, setPackageImportOpen] = useState(false);
+  const [telegramSetupOpen, setTelegramSetupOpen] = useState(false);
   const [theme, setTheme] = useState(
     () => localStorage.getItem("vulnrelay-theme") || "light",
   );
@@ -493,6 +495,7 @@ export default function App() {
     setPage(value);
     setEditor(null);
     setPackageImportOpen(false);
+    setTelegramSetupOpen(false);
     setDetail(null);
     setReport(null);
     setNotice("");
@@ -501,6 +504,7 @@ export default function App() {
     setEditId(entry?.id || null);
     setEditor(kind);
     setPackageImportOpen(false);
+    setTelegramSetupOpen(false);
     if (kind === "assets") {
       setPackageUrl("");
       setAsset(entry ? { ...entry } : structuredClone(initialAsset));
@@ -883,26 +887,46 @@ export default function App() {
                           : rules.length}{" "}
                       configured
                     </div>
-                    <button
-                      className="primary transition-colors duration-150"
-                      onClick={() =>
-                        openEditor(
-                          page === "Assets"
-                            ? "assets"
-                            : page === "Connectors"
-                              ? "connectors"
-                              : "rules",
-                        )
-                      }
-                    >
-                      <Plus size={16} /> Add{" "}
-                      {page === "Assets"
-                        ? "asset"
-                        : page === "Connectors"
-                          ? "connector"
-                          : "rule"}
-                    </button>
+                    <div className="connector-add-actions">
+                      {page === "Connectors" && (
+                        <button
+                          className="secondary"
+                          onClick={() => {
+                            setEditor(null);
+                            setTelegramSetupOpen(true);
+                          }}
+                        >
+                          Set up Telegram
+                        </button>
+                      )}
+                      <button
+                        className="primary transition-colors duration-150"
+                        onClick={() =>
+                          openEditor(
+                            page === "Assets"
+                              ? "assets"
+                              : page === "Connectors"
+                                ? "connectors"
+                                : "rules",
+                          )
+                        }
+                      >
+                        <Plus size={16} /> Add{" "}
+                        {page === "Assets"
+                          ? "asset"
+                          : page === "Connectors"
+                            ? "connector"
+                            : "rule"}
+                      </button>
+                    </div>
                   </div>
+                  {page === "Connectors" && telegramSetupOpen && (
+                    <TelegramSetup
+                      api={api}
+                      onSaved={load}
+                      onClose={() => setTelegramSetupOpen(false)}
+                    />
+                  )}
                   {editor && (
                     <section className="panel editor">
                       <div className="section-heading">

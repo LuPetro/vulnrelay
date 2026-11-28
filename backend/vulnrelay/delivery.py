@@ -790,14 +790,21 @@ def deliver_one(
     }
 
 
-def history(engine: Engine, limit: int = 100, state: str | None = None) -> list[dict]:
+def history(
+    engine: Engine, limit: int = 100, state: str | None = None, message_id: str | None = None
+) -> list[dict]:
+    identity_filter = " AND id=:message_id" if message_id is not None else ""
     with engine.connect() as connection:
         return [
             dict(row)
             for row in connection.execute(
-                text("""SELECT id, connector_id, state,
-            attempts, failures, created_at, sent_at, available_at, last_error FROM outbox WHERE (:state IS NULL OR state=:state) ORDER BY created_at DESC, id DESC LIMIT :limit"""),
-                {"limit": min(1000, max(1, limit)), "state": state},
+                text(
+                    """SELECT id, connector_id, state,
+            attempts, failures, created_at, sent_at, available_at, last_error FROM outbox WHERE (:state IS NULL OR state=:state)"""
+                    + identity_filter
+                    + " ORDER BY created_at DESC, id DESC LIMIT :limit"
+                ),
+                {"limit": min(1000, max(1, limit)), "state": state, "message_id": message_id},
             ).mappings()
         ]
 

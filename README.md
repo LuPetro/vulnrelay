@@ -62,7 +62,7 @@ fresh checkout: never replace an existing `.env` during an update.
 In the UI:
 
 1. Open **Catalog** or **Assets** and add one technology you want to monitor.
-2. Add a connector under **Connectors** and queue a test message. Credentials
+2. Use **Connectors → Set up Telegram**, or add another connector and queue a test message. Credentials
    belong in the server's `.env`; the form stores their environment variable names.
 3. Under **Notification rules**, select your assets and destination, set
    conditions, and test the rule against stored CVEs before enabling it.
