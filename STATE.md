@@ -23,6 +23,11 @@ The full local backend suite passed before final edge-case additions; focused
 tests passed after those changes. All 14 frontend unit tests, formatting and
 the production build passed locally. Mobile browser, accessibility and
 container validation must run in GitHub CI.
+The first CI run passed the assistant's mobile flow and accessibility check,
+but exposed two existing test timing issues: a delivery-filter assertion used
+a strict single-element locator before React applied the filtered list, and
+the schedule test read the database before the save response. Those assertions
+now wait for the exact list and completed save without weakening their checks.
 
 ## Expanded security news sources (2026-11-26)
 

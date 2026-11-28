@@ -244,9 +244,15 @@ test("connector hours save through the API and hold queued tests without attempt
     await page
       .getByLabel("Send alerts", { exact: true })
       .selectOption("always");
-    await page
-      .getByRole("button", { name: "Save connector", exact: true })
-      .click();
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith(`/api/config/connectors/${connectorId}`) &&
+          response.request().method() === "PUT" &&
+          response.status() === 200,
+      ),
+      page.getByRole("button", { name: "Save connector", exact: true }).click(),
+    ]);
     const unrestricted = await (
       await request.get("/api/config/connectors")
     ).json();

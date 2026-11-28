@@ -98,7 +98,7 @@ test("configure an asset, destination and rule, explain the match, then inspect 
     ),
     page.getByLabel("Filter delivery history").selectOption("failed"),
   ]);
-  await expect(page.locator(".delivery-row .badge")).toHaveText("failed");
+  await expect(page.locator(".delivery-row .badge")).toHaveText(["failed"]);
   await page.getByLabel("Filter delivery history").selectOption("all");
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(
